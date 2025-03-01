@@ -321,7 +321,7 @@ async function initializeClaudeConfig() {
 async function run() {
   await initializeClaudeConfig();
 
-  app.listen(port, () => {
+  app.listen(port, "127.0.0.1",  () => {
     console.log(`Example app listening on port ${port}`);
   });
 }

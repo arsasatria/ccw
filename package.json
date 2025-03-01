@@ -1,11 +1,11 @@
 {
-  "name": "claude-code-reverse",
+  "name": "ccw",
   "version": "1.0.0",
   "description": "You can switch the API endpoint by modifying the ANTHROPIC_BASE_URL environment variable.",
-  "main": "server.js",
+  "main": "index.mjs",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node index.mjs"
   },
   "keywords": [],
   "author": "",
