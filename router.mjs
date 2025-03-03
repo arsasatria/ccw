@@ -1,4 +1,5 @@
 import { OpenAI } from "openai";
+import { getOpenAICommonOptions } from "./utils.mjs";
 
 const useToolRouter = {
   name: "use-tool",

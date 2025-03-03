@@ -130,7 +130,6 @@ app.post("/v1/messages", async (req, res) => {
     let hasStartedTextBlock = false;
 
     for await (const chunk of completion) {
-      console.log(chunk);
       const delta = chunk.choices[0].delta;
       if (delta.tool_calls && delta.tool_calls.length > 0) {
         const toolCall = delta.tool_calls[0];
