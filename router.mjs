@@ -7,6 +7,7 @@ const useToolRouter = {
     const client = new OpenAI({
       apiKey: process.env.TOOL_AGENT_API_KEY,
       baseURL: process.env.TOOL_AGENT_BASE_URL,
+      ...getOpenAICommonOptions(),
     });
     return client.chat.completions.create({
       ...args,
@@ -14,7 +15,8 @@ const useToolRouter = {
         ...args.messages,
         {
           role: "system",
-          content: "You need to select the appropriate tool for the task based on the user’s request. Review the requirements and choose the tool that fits the task best.",
+          content:
+            "You need to select the appropriate tool for the task based on the user’s request. Review the requirements and choose the tool that fits the task best.",
         },
       ],
       model: process.env.TOOL_AGENT_MODEL,
@@ -29,6 +31,7 @@ const coderRouter = {
     const client = new OpenAI({
       apiKey: process.env.CODER_AGENT_API_KEY,
       baseURL: process.env.CODER_AGENT_BASE_URL,
+      ...getOpenAICommonOptions(),
     });
     delete args.tools;
     args.messages.forEach((item) => {
@@ -42,7 +45,8 @@ const coderRouter = {
         ...args.messages,
         {
           role: "system",
-          content: "You are a code writer who helps users write code based on their specific requirements. You create algorithms, implement functionality, and build structures according to the clear instructions provided by the user. Your focus is solely on writing code, ensuring that the task is completed accurately and efficiently.",
+          content:
+            "You are a code writer who helps users write code based on their specific requirements. You create algorithms, implement functionality, and build structures according to the clear instructions provided by the user. Your focus is solely on writing code, ensuring that the task is completed accurately and efficiently.",
         },
       ],
       model: process.env.CODER_AGENT_MODEL,
@@ -57,6 +61,7 @@ const thinkRouter = {
     const client = new OpenAI({
       apiKey: process.env.THINK_AGENT_API_KEY,
       baseURL: process.env.THINK_AGENT_BASE_URL,
+      ...getOpenAICommonOptions(),
     });
     const messages = JSON.parse(JSON.stringify(args.messages));
     messages.forEach((msg) => {
@@ -98,6 +103,7 @@ export class Router {
     this.client = new OpenAI({
       apiKey: process.env.ROUTER_AGENT_API_KEY,
       baseURL: process.env.ROUTER_AGENT_BASE_URL,
+      ...getOpenAICommonOptions(),
     });
   }
   async route(args) {

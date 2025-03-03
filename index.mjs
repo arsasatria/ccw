@@ -4,6 +4,7 @@ import dotenv from "dotenv";
 import { existsSync } from "fs";
 import { writeFile } from "fs/promises";
 import { Router } from "./router.mjs";
+import { getOpenAICommonOptions } from "./utils.mjs";
 
 dotenv.config();
 const app = express();
@@ -11,7 +12,7 @@ const port = 3456;
 app.use(express.json({ limit: "500mb" }));
 
 let client;
-if (process.env.ENABLE_ROUTER) {
+if (process.env.ENABLE_ROUTER && process.env.ENABLE_ROUTER === "true") {
   const router = new Router();
   client = {
     call: (data) => {
@@ -22,6 +23,7 @@ if (process.env.ENABLE_ROUTER) {
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
     baseURL: process.env.OPENAI_BASE_URL,
+    ...getOpenAICommonOptions(),
   });
   client = {
     call: (data) => {
@@ -128,6 +130,7 @@ app.post("/v1/messages", async (req, res) => {
     let hasStartedTextBlock = false;
 
     for await (const chunk of completion) {
+      console.log(chunk);
       const delta = chunk.choices[0].delta;
       if (delta.tool_calls && delta.tool_calls.length > 0) {
         const toolCall = delta.tool_calls[0];
@@ -321,7 +324,7 @@ async function initializeClaudeConfig() {
 async function run() {
   await initializeClaudeConfig();
 
-  app.listen(port, "127.0.0.1",  () => {
+  app.listen(port, "127.0.0.1", () => {
     console.log(`Example app listening on port ${port}`);
   });
 }

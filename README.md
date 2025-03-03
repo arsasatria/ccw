@@ -10,7 +10,7 @@
 
 - [x] Mormal Mode and Router Mode
 
-- [x] Using the qwen2.5-coder-3b-instruct model as the routing dispatcher (since it’s currently free on Alibaba Cloud’s official website)
+- [x] Using the qwen2.5-coder-3b model as the routing dispatcher (since it’s currently free on Alibaba Cloud’s official website)
 
 - [x] Using the qwen-max-0125 model as the tool invoker
 
@@ -18,7 +18,9 @@
 
 - [x] Using deepseek-r1 as the reasoning model
 
-Thanks to the free qwen2.5-coder-3b-instruct model from Alibaba and deepseek’s KV-Cache, we can significantly reduce the cost of using Claude Code. Make sure to set appropriate ignorePatterns for the project. See: https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview
+- [x] Support proxy
+
+Thanks to the free qwen2.5-coder-3b model from Alibaba and deepseek’s KV-Cache, we can significantly reduce the cost of using Claude Code. Make sure to set appropriate ignorePatterns for the project. See: https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview
 
 ## Usage
 
