@@ -2,13 +2,13 @@
 
 > This is a repository for testing routing Claude Code requests to different models.
 
-![demo.png](https://github.com/musistudio/claude-code-reverse/blob/main/screenshoots/demo.png)
+![demo.png](https://github.com/musistudio/ccw/blob/main/screenshoots/demo.png)
 
 ## Warning! This project is for testing purposes and may consume a lot of tokens! It may also fail to complete tasks!
 
 ## Implemented
 
-- [x] Mormal Mode and Router Mode
+- [x] Normal Mode and Router Mode
 
 - [x] Using the qwen2.5-coder-3b model as the routing dispatcher (since it’s currently free on Alibaba Cloud’s official website)
 
@@ -30,56 +30,22 @@ Thanks to the free qwen2.5-coder-3b model from Alibaba and deepseek’s KV-Cache
 npm install -g @anthropic-ai/claude-code
 ```
 
-1. Clone this repo
+1. Install ccw
 
 ```shell
-git clone https://github.com/musistudio/claude-code-reverse.git
+npm install -g @arsasatria/ccw
 ```
 
-2. Install dependencies
+2. Start ccw server
 
 ```shell
-npm i
+ccw
 ```
 
-3. Start server
-
-```shell
-# Alternatively, you can create an .env file in the repo directory
-# You can refer to the .env.example file to create the .env file
-
-## disable router
-ENABLE_ROUTER=false
-OPENAI_API_KEY=""
-OPENAI_BASE_URL=""
-OPENAI_MODEL=""
-
-## enable router
-ENABLE_ROUTER=true
-export TOOL_AGENT_API_KEY=""
-export TOOL_AGENT_BASE_URL=""
-export TOOL_AGENT_MODEL="qwen-max-2025-01-25"
-
-export CODER_AGENT_API_KEY=""
-export CODER_AGENT_BASE_URL="https://api.deepseek.com"
-export CODER_AGENT_MODEL="deepseek-chat"
-
-export THINK_AGENT_API_KEY=""
-export THINK_AGENT_BASE_URL="https://api.deepseek.com"
-export THINK_AGENT_MODEL="deepseek-reasoner"
-
-export ROUTER_AGENT_API_KEY=""
-export ROUTER_AGENT_BASE_URL=""
-export ROUTER_AGENT_MODEL="qwen2.5-coder-3b-instruct"
-
-node index.mjs
-```
-
-4. Set environment variable to start claude code
+3. Set environment variable to start claude code
 
 ```shell
 export DISABLE_PROMPT_CACHING=1
-export ANTHROPIC_AUTH_TOKEN="test"
 export ANTHROPIC_BASE_URL="http://127.0.0.1:3456"
 export API_TIMEOUT_MS=600000
 claude
@@ -102,4 +68,4 @@ CODER_AGENT_MODEL and THINK_AGENT_MODEL can use the DeepSeek series of models.
 
 The purpose of router mode is to separate tool invocation from coding tasks, enabling the use of inference models like r1, which do not support function calling.
 
-![router mode](https://github.com/musistudio/claude-code-reverse/blob/main/screenshoots/router.png)
+![router mode](https://github.com/musistudio/ccw/blob/main/screenshoots/router.png)
