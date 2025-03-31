@@ -1,11 +1,12 @@
 import { HttpsProxyAgent } from "https-proxy-agent";
 import OpenAI, { ClientOptions } from "openai";
 import fs from "node:fs/promises";
+import readline from "node:readline";
 import {
   CONFIG_FILE,
   DEFAULT_CONFIG,
   HOME_DIR,
-  PROMPTS_DIR,
+  PLUGINS_DIR,
 } from "../constants";
 
 export function getOpenAICommonOptions(): ClientOptions {
@@ -26,7 +27,29 @@ const ensureDir = async (dir_path: string) => {
 
 export const initDir = async () => {
   await ensureDir(HOME_DIR);
-  await ensureDir(PROMPTS_DIR);
+  await ensureDir(PLUGINS_DIR);
+};
+
+const createReadline = () => {
+  return readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+};
+
+const question = (query: string): Promise<string> => {
+  return new Promise((resolve) => {
+    const rl = createReadline();
+    rl.question(query, (answer) => {
+      rl.close();
+      resolve(answer);
+    });
+  });
+};
+
+const confirm = async (query: string): Promise<boolean> => {
+  const answer = await question(query);
+  return answer.toLowerCase() !== "n";
 };
 
 export const readConfigFile = async () => {
@@ -34,8 +57,24 @@ export const readConfigFile = async () => {
     const config = await fs.readFile(CONFIG_FILE, "utf-8");
     return JSON.parse(config);
   } catch {
-    await writeConfigFile(DEFAULT_CONFIG);
-    return DEFAULT_CONFIG;
+    const useRouter = await confirm(
+      "No config file found. Enable router mode? (Y/n)"
+    );
+    if (!useRouter) {
+      const apiKey = await question("Enter OPENAI_API_KEY: ");
+      const baseUrl = await question("Enter OPENAI_BASE_URL: ");
+      const model = await question("Enter OPENAI_MODEL: ");
+      const config = Object.assign({}, DEFAULT_CONFIG, {
+        OPENAI_API_KEY: apiKey,
+        OPENAI_BASE_URL: baseUrl,
+        OPENAI_MODEL: model,
+      });
+      await writeConfigFile(config);
+      return config;
+    } else {
+      const router = await question("Enter OPENAI_API_KEY: ");
+      return DEFAULT_CONFIG;
+    }
   }
 };
 

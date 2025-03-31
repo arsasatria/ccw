@@ -4,23 +4,11 @@
 
 ![demo.png](https://github.com/musistudio/ccw/blob/main/screenshoots/demo.png)
 
-## Warning! This project is for testing purposes and may consume a lot of tokens! It may also fail to complete tasks!
-
 ## Implemented
 
-- [x] Normal Mode and Router Mode
+- [x] Support writing custom plugins for rewriting prompts.
 
-- [x] Using the qwen2.5-coder-3b model as the routing dispatcher (since it’s currently free on Alibaba Cloud’s official website)
-
-- [x] Using the qwen-max-0125 model as the tool invoker
-
-- [x] Using deepseek-v3 as the coder model
-
-- [x] Using deepseek-r1 as the reasoning model
-
-- [x] Support proxy
-
-Thanks to the free qwen2.5-coder-3b model from Alibaba and deepseek’s KV-Cache, we can significantly reduce the cost of using Claude Code. Make sure to set appropriate ignorePatterns for the project. See: https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview
+- [x] Support writing custom plugins for implementing routers.
 
 ## Usage
 
@@ -30,16 +18,18 @@ Thanks to the free qwen2.5-coder-3b model from Alibaba and deepseek’s KV-Cache
 npm install -g @anthropic-ai/claude-code
 ```
 
-1. Install ccw
+1. Clone this repo and install dependencies
 
 ```shell
-npm install -g @arsasatria/ccw
+git clone https://github.com/musistudio/ccw
+cd ccw && pnpm i
+npm run build
 ```
 
 2. Start ccw server
 
 ```shell
-ccw
+node dist/cli.js
 ```
 
 3. Set environment variable to start claude code
@@ -51,21 +41,20 @@ export API_TIMEOUT_MS=600000
 claude
 ```
 
-## Normal Mode
+## Plugin
 
-The initial version uses a single model to accomplish all tasks. This model needs to support function calling and must allow for a sufficiently large tool description length, ideally greater than 1754. If the model used in this mode does not support KV Cache, it will consume a significant number of tokens.
+The plugin allows users to rewrite Claude Code prompt and custom router. The plugin path is in `$HOME/.ccw/plugins`. Currently, there are two demos available: 
+1. [custom router](https://github.com/musistudio/ccw/blob/dev/custom-prompt/plugins/deepseek.js)
+2. [rewrite prompt](https://github.com/musistudio/ccw/blob/dev/custom-prompt/plugins/gemini.js)
 
-![normal mode](https://github.com/musistudio/claude-code-reverse/blob/main/screenshoots/normal.png)
+You need to move them to the `$HOME/.ccw/plugins` directory and configure 'usePlugin' in `$HOME/.ccw/config.json`，like this:
 
-## Router Mode
-
-Using multiple models to handle different tasks, this mode requires setting ENABLE_ROUTER to true and configuring four models: ROUTER_AGENT_MODEL, TOOL_AGENT_MODEL, CODER_AGENT_MODEL, and THINK_AGENT_MODEL.
-
-ROUTER_AGENT_MODEL does not require high intelligence and is only responsible for request routing. A small model is sufficient for this task (testing has shown that the qwen-coder-3b model performs well).
-TOOL_AGENT_MODEL must support function calling and allow for a sufficiently large tool description length, ideally greater than 1754. If the model used in this mode does not support KV Cache, it will consume a significant number of tokens.
-
-CODER_AGENT_MODEL and THINK_AGENT_MODEL can use the DeepSeek series of models.
-
-The purpose of router mode is to separate tool invocation from coding tasks, enabling the use of inference models like r1, which do not support function calling.
-
-![router mode](https://github.com/musistudio/ccw/blob/main/screenshoots/router.png)
+```json
+{
+    "usePlugin": "gemini",
+    "LOG": true,
+    "OPENAI_API_KEY": "",
+    "OPENAI_BASE_URL": "",
+    "OPENAI_MODEL": ""
+}
+```

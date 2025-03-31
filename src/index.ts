@@ -1,8 +1,11 @@
 import { existsSync } from "fs";
 import { writeFile } from "fs/promises";
-import { initConfig, initDir } from "./utils";
+import { getOpenAICommonOptions, initConfig, initDir } from "./utils";
 import { createServer } from "./server";
-import { rewriteToolsPrompt } from "./middlewares/rewriteToolsPrompt";
+import { formatRequest } from "./middlewares/formatRequest";
+import { rewriteBody } from "./middlewares/rewriteBody";
+import OpenAI from "openai";
+import { streamOpenAIResponse } from "./utils/stream";
 
 async function initializeClaudeConfig() {
   const homeDir = process.env.HOME;
@@ -29,7 +32,25 @@ async function run() {
   await initDir();
   await initConfig();
   const server = createServer(3456);
-  server.useMiddleware(rewriteToolsPrompt);
+  server.useMiddleware(formatRequest);
+  server.useMiddleware(rewriteBody);
+
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+    baseURL: process.env.OPENAI_BASE_URL,
+    ...getOpenAICommonOptions(),
+  });
+  server.app.post("/v1/messages", async (req, res) => {
+    try {
+      if (process.env.OPENAI_MODEL) {
+        req.body.model = process.env.OPENAI_MODEL;
+      }
+      const completion: any = await openai.chat.completions.create(req.body);
+      await streamOpenAIResponse(res, completion, req.body.model);
+    } catch (e) {
+      console.error("Error in OpenAI API call:", e);
+    }
+  });
   server.start();
 }
 run();
