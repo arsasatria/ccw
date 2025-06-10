@@ -3,6 +3,7 @@ import { ContentBlockParam } from "@anthropic-ai/sdk/resources";
 import { MessageCreateParamsBase } from "@anthropic-ai/sdk/resources/messages";
 import OpenAI from "openai";
 import { streamOpenAIResponse } from "../utils/stream";
+import { log } from "../utils/log";
 
 export const formatRequest = async (
   req: Request,
@@ -17,33 +18,138 @@ export const formatRequest = async (
     temperature,
     metadata,
     tools,
+    stream,
   }: MessageCreateParamsBase = req.body;
+  log("formatRequest: ", req.body);
   try {
-    const openAIMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
-      messages.map((item) => {
-        if (item.content instanceof Array) {
-          return {
-            role: item.role,
-            content: item.content
-              .map((it: ContentBlockParam) => {
-                if (it.type === "text") {
-                  return typeof it.text === "string"
-                    ? it.text
-                    : JSON.stringify(it);
-                }
-                return JSON.stringify(it);
-              })
-              .join(""),
-          } as OpenAI.Chat.Completions.ChatCompletionMessageParam;
-        }
-        return {
-          role: item.role,
-          content:
-            typeof item.content === "string"
-              ? item.content
-              : JSON.stringify(item.content),
-        };
-      });
+    // @ts-ignore
+    const openAIMessages = Array.isArray(messages)
+      ? messages.flatMap((anthropicMessage) => {
+          const openAiMessagesFromThisAnthropicMessage = [];
+
+          if (!Array.isArray(anthropicMessage.content)) {
+            // Handle simple string content
+            if (typeof anthropicMessage.content === "string") {
+              openAiMessagesFromThisAnthropicMessage.push({
+                role: anthropicMessage.role,
+                content: anthropicMessage.content,
+              });
+            }
+            // If content is not string and not array (e.g. null/undefined), it will result in an empty array, effectively skipping this message.
+            return openAiMessagesFromThisAnthropicMessage;
+          }
+
+          // Handle array content
+          if (anthropicMessage.role === "assistant") {
+            const assistantMessage = {
+              role: "assistant",
+              content: null, // Will be populated if text parts exist
+            };
+            let textContent = "";
+            // @ts-ignore
+            const toolCalls = []; // Corrected type here
+
+            anthropicMessage.content.forEach((contentPart) => {
+              if (contentPart.type === "text") {
+                textContent +=
+                  (typeof contentPart.text === "string"
+                    ? contentPart.text
+                    : JSON.stringify(contentPart.text)) + "\\n";
+              } else if (contentPart.type === "tool_use") {
+                toolCalls.push({
+                  id: contentPart.id,
+                  type: "function",
+                  function: {
+                    name: contentPart.name,
+                    arguments: JSON.stringify(contentPart.input),
+                  },
+                });
+              }
+            });
+
+            const trimmedTextContent = textContent.trim();
+            if (trimmedTextContent.length > 0) {
+              // @ts-ignore
+              assistantMessage.content = trimmedTextContent;
+            }
+            if (toolCalls.length > 0) {
+              // @ts-ignore
+              assistantMessage.tool_calls = toolCalls;
+            }
+            // @ts-ignore
+            if (
+              assistantMessage.content ||
+              // @ts-ignore
+              (assistantMessage.tool_calls &&
+                // @ts-ignore
+                assistantMessage.tool_calls.length > 0)
+            ) {
+              openAiMessagesFromThisAnthropicMessage.push(assistantMessage);
+            }
+          } else if (anthropicMessage.role === "user") {
+            // For user messages, text parts are combined into one message.
+            // Tool results are transformed into subsequent, separate 'tool' role messages.
+            let userTextMessageContent = "";
+            // @ts-ignore
+            const subsequentToolMessages = [];
+
+            anthropicMessage.content.forEach((contentPart) => {
+              if (contentPart.type === "text") {
+                userTextMessageContent +=
+                  (typeof contentPart.text === "string"
+                    ? contentPart.text
+                    : JSON.stringify(contentPart.text)) + "\\n";
+              } else if (contentPart.type === "tool_result") {
+                // Each tool_result becomes a separate 'tool' message
+                subsequentToolMessages.push({
+                  role: "tool",
+                  tool_call_id: contentPart.tool_use_id,
+                  content:
+                    typeof contentPart.content === "string"
+                      ? contentPart.content
+                      : JSON.stringify(contentPart.content),
+                });
+              }
+            });
+
+            const trimmedUserText = userTextMessageContent.trim();
+            if (trimmedUserText.length > 0) {
+              openAiMessagesFromThisAnthropicMessage.push({
+                role: "user",
+                content: trimmedUserText,
+              });
+            }
+            // @ts-ignore
+            openAiMessagesFromThisAnthropicMessage.push(
+              // @ts-ignore
+              ...subsequentToolMessages
+            );
+          } else {
+            // Fallback for other roles (e.g. system, or custom roles if they were to appear here with array content)
+            // This will combine all text parts into a single message for that role.
+            let combinedContent = "";
+            anthropicMessage.content.forEach((contentPart) => {
+              if (contentPart.type === "text") {
+                combinedContent +=
+                  (typeof contentPart.text === "string"
+                    ? contentPart.text
+                    : JSON.stringify(contentPart.text)) + "\\n";
+              } else {
+                // For non-text parts in other roles, stringify them or handle as appropriate
+                combinedContent += JSON.stringify(contentPart) + "\\n";
+              }
+            });
+            const trimmedCombinedContent = combinedContent.trim();
+            if (trimmedCombinedContent.length > 0) {
+              openAiMessagesFromThisAnthropicMessage.push({
+                role: anthropicMessage.role, // Cast needed as role could be other than 'user'/'assistant'
+                content: trimmedCombinedContent,
+              });
+            }
+          }
+          return openAiMessagesFromThisAnthropicMessage;
+        })
+      : [];
     const systemMessages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] =
       Array.isArray(system)
         ? system.map((item) => ({
@@ -51,11 +157,11 @@ export const formatRequest = async (
             content: item.text,
           }))
         : [{ role: "system", content: system }];
-    const data: OpenAI.Chat.Completions.ChatCompletionCreateParams = {
+    const data: any = {
       model,
       messages: [...systemMessages, ...openAIMessages],
       temperature,
-      stream: true,
+      stream,
     };
     if (tools) {
       data.tools = tools
@@ -69,7 +175,9 @@ export const formatRequest = async (
           },
         }));
     }
-    res.setHeader("Content-Type", "text/event-stream");
+    if (stream) {
+      res.setHeader("Content-Type", "text/event-stream");
+    }
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     req.body = data;
@@ -95,7 +203,7 @@ export const formatRequest = async (
           };
         },
       };
-    await streamOpenAIResponse(res, errorCompletion, model);
+    await streamOpenAIResponse(res, errorCompletion, model, req.body);
   }
   next();
 };

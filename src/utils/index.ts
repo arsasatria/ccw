@@ -57,28 +57,21 @@ export const readConfigFile = async () => {
     const config = await fs.readFile(CONFIG_FILE, "utf-8");
     return JSON.parse(config);
   } catch {
-    const useRouter = await confirm(
-      "No config file found. Enable router mode? (Y/n)"
-    );
-    if (!useRouter) {
-      const apiKey = await question("Enter OPENAI_API_KEY: ");
-      const baseUrl = await question("Enter OPENAI_BASE_URL: ");
-      const model = await question("Enter OPENAI_MODEL: ");
-      const config = Object.assign({}, DEFAULT_CONFIG, {
-        OPENAI_API_KEY: apiKey,
-        OPENAI_BASE_URL: baseUrl,
-        OPENAI_MODEL: model,
-      });
-      await writeConfigFile(config);
-      return config;
-    } else {
-      const router = await question("Enter OPENAI_API_KEY: ");
-      return DEFAULT_CONFIG;
-    }
+    const apiKey = await question("Enter OPENAI_API_KEY: ");
+    const baseUrl = await question("Enter OPENAI_BASE_URL: ");
+    const model = await question("Enter OPENAI_MODEL: ");
+    const config = Object.assign({}, DEFAULT_CONFIG, {
+      OPENAI_API_KEY: apiKey,
+      OPENAI_BASE_URL: baseUrl,
+      OPENAI_MODEL: model,
+    });
+    await writeConfigFile(config);
+    return config;
   }
 };
 
 export const writeConfigFile = async (config: any) => {
+  await ensureDir(HOME_DIR);
   await fs.writeFile(CONFIG_FILE, JSON.stringify(config, null, 2));
 };
 

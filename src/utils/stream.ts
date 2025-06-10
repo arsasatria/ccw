@@ -1,5 +1,6 @@
 import { Response } from "express";
 import { OpenAI } from "openai";
+import { log } from "./log";
 
 interface ContentBlock {
   type: string;
@@ -42,10 +43,40 @@ interface MessageEvent {
 
 export async function streamOpenAIResponse(
   res: Response,
-  completion: AsyncIterable<OpenAI.Chat.Completions.ChatCompletionChunk>,
-  model: string
+  completion: any,
+  model: string,
+  body: any
 ) {
+  const write = (data: string) => {
+    log("response: ", data);
+    res.write(data);
+  };
   const messageId = "msg_" + Date.now();
+  if (!body.stream) {
+    res.json({
+      id: messageId,
+      type: "message",
+      role: "assistant",
+      // @ts-ignore
+      content: completion.choices[0].message.content || completion.choices[0].message.tool_calls?.map((item) => {
+        return {
+          type: 'tool_use',
+          id: item.id,
+          name: item.function?.name,
+          input: item.function?.arguments ? JSON.parse(item.function.arguments) : {},
+        };
+      }) || '',
+      stop_reason: completion.choices[0].finish_reason === 'tool_calls' ? "tool_use" : "end_turn",
+      stop_sequence: null,
+      usage: {
+        input_tokens: 100,
+        output_tokens: 50,
+      },
+    });
+    res.end();
+    return;
+  }
+
   let contentBlockIndex = 0;
   let currentContentBlocks: ContentBlock[] = [];
 
@@ -63,7 +94,7 @@ export async function streamOpenAIResponse(
       usage: { input_tokens: 1, output_tokens: 1 },
     },
   };
-  res.write(`event: message_start\ndata: ${JSON.stringify(messageStart)}\n\n`);
+  write(`event: message_start\ndata: ${JSON.stringify(messageStart)}\n\n`);
 
   let isToolUse = false;
   let toolUseJson = "";
@@ -71,6 +102,7 @@ export async function streamOpenAIResponse(
 
   try {
     for await (const chunk of completion) {
+      log("Processing chunk:", chunk);
       const delta = chunk.choices[0].delta;
 
       if (delta.tool_calls && delta.tool_calls.length > 0) {
@@ -94,7 +126,7 @@ export async function streamOpenAIResponse(
 
           currentContentBlocks.push(toolBlock);
 
-          res.write(
+          write(
             `event: content_block_start\ndata: ${JSON.stringify(
               toolBlockStart
             )}\n\n`
@@ -119,23 +151,25 @@ export async function streamOpenAIResponse(
             const parsedJson = JSON.parse(toolUseJson);
             currentContentBlocks[contentBlockIndex].input = parsedJson;
           } catch (e) {
+            log(e);
             // JSON not yet complete, continue accumulating
           }
 
-          res.write(
+          write(
             `event: content_block_delta\ndata: ${JSON.stringify(jsonDelta)}\n\n`
           );
         }
       } else if (delta.content) {
         // Handle regular text content
         if (isToolUse) {
+          log("Tool call ended here:", delta);
           // End previous tool call block
           const contentBlockStop: MessageEvent = {
             type: "content_block_stop",
             index: contentBlockIndex,
           };
 
-          res.write(
+          write(
             `event: content_block_stop\ndata: ${JSON.stringify(
               contentBlockStop
             )}\n\n`
@@ -161,7 +195,7 @@ export async function streamOpenAIResponse(
 
           currentContentBlocks.push(textBlock);
 
-          res.write(
+          write(
             `event: content_block_start\ndata: ${JSON.stringify(
               textBlockStart
             )}\n\n`
@@ -184,7 +218,7 @@ export async function streamOpenAIResponse(
           currentContentBlocks[contentBlockIndex].text += delta.content;
         }
 
-        res.write(
+        write(
           `event: content_block_delta\ndata: ${JSON.stringify(
             contentDelta
           )}\n\n`
@@ -207,7 +241,7 @@ export async function streamOpenAIResponse(
 
       currentContentBlocks.push(textBlock);
 
-      res.write(
+      write(
         `event: content_block_start\ndata: ${JSON.stringify(
           textBlockStart
         )}\n\n`
@@ -230,7 +264,7 @@ export async function streamOpenAIResponse(
       currentContentBlocks[contentBlockIndex].text += JSON.stringify(e);
     }
 
-    res.write(
+    write(
       `event: content_block_delta\ndata: ${JSON.stringify(contentDelta)}\n\n`
     );
   }
@@ -241,7 +275,7 @@ export async function streamOpenAIResponse(
     index: contentBlockIndex,
   };
 
-  res.write(
+  write(
     `event: content_block_stop\ndata: ${JSON.stringify(contentBlockStop)}\n\n`
   );
 
@@ -255,14 +289,17 @@ export async function streamOpenAIResponse(
     },
     usage: { input_tokens: 100, output_tokens: 150 },
   };
+  if (!isToolUse) {
+    log("body: ", body, "messageDelta: ", messageDelta);
+  }
 
-  res.write(`event: message_delta\ndata: ${JSON.stringify(messageDelta)}\n\n`);
+  write(`event: message_delta\ndata: ${JSON.stringify(messageDelta)}\n\n`);
 
   // Send message_stop event
   const messageStop: MessageEvent = {
     type: "message_stop",
   };
 
-  res.write(`event: message_stop\ndata: ${JSON.stringify(messageStop)}\n\n`);
+  write(`event: message_stop\ndata: ${JSON.stringify(messageStop)}\n\n`);
   res.end();
 }

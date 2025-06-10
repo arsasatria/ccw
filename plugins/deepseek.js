@@ -6,7 +6,7 @@ const {
 
 const thinkRouter = {
   name: "think",
-  description: `This agent is used solely for complex reasoning and thinking tasks. It should not be called for information retrieval or repetitive, frequent requests. Only use this agent for tasks that require deep analysis or problem-solving. If there is an existing result from the Thinker agent, do not call this agent again.你只负责深度思考以拆分任务，不需要进行任何的编码和调用工具。最后讲拆分的步骤按照顺序返回。比如\n1. xxx\n2. xxx\n3. xxx`,
+  description: `This agent is used solely for complex reasoning and thinking tasks. It should not be called for information retrieval or repetitive, frequent requests. Only use this agent for tasks that require deep analysis or problem-solving. If there is an existing result from the Thinker agent, do not call this agent again. You are only responsible for deep thinking to break down tasks, no coding or tool calls are needed. Finally, return the broken-down steps in order, for example:\n1. xxx\n2. xxx\n3. xxx`,
   run(args) {
     const client = createClient({
       apiKey: process.env.THINK_AGENT_API_KEY,

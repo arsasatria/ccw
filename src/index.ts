@@ -6,6 +6,8 @@ import { formatRequest } from "./middlewares/formatRequest";
 import { rewriteBody } from "./middlewares/rewriteBody";
 import OpenAI from "openai";
 import { streamOpenAIResponse } from "./utils/stream";
+import { isServiceRunning, savePid } from "./utils/processCheck";
+import { fork } from "child_process";
 
 async function initializeClaudeConfig() {
   const homeDir = process.env.HOME;
@@ -20,18 +22,40 @@ async function initializeClaudeConfig() {
       autoUpdaterStatus: "enabled",
       userID,
       hasCompletedOnboarding: true,
-      lastOnboardingVersion: "0.2.9",
+      lastOnboardingVersion: "1.0.17",
       projects: {},
     };
     await writeFile(configPath, JSON.stringify(configContent, null, 2));
   }
 }
 
-async function run() {
+interface RunOptions {
+  port?: number;
+  daemon?: boolean;
+}
+
+async function run(options: RunOptions = {}) {
+  const port = options.port || 3456;
+
+  // Check if service is already running
+  if (isServiceRunning()) {
+    console.log("✅ Service is already running in the background.");
+    return;
+  }
+
   await initializeClaudeConfig();
   await initDir();
   await initConfig();
-  const server = createServer(3456);
+
+  // Save the PID of the background process
+  savePid(process.pid);
+
+  // Use port from environment variable if set (for background process)
+  const servicePort = process.env.SERVICE_PORT
+    ? parseInt(process.env.SERVICE_PORT)
+    : port;
+
+  const server = createServer(servicePort);
   server.useMiddleware(formatRequest);
   server.useMiddleware(rewriteBody);
 
@@ -46,11 +70,13 @@ async function run() {
         req.body.model = process.env.OPENAI_MODEL;
       }
       const completion: any = await openai.chat.completions.create(req.body);
-      await streamOpenAIResponse(res, completion, req.body.model);
+      await streamOpenAIResponse(res, completion, req.body.model, req.body);
     } catch (e) {
       console.error("Error in OpenAI API call:", e);
     }
   });
   server.start();
+  console.log(`🚀 Claude Code Router is running on port ${servicePort}`);
 }
-run();
+
+export { run };

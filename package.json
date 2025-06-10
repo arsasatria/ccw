@@ -1,19 +1,17 @@
 {
-  "name": "ccw",
+  "name": "@arsasatria/ccw",
   "version": "1.0.0",
   "description": "Use Claude Code without an Anthropics account and route it to another LLM provider",
   "bin": {
-    "ccw": "./dist/cli.js"
+    "ccr": "./dist/cli.js"
   },
   "scripts": {
-    "start": "node dist/cli.js",
-    "build": "tsc && esbuild src/index.ts --bundle --platform=node --outfile=dist/cli.js"
+    "build": "esbuild src/cli.ts --bundle --platform=node --outfile=dist/cli.js"
   },
   "keywords": ["claude", "code", "router", "llm", "anthropic"],
   "author": "musistudio",
   "license": "MIT",
   "dependencies": {
-    "@anthropic-ai/claude-code": "^0.2.53",
     "@anthropic-ai/sdk": "^0.39.0",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",

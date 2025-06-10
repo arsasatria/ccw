@@ -2,44 +2,26 @@
 
 > This is a repository for testing routing Claude Code requests to different models.
 
-![demo.png](https://github.com/musistudio/ccw/blob/main/screenshoots/demo.png)
-
-## Implemented
-
-- [x] Support writing custom plugins for rewriting prompts.
-
-- [x] Support writing custom plugins for implementing routers.
-
 ## Usage
 
-0. Install Claude Code
+1. Install Claude Code
 
 ```shell
 npm install -g @anthropic-ai/claude-code
 ```
 
-1. Clone this repo and install dependencies
+2. Install Claude Code Router
 
 ```shell
-git clone https://github.com/musistudio/ccw
-cd ccw && pnpm i
-npm run build
+npm install -g @arsasatria/ccw
 ```
 
-2. Start ccw server
+3. Start Claude Code by ccw
 
 ```shell
-node dist/cli.js
+ccr code
 ```
 
-3. Set environment variable to start claude code
-
-```shell
-export DISABLE_PROMPT_CACHING=1
-export ANTHROPIC_BASE_URL="http://127.0.0.1:3456"
-export API_TIMEOUT_MS=600000
-claude
-```
 
 ## Plugin
 
@@ -58,3 +40,8 @@ You need to move them to the `$HOME/.ccw/plugins` directory and configure 'usePl
     "OPENAI_MODEL": ""
 }
 ```
+
+## Features
+- [x] Plugins
+- [] Support change models
+- [] Suport scheduled tasks
