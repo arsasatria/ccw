@@ -25,7 +25,7 @@ npm install -g @arsasatria/ccw
 ccr code
 ```
 
-4. Configure routing[optional]
+4. Configure routing[optional]    
 Set up your `~/ccw/config.json` file like this:
 ```json
 {
