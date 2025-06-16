@@ -14,13 +14,13 @@ export function showStatus() {
         console.log(`📄 PID File: ${info.pidFile}`);
         console.log('');
         console.log('🚀 Ready to use! Run the following commands:');
-        console.log('   ccw code    # Start coding with Claude');
-        console.log('   ccw close   # Stop the service');
+        console.log('   ccr code    # Start coding with Claude');
+        console.log('   ccr close   # Stop the service');
     } else {
         console.log('❌ Status: Not Running');
         console.log('');
         console.log('💡 To start the service:');
-        console.log('   ccw start');
+        console.log('   ccr start');
     }
     
     console.log('');
