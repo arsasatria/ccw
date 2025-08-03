@@ -360,6 +360,17 @@ module.exports = async function router(req, config) {
 };
 ```
 
+##### Subagent Routing
+
+For routing within subagents, you must specify a particular provider and model by including `<CCW-SUBAGENT-MODEL>provider,model</CCW-SUBAGENT-MODEL>` at the **beginning** of the subagent's prompt. This allows you to direct specific subagent tasks to designated models.
+
+**Example:**
+
+```
+<CCW-SUBAGENT-MODEL>openrouter,anthropic/claude-3.5-sonnet</CCW-SUBAGENT-MODEL>
+Please help me analyze this code snippet for potential optimizations...
+```
+
 ## 🤖 GitHub Actions
 
 Integrate Claude Code Router into your CI/CD pipeline. After setting up [Claude Code Actions](https://docs.anthropic.com/en/docs/claude-code/github-actions), modify your `.github/workflows/claude.yaml` to use the router:
