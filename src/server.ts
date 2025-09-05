@@ -3,6 +3,8 @@ import { readConfigFile, writeConfigFile, backupConfigFile } from "./utils";
 import { checkForUpdates, performUpdate } from "./utils";
 import { join } from "path";
 import fastifyStatic from "@fastify/static";
+import { readdirSync, statSync, readFileSync, writeFileSync, existsSync } from "fs";
+import { homedir } from "os";
 
 export const createServer = (config: any): Server => {
   const server = new Server(config);
@@ -99,6 +101,150 @@ export const createServer = (config: any): Server => {
     } catch (error) {
       console.error("Failed to perform update:", error);
       reply.status(500).send({ error: "Failed to perform update" });
+    }
+  });
+
+  // 获取日志文件列表端点
+  server.app.get("/api/logs/files", async (req, reply) => {
+    try {
+      const logDir = join(homedir(), ".ccw", "logs");
+      const logFiles: Array<{ name: string; path: string; size: number; lastModified: string }> = [];
+
+      if (existsSync(logDir)) {
+        const files = readdirSync(logDir);
+        
+        for (const file of files) {
+          if (file.endsWith('.log')) {
+            const filePath = join(logDir, file);
+            const stats = statSync(filePath);
+            
+            logFiles.push({
+              name: file,
+              path: filePath,
+              size: stats.size,
+              lastModified: stats.mtime.toISOString()
+            });
+          }
+        }
+        
+        // 按修改时间倒序排列
+        logFiles.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
+      }
+
+      return logFiles;
+    } catch (error) {
+      console.error("Failed to get log files:", error);
+      reply.status(500).send({ error: "Failed to get log files" });
+    }
+  });
+
+  // 获取日志内容端点
+  server.app.get("/api/logs", async (req, reply) => {
+    try {
+      const filePath = (req.query as any).file as string;
+      const groupByReqId = (req.query as any).groupByReqId === 'true';
+      let logFilePath: string;
+      
+      if (filePath) {
+        // 如果指定了文件路径，使用指定的路径
+        logFilePath = filePath;
+      } else {
+        // 如果没有指定文件路径，使用默认的日志文件路径
+        logFilePath = join(homedir(), ".ccw", "logs", "app.log");
+      }
+
+      if (!existsSync(logFilePath)) {
+        return [];
+      }
+
+      const logContent = readFileSync(logFilePath, 'utf8');
+      const logLines = logContent.split('\n').filter(line => line.trim());
+      
+      const logs = logLines.map(line => {
+        try {
+          // 尝试解析JSON格式的日志
+          const logEntry = JSON.parse(line);
+          return {
+            timestamp: logEntry.timestamp || logEntry.time || new Date(logEntry.time).toISOString() || new Date().toISOString(),
+            level: logEntry.level || 'info',
+            message: logEntry.message || logEntry.msg || line,
+            source: logEntry.source || undefined,
+            reqId: logEntry.reqId || undefined
+          };
+        } catch {
+          // 如果不是JSON格式，创建一个基本的日志条目
+          return {
+            timestamp: new Date().toISOString(),
+            level: 'info',
+            message: line,
+            source: undefined,
+            reqId: undefined
+          };
+        }
+      });
+
+      // 如果需要按reqId聚合
+      if (groupByReqId) {
+        const groupedLogs: { [reqId: string]: typeof logs } = {};
+        
+        logs.forEach(log => {
+          const reqId = log.reqId || 'no-req-id';
+          if (!groupedLogs[reqId]) {
+            groupedLogs[reqId] = [];
+          }
+          groupedLogs[reqId].push(log);
+        });
+
+        // 按时间戳排序每个组的日志
+        Object.keys(groupedLogs).forEach(reqId => {
+          groupedLogs[reqId].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        });
+
+        return {
+          grouped: true,
+          groups: groupedLogs,
+          summary: {
+            totalRequests: Object.keys(groupedLogs).length,
+            totalLogs: logs.length,
+            requests: Object.keys(groupedLogs).map(reqId => ({
+              reqId,
+              logCount: groupedLogs[reqId].length,
+              firstLog: groupedLogs[reqId][0]?.timestamp,
+              lastLog: groupedLogs[reqId][groupedLogs[reqId].length - 1]?.timestamp
+            }))
+          }
+        };
+      }
+
+      return logs;
+    } catch (error) {
+      console.error("Failed to get logs:", error);
+      reply.status(500).send({ error: "Failed to get logs" });
+    }
+  });
+
+  // 清除日志内容端点
+  server.app.delete("/api/logs", async (req, reply) => {
+    try {
+      const filePath = (req.query as any).file as string;
+      let logFilePath: string;
+      
+      if (filePath) {
+        // 如果指定了文件路径，使用指定的路径
+        logFilePath = filePath;
+      } else {
+        // 如果没有指定文件路径，使用默认的日志文件路径
+        logFilePath = join(homedir(), ".ccw", "logs", "app.log");
+      }
+
+      if (existsSync(logFilePath)) {
+        writeFileSync(logFilePath, '', 'utf8');
+      }
+
+      return { success: true, message: "Logs cleared successfully" };
+    } catch (error) {
+      console.error("Failed to clear logs:", error);
+      reply.status(500).send({ error: "Failed to clear logs" });
     }
   });
 
