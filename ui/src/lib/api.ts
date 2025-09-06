@@ -227,8 +227,8 @@ class ApiClient {
   }
   
   // Get logs from specific file
-  async getLogs(filePath: string): Promise<Array<{ timestamp: string; level: string; message: string; source?: string; reqId?: string }>> {
-    return this.get<Array<{ timestamp: string; level: string; message: string; source?: string; reqId?: string }>>(`/logs?file=${encodeURIComponent(filePath)}`);
+  async getLogs(filePath: string): Promise<string[]> {
+    return this.get<string[]>(`/logs?file=${encodeURIComponent(filePath)}`);
   }
   
   // Clear logs from specific file

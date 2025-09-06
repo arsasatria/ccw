@@ -142,7 +142,6 @@ export const createServer = (config: any): Server => {
   server.app.get("/api/logs", async (req, reply) => {
     try {
       const filePath = (req.query as any).file as string;
-      const groupByReqId = (req.query as any).groupByReqId === 'true';
       let logFilePath: string;
       
       if (filePath) {
@@ -159,64 +158,8 @@ export const createServer = (config: any): Server => {
 
       const logContent = readFileSync(logFilePath, 'utf8');
       const logLines = logContent.split('\n').filter(line => line.trim());
-      
-      const logs = logLines.map(line => {
-        try {
-          // 尝试解析JSON格式的日志
-          const logEntry = JSON.parse(line);
-          return {
-            timestamp: logEntry.timestamp || logEntry.time || new Date(logEntry.time).toISOString() || new Date().toISOString(),
-            level: logEntry.level || 'info',
-            message: logEntry.message || logEntry.msg || line,
-            source: logEntry.source || undefined,
-            reqId: logEntry.reqId || undefined
-          };
-        } catch {
-          // 如果不是JSON格式，创建一个基本的日志条目
-          return {
-            timestamp: new Date().toISOString(),
-            level: 'info',
-            message: line,
-            source: undefined,
-            reqId: undefined
-          };
-        }
-      });
 
-      // 如果需要按reqId聚合
-      if (groupByReqId) {
-        const groupedLogs: { [reqId: string]: typeof logs } = {};
-        
-        logs.forEach(log => {
-          const reqId = log.reqId || 'no-req-id';
-          if (!groupedLogs[reqId]) {
-            groupedLogs[reqId] = [];
-          }
-          groupedLogs[reqId].push(log);
-        });
-
-        // 按时间戳排序每个组的日志
-        Object.keys(groupedLogs).forEach(reqId => {
-          groupedLogs[reqId].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-        });
-
-        return {
-          grouped: true,
-          groups: groupedLogs,
-          summary: {
-            totalRequests: Object.keys(groupedLogs).length,
-            totalLogs: logs.length,
-            requests: Object.keys(groupedLogs).map(reqId => ({
-              reqId,
-              logCount: groupedLogs[reqId].length,
-              firstLog: groupedLogs[reqId][0]?.timestamp,
-              lastLog: groupedLogs[reqId][groupedLogs[reqId].length - 1]?.timestamp
-            }))
-          }
-        };
-      }
-
-      return logs;
+      return logLines;
     } catch (error) {
       console.error("Failed to get logs:", error);
       reply.status(500).send({ error: "Failed to get logs" });
