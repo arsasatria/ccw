@@ -14,7 +14,6 @@ import {
 import { CONFIG_FILE } from "./constants";
 import { createStream } from 'rotating-file-stream';
 import { HOME_DIR } from "./constants";
-import { configureLogging } from "./utils/log";
 import { sessionUsageCache } from "./utils/cache";
 import {SSEParserTransform} from "./utils/SSEParser.transform";
 import {SSESerializerTransform} from "./utils/SSESerializer.transform";
@@ -63,8 +62,6 @@ async function run(options: RunOptions = {}) {
   await cleanupLogFiles();
   const config = await initConfig();
 
-  // Configure logging based on config
-  configureLogging(config);
 
   let HOST = config.HOST || "127.0.0.1";
 
@@ -138,6 +135,15 @@ async function run(options: RunOptions = {}) {
       ),
     },
     logger: loggerConfig,
+  });
+
+  // Add global error handlers to prevent the service from crashing
+  process.on("uncaughtException", (err) => {
+    server.log.error("Uncaught exception:", err);
+  });
+
+  process.on("unhandledRejection", (reason, promise) => {
+    server.log.error("Unhandled rejection at:", promise, "reason:", reason);
   });
   // Add async preHandler hook for authentication
   server.addHook("preHandler", async (req, reply) => {
