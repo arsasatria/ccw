@@ -358,12 +358,16 @@ async function run(options: RunOptions = {}) {
         return done(null, originalStream)
       }
       sessionUsageCache.put(req.sessionId, payload.usage);
-    }
-    if (typeof payload ==='object') {
-      if (payload.error) {
-        return done(payload.error, null)
+      if (typeof payload ==='object') {
+        if (payload.error) {
+          return done(payload.error, null)
+        } else {
+          return done(payload, null)
+        }
       }
-      return done(payload)
+    }
+    if (typeof payload ==='object' && payload.error) {
+      return done(payload.error, null)
     }
     done(null, payload)
   });

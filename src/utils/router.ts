@@ -5,6 +5,7 @@ import {
 } from "@anthropic-ai/sdk/resources/messages";
 import { get_encoding } from "tiktoken";
 import { sessionUsageCache, Usage } from "./cache";
+import { readFile } from 'fs/promises'
 
 const enc = get_encoding("cl100k_base");
 
@@ -147,6 +148,11 @@ export const router = async (req: any, _res: any, context: any) => {
   }
   const lastMessageUsage = sessionUsageCache.get(req.sessionId);
   const { messages, system = [], tools }: MessageCreateParamsBase = req.body;
+  if (config.REWRITE_SYSTEM_PROMPT && system.length > 1 && system[1]?.text?.includes('<env>')) {
+    const prompt = await readFile(config.REWRITE_SYSTEM_PROMPT, 'utf-8');
+    system[1].text = `${prompt}<env>${system[1].text.split('<env>').pop()}`
+  }
+
   try {
     const tokenCount = calculateTokenCount(
       messages as MessageParam[],
