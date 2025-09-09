@@ -115,7 +115,7 @@ async function run(options: RunOptions = {}) {
             path: HOME_DIR,
             maxFiles: 3,
             interval: "1d",
-            compress: 'gzip',
+            compress: false,
             maxSize: "50M"
           }),
         }

@@ -65,16 +65,16 @@ export const createServer = (config: any): Server => {
   server.app.get("/ui", async (_, reply) => {
     return reply.redirect("/ui/");
   });
-  
+
   // 版本检查端点
   server.app.get("/api/update/check", async (req, reply) => {
     try {
       // 获取当前版本
       const currentVersion = require("../package.json").version;
       const { hasUpdate, latestVersion, changelog } = await checkForUpdates(currentVersion);
-      
-      return { 
-        hasUpdate, 
+
+      return {
+        hasUpdate,
         latestVersion: hasUpdate ? latestVersion : undefined,
         changelog: hasUpdate ? changelog : undefined
       };
@@ -83,7 +83,7 @@ export const createServer = (config: any): Server => {
       reply.status(500).send({ error: "Failed to check for updates" });
     }
   });
-  
+
   // 执行更新端点
   server.app.post("/api/update/perform", async (req, reply) => {
     try {
@@ -93,10 +93,10 @@ export const createServer = (config: any): Server => {
         reply.status(403).send("Full access required to perform updates");
         return;
       }
-      
+
       // 执行更新逻辑
       const result = await performUpdate();
-      
+
       return result;
     } catch (error) {
       console.error("Failed to perform update:", error);
@@ -112,12 +112,12 @@ export const createServer = (config: any): Server => {
 
       if (existsSync(logDir)) {
         const files = readdirSync(logDir);
-        
+
         for (const file of files) {
           if (file.endsWith('.log')) {
             const filePath = join(logDir, file);
             const stats = statSync(filePath);
-            
+
             logFiles.push({
               name: file,
               path: filePath,
@@ -126,7 +126,7 @@ export const createServer = (config: any): Server => {
             });
           }
         }
-        
+
         // 按修改时间倒序排列
         logFiles.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
       }
@@ -143,7 +143,7 @@ export const createServer = (config: any): Server => {
     try {
       const filePath = (req.query as any).file as string;
       let logFilePath: string;
-      
+
       if (filePath) {
         // 如果指定了文件路径，使用指定的路径
         logFilePath = filePath;
@@ -157,7 +157,7 @@ export const createServer = (config: any): Server => {
       }
 
       const logContent = readFileSync(logFilePath, 'utf8');
-      const logLines = logContent.split('\n').filter(line => line.trim());
+      const logLines = logContent.split('\n').filter(line => line.trim())
 
       return logLines;
     } catch (error) {
@@ -171,7 +171,7 @@ export const createServer = (config: any): Server => {
     try {
       const filePath = (req.query as any).file as string;
       let logFilePath: string;
-      
+
       if (filePath) {
         // 如果指定了文件路径，使用指定的路径
         logFilePath = filePath;
