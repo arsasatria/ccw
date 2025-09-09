@@ -5,8 +5,9 @@ import { join } from 'path';
 
 export async function closeService() {
     const PID_FILE = join(HOME_DIR, '.ccw.pid');
-    
-    if (!isServiceRunning()) {
+    const isRunning = await isServiceRunning()
+
+    if (!isRunning) {
         console.log("No service is currently running.");
         return;
     }

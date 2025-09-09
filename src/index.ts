@@ -51,7 +51,8 @@ interface RunOptions {
 
 async function run(options: RunOptions = {}) {
   // Check if service is already running
-  if (isServiceRunning()) {
+  const isRunning = await isServiceRunning()
+  if (isRunning) {
     console.log("✅ Service is already running in the background.");
     return;
   }
@@ -244,7 +245,6 @@ async function run(options: RunOptions = {}) {
                     req,
                     config
                   });
-                  console.log('result', toolResult)
                   toolMessages.push({
                     "tool_use_id": currentToolId,
                     "type": "tool_result",
@@ -295,14 +295,12 @@ async function run(options: RunOptions = {}) {
 
                     // 检查流是否仍然可写
                     if (!controller.desiredSize) {
-                      console.log('Stream backpressure detected');
                       break;
                     }
 
                     controller.enqueue(value)
                   }catch (readError: any) {
                     if (readError.name === 'AbortError' || readError.code === 'ERR_STREAM_PREMATURE_CLOSE') {
-                      console.log('Stream reading aborted due to client disconnect');
                       abortController.abort(); // 中止所有相关操作
                       break;
                     }
@@ -318,7 +316,6 @@ async function run(options: RunOptions = {}) {
 
               // 处理流提前关闭的错误
               if (error.code === 'ERR_STREAM_PREMATURE_CLOSE') {
-                console.log('Stream prematurely closed, aborting operations');
                 abortController.abort();
                 return undefined;
               }
@@ -349,7 +346,7 @@ async function run(options: RunOptions = {}) {
             }
           } catch (readError: any) {
             if (readError.name === 'AbortError' || readError.code === 'ERR_STREAM_PREMATURE_CLOSE') {
-              console.log('Background read stream closed prematurely');
+              console.error('Background read stream closed prematurely');
             } else {
               console.error('Error in background stream reading:', readError);
             }
@@ -362,13 +359,15 @@ async function run(options: RunOptions = {}) {
       }
       sessionUsageCache.put(req.sessionId, payload.usage);
     }
-    if (typeof payload ==='object' && payload.error) {
-      return done(payload.error, null)
+    if (typeof payload ==='object') {
+      if (payload.error) {
+        return done(payload.error, null)
+      }
+      return done(payload)
     }
     done(null, payload)
   });
   server.addHook("onSend", async (req, reply, payload) => {
-    console.log('主应用onSend')
     event.emit('onSend', req, reply, payload);
     return payload;
   })
