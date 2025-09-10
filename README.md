@@ -1,9 +1,12 @@
-# Claude Code Router
+![](blog/images/ccw-img.png)
+
+[![](https://img.shields.io/badge/%F0%9F%87%A8%F0%9F%87%B3-%E4%B8%AD%E6%96%87%E7%89%88-ff0000?style=flat)](README_zh.md)
+[![Discord](https://img.shields.io/badge/Discord-%235865F2.svg?&logo=discord&logoColor=white)](https://discord.gg/rdftVMaUcS)
+[![](https://img.shields.io/github/license/musistudio/ccw)](https://github.com/musistudio/ccw/blob/main/LICENSE)
+
+<hr>
 
 I am seeking funding support for this project to better sustain its development. If you have any ideas, feel free to reach out to me: [m@musiiot.top](mailto:m@musiiot.top)
-
-
-[中文版](README_zh.md)
 
 > A powerful tool to route Claude Code requests to different models and customize any request.
 
