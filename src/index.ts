@@ -244,7 +244,6 @@ async function run(options: RunOptions = {}) {
                     req,
                     config
                   });
-                  console.log('result', toolResult)
                   toolMessages.push({
                     "tool_use_id": currentToolId,
                     "type": "tool_result",
@@ -318,7 +317,6 @@ async function run(options: RunOptions = {}) {
 
               // 处理流提前关闭的错误
               if (error.code === 'ERR_STREAM_PREMATURE_CLOSE') {
-                console.log('Stream prematurely closed, aborting operations');
                 abortController.abort();
                 return undefined;
               }
@@ -368,7 +366,6 @@ async function run(options: RunOptions = {}) {
     done(null, payload)
   });
   server.addHook("onSend", async (req, reply, payload) => {
-    console.log('主应用onSend')
     event.emit('onSend', req, reply, payload);
     return payload;
   })

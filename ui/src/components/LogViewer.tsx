@@ -502,7 +502,6 @@ export function LogViewer({ open, onOpenChange, showToast }: LogViewerProps) {
     // 如果在分组模式且选中了具体请求，显示该请求的日志
     if (groupByReqId && groupedLogs && selectedReqId && groupedLogs.groups[selectedReqId]) {
       const requestLogs = groupedLogs.groups[selectedReqId];
-      console.log(requestLogs)
       // 提取原始JSON字符串并每行一个
       return requestLogs.map(log => JSON.stringify(log)).join('\n');
     }
@@ -552,7 +551,7 @@ export function LogViewer({ open, onOpenChange, showToast }: LogViewerProps) {
   const handleDebugClick = (lineNumber: number) => {
     console.log('handleDebugClick called with lineNumber:', lineNumber);
     console.log('Current state:', { groupByReqId, selectedReqId, logsLength: logs.length });
-    
+
     let logData = null;
 
     if (groupByReqId && groupedLogs && selectedReqId && groupedLogs.groups[selectedReqId]) {
@@ -631,16 +630,16 @@ export function LogViewer({ open, onOpenChange, showToast }: LogViewerProps) {
         glyphMarginLeft: e.target.detail?.glyphMarginLeft,
         glyphMarginWidth: e.target.detail?.glyphMarginWidth
       });
-      
+
       // 检查是否点击在glyph margin区域
-      const isGlyphMarginClick = e.target.detail && 
-        e.target.detail.glyphMarginLane !== undefined && 
+      const isGlyphMarginClick = e.target.detail &&
+        e.target.detail.glyphMarginLane !== undefined &&
         e.target.detail.offsetX !== undefined &&
         e.target.detail.offsetX <= e.target.detail.glyphMarginLeft + e.target.detail.glyphMarginWidth;
-      
+
       console.log('Is glyph margin click:', isGlyphMarginClick);
-      
-      if (e.target.position && isGlyphMarginClick) { 
+
+      if (e.target.position && isGlyphMarginClick) {
         const finalRequestLines = getFinalRequestLines();
         console.log('Final request lines:', finalRequestLines);
         console.log('Clicked line number:', e.target.position.lineNumber);

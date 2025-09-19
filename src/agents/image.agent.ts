@@ -102,21 +102,30 @@ export class ImageAgent implements IAgent {
         "required": ["imageId", "task"]
       },
       handler: async (args, context) => {
-        console.log('args', JSON.stringify(args, null, 2))
         const imageMessages = [];
         let imageId;
 
         // Create image messages from cached images
-        if (args.imageId && Array.isArray(args.imageId)) {
-          args.imageId.forEach((imgId: string) => {
-            const image = imageCache.getImage(`${context.req.id}_Image#${imgId}`);
+        if (args.imageId) {
+          if (Array.isArray(args.imageId)) {
+            args.imageId.forEach((imgId: string) => {
+              const image = imageCache.getImage(`${context.req.id}_Image#${imgId}`);
+              if (image) {
+                imageMessages.push({
+                  type: "image",
+                  source: image,
+                });
+              }
+            });
+          } else {
+            const image = imageCache.getImage(`${context.req.id}_Image#${args.imageId}`);
             if (image) {
               imageMessages.push({
                 type: "image",
                 source: image,
               });
             }
-          });
+          }
           imageId = args.imageId;
           delete args.imageId;
         }
@@ -155,7 +164,6 @@ Always ensure that your response reflects a clear, accurate interpretation of th
         }).then(res => res.json()).catch(err => {
           return null;
         });
-        console.log(agentResponse.content);
         if (!agentResponse || !agentResponse.content) {
           return 'analyzeImage Error';
         }
