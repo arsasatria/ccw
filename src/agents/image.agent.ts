@@ -13,7 +13,7 @@ class ImageCache {
   constructor(maxSize = 100) {
     this.cache = new LRUCache({
       max: maxSize,
-      ttl: 24 * 60 * 60 * 1000,
+      ttl: 5 * 60 * 1000,
     });
   }
 
@@ -130,12 +130,19 @@ export class ImageAgent implements IAgent {
           delete args.imageId;
         }
 
+        const userMessage = context.req.body.messages[context.req.body.messages.length - 1]
+        if (userMessage.role === 'user' && Array.isArray(userMessage.content)) {
+          const msgs = userMessage.content.filter(item => item.type === 'text' && !item.text.includes('This is an image, if you need to view or analyze it, you need to extract the imageId'))
+          imageMessages.push(...msgs)
+        }
+
         if (Object.keys(args).length > 0) {
           imageMessages.push({
             type: "text",
             text: JSON.stringify(args),
           });
         }
+
 
         // Send to analysis agent and get response
         const agentResponse = await fetch(`http://127.0.0.1:${context.config.PORT}/v1/messages`, {
