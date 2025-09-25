@@ -6,7 +6,7 @@
 
 <hr>
 
-I am seeking funding support for this project to better sustain its development. If you have any ideas, feel free to reach out to me: [m@musiiot.top](mailto:m@musiiot.top)
+> Recently, we noticed an authentication issue with the API endpoint used to fetch the config file, which resulted in some users’ API keys being exposed. We strongly recommend updating to version v1.0.50 to prevent such issues!!!
 
 > A powerful tool to route Claude Code requests to different models and customize any request.
 
