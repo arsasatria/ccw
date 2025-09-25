@@ -13,7 +13,7 @@ class ImageCache {
   constructor(maxSize = 100) {
     this.cache = new LRUCache({
       max: maxSize,
-      ttl: 24 * 60 * 60 * 1000,
+      ttl: 5 * 60 * 1000,
     });
   }
 
@@ -102,23 +102,38 @@ export class ImageAgent implements IAgent {
         "required": ["imageId", "task"]
       },
       handler: async (args, context) => {
-        console.log('args', JSON.stringify(args, null, 2))
         const imageMessages = [];
         let imageId;
 
         // Create image messages from cached images
-        if (args.imageId && Array.isArray(args.imageId)) {
-          args.imageId.forEach((imgId: string) => {
-            const image = imageCache.getImage(`${context.req.id}_Image#${imgId}`);
+        if (args.imageId) {
+          if (Array.isArray(args.imageId)) {
+            args.imageId.forEach((imgId: string) => {
+              const image = imageCache.getImage(`${context.req.id}_Image#${imgId}`);
+              if (image) {
+                imageMessages.push({
+                  type: "image",
+                  source: image,
+                });
+              }
+            });
+          } else {
+            const image = imageCache.getImage(`${context.req.id}_Image#${args.imageId}`);
             if (image) {
               imageMessages.push({
                 type: "image",
                 source: image,
               });
             }
-          });
+          }
           imageId = args.imageId;
           delete args.imageId;
+        }
+
+        const userMessage = context.req.body.messages[context.req.body.messages.length - 1]
+        if (userMessage.role === 'user' && Array.isArray(userMessage.content)) {
+          const msgs = userMessage.content.filter(item => item.type === 'text' && !item.text.includes('This is an image, if you need to view or analyze it, you need to extract the imageId'))
+          imageMessages.push(...msgs)
         }
 
         if (Object.keys(args).length > 0) {
@@ -127,6 +142,7 @@ export class ImageAgent implements IAgent {
             text: JSON.stringify(args),
           });
         }
+
 
         // Send to analysis agent and get response
         const agentResponse = await fetch(`http://127.0.0.1:${context.config.PORT}/v1/messages`, {
@@ -155,7 +171,6 @@ Always ensure that your response reflects a clear, accurate interpretation of th
         }).then(res => res.json()).catch(err => {
           return null;
         });
-        console.log(agentResponse.content);
         if (!agentResponse || !agentResponse.content) {
           return 'analyzeImage Error';
         }

@@ -140,11 +140,11 @@ async function run(options: RunOptions = {}) {
 
   // Add global error handlers to prevent the service from crashing
   process.on("uncaughtException", (err) => {
-    server.log.error("Uncaught exception:", err);
+    server.logger.error("Uncaught exception:", err);
   });
 
   process.on("unhandledRejection", (reason, promise) => {
-    server.log.error("Unhandled rejection at:", promise, "reason:", reason);
+    server.logger.error("Unhandled rejection at:", promise, "reason:", reason);
   });
   // Add async preHandler hook for authentication
   server.addHook("preHandler", async (req, reply) => {
