@@ -1,9 +1,9 @@
 {
   "name": "@arsasatria/ccw",
-  "version": "1.0.50",
+  "version": "1.0.51",
   "description": "Use Claude Code without an Anthropics account and route it to another LLM provider",
   "bin": {
-    "ccr": "./dist/cli.js"
+    "ccr": "dist/cli.js"
   },
   "scripts": {
     "build": "node scripts/build.js",
