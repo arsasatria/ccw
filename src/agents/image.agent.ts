@@ -57,7 +57,7 @@ export class ImageAgent implements IAgent {
   shouldHandle(req: any, config: any): boolean {
     if (!config.Router.image || req.body.model === config.Router.image) return false;
     const lastMessage = req.body.messages[req.body.messages.length - 1]
-    if (!config.forceUseImageAgent && lastMessage.role === 'user' && Array.isArray(lastMessage.content) && lastMessage.content.find((item: any) => item.type === 'image' || item?.content?.some((sub: any) => sub.type === 'image'))) {
+    if (!config.forceUseImageAgent && lastMessage.role === 'user' && Array.isArray(lastMessage.content) && lastMessage.content.find((item: any) => item.type === 'image' || (Array.isArray(item?.content) && item.content.some((sub: any) => sub.type === 'image')))) {
       req.body.model = config.Router.image
       const images = []
       lastMessage.content.filter((item: any) => item.type === 'tool_result').forEach((item: any) => {
@@ -71,7 +71,7 @@ export class ImageAgent implements IAgent {
       lastMessage.content.push(...images);
       return false;
     }
-    return req.body.messages.some((msg: any) => msg.role === 'user' && Array.isArray(msg.content) && msg.content.some((item: any) => item.type === 'image' || item?.content?.some((sub: any) => sub.type === 'image')))
+    return req.body.messages.some((msg: any) => msg.role === 'user' && Array.isArray(msg.content) && msg.content.some((item: any) => item.type === 'image' || (Array.isArray(item?.content) && item.content.some((sub: any) => sub.type === 'image'))))
   }
 
   appendTools() {
