@@ -5,9 +5,16 @@ import { join } from "path";
 import fastifyStatic from "@fastify/static";
 import { readdirSync, statSync, readFileSync, writeFileSync, existsSync } from "fs";
 import { homedir } from "os";
+import {calculateTokenCount} from "./utils/router";
 
 export const createServer = (config: any): Server => {
   const server = new Server(config);
+
+  server.app.post("/v1/messages/count_tokens", async (req, reply) => {
+    const {messages, tools, system} = req.body;
+    const tokenCount = calculateTokenCount(messages, system, tools);
+    return { "input_tokens": tokenCount }
+  });
 
   // Add endpoint to read config.json with access control
   server.app.get("/api/config", async (req, reply) => {
