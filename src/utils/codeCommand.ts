@@ -63,7 +63,13 @@ export async function executeCodeCommand(args: string[] = []) {
   const argsArr = []
   for (const [argsObjKey, argsObjValue] of Object.entries(argsObj)) {
     if (argsObjKey !== '_' && argsObj[argsObjKey]) {
-      argsArr.push(`${argsObjKey.length === 1 ? '-' : '--'}${argsObjKey} ${JSON.stringify(argsObjValue)}`);
+      const prefix = argsObjKey.length === 1 ? '-' : '--';
+      // For boolean flags, don't append the value
+      if (argsObjValue === true) {
+        argsArr.push(`${prefix}${argsObjKey}`);
+      } else {
+        argsArr.push(`${prefix}${argsObjKey} ${JSON.stringify(argsObjValue)}`);
+      }
     }
   }
   const claudeProcess = spawn(
