@@ -26,6 +26,9 @@ importers:
       json5:
         specifier: ^2.2.3
         version: 2.2.3
+      lru-cache:
+        specifier: ^11.2.2
+        version: 11.2.2
       minimist:
         specifier: ^1.2.8
         version: 1.2.8
@@ -729,8 +732,8 @@ packages:
     resolution: {integrity: sha512-HgMmCqIJSAKqo68l0rS2AanEWfkxaZ5wNiEFb5ggm08lDs9Xl2KxBlX3PTcaD2chBM1gXAYf491/M2Rv8Jwayg==}
     engines: {node: '>= 0.6.0'}
 
-  lru-cache@11.1.0:
-    resolution: {integrity: sha512-QIXZUBJUx+2zHUdQujWejBkcD9+cs94tLn0+YL8UrCh+D5sCXZ4c7LaEH48pNwRY3MLDgqUFyhlCyjJPf1WP0A==}
+  lru-cache@11.2.2:
+    resolution: {integrity: sha512-F9ODfyqML2coTIsQpSkRHnLSZMtkU8Q+mSfcaIyKwy58u+8k5nvAYeiNhsyMARvzNcXJ9QfWVrcPsC9e9rAxtg==}
     engines: {node: 20 || >=22}
 
   merge2@1.4.1:
@@ -1841,7 +1844,7 @@ snapshots:
 
   loglevel@1.9.2: {}
 
-  lru-cache@11.1.0: {}
+  lru-cache@11.2.2: {}
 
   merge2@1.4.1: {}
 
@@ -1908,7 +1911,7 @@ snapshots:
 
   path-scurry@2.0.0:
     dependencies:
-      lru-cache: 11.1.0
+      lru-cache: 11.2.2
       minipass: 7.1.2
 
   picomatch@2.3.1: {}
