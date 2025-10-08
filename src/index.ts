@@ -158,7 +158,7 @@ async function run(options: RunOptions = {}) {
     });
   });
   server.addHook("preHandler", async (req, reply) => {
-    if (req.url.startsWith("/v1/messages")) {
+    if (req.url.startsWith("/v1/messages") && !req.url.startsWith("/v1/messages/count_tokens")) {
       const useAgents = []
 
       for (const agent of agentsManager.getAllAgents()) {
@@ -198,7 +198,7 @@ async function run(options: RunOptions = {}) {
     event.emit('onError', request, reply, error);
   })
   server.addHook("onSend", (req, reply, payload, done) => {
-    if (req.sessionId && req.url.startsWith("/v1/messages")) {
+    if (req.sessionId && req.url.startsWith("/v1/messages") && !req.url.startsWith("/v1/messages/count_tokens")) {
       if (payload instanceof ReadableStream) {
         if (req.agents) {
           const abortController = new AbortController();
