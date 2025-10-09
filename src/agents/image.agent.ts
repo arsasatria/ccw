@@ -1,6 +1,6 @@
 import {IAgent, ITool} from "./type";
 import { createHash } from 'crypto';
-import { LRUCache } from 'lru-cache';
+import * as LRU from 'lru-cache';
 
 interface ImageCacheEntry {
   source: any;
@@ -8,12 +8,13 @@ interface ImageCacheEntry {
 }
 
 class ImageCache {
-  private cache: LRUCache<string, ImageCacheEntry>;
+  private cache: any;
 
   constructor(maxSize = 100) {
-    this.cache = new LRUCache({
+    const CacheClass: any = (LRU as any).LRUCache || (LRU as any);
+    this.cache = new CacheClass({
       max: maxSize,
-      ttl: 5 * 60 * 1000,
+      ttl: 5 * 60 * 1000, // 5 minutes
     });
   }
 

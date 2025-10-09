@@ -8,6 +8,7 @@ import {
   isServiceRunning,
   getServiceInfo,
 } from "./utils/processCheck";
+import { runModelSelector } from "./utils/modelSelector"; // ADD THIS LINE
 import { version } from "../package.json";
 import { spawn, exec } from "child_process";
 import { PID_FILE, REFERENCE_COUNT_FILE } from "./constants";
@@ -26,6 +27,7 @@ Commands:
   status        Show server status
   statusline    Integrated statusline
   code          Execute claude command
+  model         Interactive model selection and configuration
   ui            Open the web UI in browser
   -v, version   Show version information
   -h, help      Show help information
@@ -33,6 +35,7 @@ Commands:
 Example:
   ccr start
   ccr code "Write a Hello World"
+  ccr model
   ccr ui
 `;
 
@@ -108,6 +111,10 @@ async function main() {
           process.exit(1);
         }
       });
+      break;
+    // ADD THIS CASE
+    case "model":
+      await runModelSelector();
       break;
     case "code":
       if (!isRunning) {
