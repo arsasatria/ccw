@@ -155,7 +155,7 @@ export class ImageAgent implements IAgent {
 
 
         // Send to analysis agent and get response
-        const agentResponse = await fetch(`http://127.0.0.1:${context.config.PORT}/v1/messages`, {
+        const agentResponse = await fetch(`http://127.0.0.1:${context.config.PORT || 3456}/v1/messages`, {
           method: "POST",
           headers: {
             'x-api-key': context.config.APIKEY,
