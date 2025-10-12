@@ -245,13 +245,15 @@ This command provides an interactive interface to:
 - Switch models: Quickly change which model is used for each router type
 - Add new models: Add models to existing providers
 - Create new providers: Set up complete provider configurations including:
--- Provider name and API endpoint
--- API key
--- Available models
--- Transformer configuration with support for:
---- Multiple transformers (openrouter, deepseek, gemini, etc.)
---- Transformer options (e.g., maxtoken with custom limits)
---- Provider-specific routing (e.g., OpenRouter provider preferences)      The CLI tool validates all inputs and provides helpful prompts to guide you through the configuration process, making it easy to manage complex setups without editing JSON files manually.
+   - Provider name and API endpoint
+   - API key
+   - Available models
+   - Transformer configuration with support for:
+         - Multiple transformers (openrouter, deepseek, gemini, etc.)
+         - Transformer options (e.g., maxtoken with custom limits)
+         - Provider-specific routing (e.g., OpenRouter provider preferences)
+
+The CLI tool validates all inputs and provides helpful prompts to guide you through the configuration process, making it easy to manage complex setups without editing JSON files manually.
 
 #### Providers
 
