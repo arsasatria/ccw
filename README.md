@@ -249,9 +249,9 @@ This command provides an interactive interface to:
    - API key
    - Available models
    - Transformer configuration with support for:
-   - - Multiple transformers (openrouter, deepseek, gemini, etc.)
-         - Transformer options (e.g., maxtoken with custom limits)
-         - Provider-specific routing (e.g., OpenRouter provider preferences)
+     - Multiple transformers (openrouter, deepseek, gemini, etc.)
+     - Transformer options (e.g., maxtoken with custom limits)
+     - Provider-specific routing (e.g., OpenRouter provider preferences)
 
 The CLI tool validates all inputs and provides helpful prompts to guide you through the configuration process, making it easy to manage complex setups without editing JSON files manually.
 
