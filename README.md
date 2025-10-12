@@ -249,7 +249,7 @@ This command provides an interactive interface to:
    - API key
    - Available models
    - Transformer configuration with support for:
-         - Multiple transformers (openrouter, deepseek, gemini, etc.)
+   - - Multiple transformers (openrouter, deepseek, gemini, etc.)
          - Transformer options (e.g., maxtoken with custom limits)
          - Provider-specific routing (e.g., OpenRouter provider preferences)
 
