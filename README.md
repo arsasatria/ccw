@@ -24,6 +24,7 @@
 - **Multi-Provider Support**: Supports various model providers like OpenRouter, DeepSeek, Ollama, Gemini, Volcengine, and SiliconFlow.
 - **Request/Response Transformation**: Customize requests and responses for different providers using transformers.
 - **Dynamic Model Switching**: Switch models on-the-fly within Claude Code using the `/model` command.
+- **CLI Model Management**: Manage models and providers directly from the terminal with `ccr model`.
 - **GitHub Actions Integration**: Trigger Claude Code tasks in your GitHub workflows.
 - **Plugin System**: Extend functionality with custom transformers.
 
@@ -228,6 +229,32 @@ ccr ui
 This will open a web-based interface where you can easily view and edit your `config.json` file.
 
 ![UI](/blog/images/ui.png)
+
+### 5. CLI Model Management
+
+For users who prefer terminal-based workflows, you can use the interactive CLI model selector:
+
+```shell
+ccr model
+```
+![](blog/images/models.gif)
+
+This command provides an interactive interface to:
+
+- View current configuration:
+- See all configured models (default, background, think, longContext, webSearch, image)
+- Switch models: Quickly change which model is used for each router type
+- Add new models: Add models to existing providers
+- Create new providers: Set up complete provider configurations including:
+   - Provider name and API endpoint
+   - API key
+   - Available models
+   - Transformer configuration with support for:
+     - Multiple transformers (openrouter, deepseek, gemini, etc.)
+     - Transformer options (e.g., maxtoken with custom limits)
+     - Provider-specific routing (e.g., OpenRouter provider preferences)
+
+The CLI tool validates all inputs and provides helpful prompts to guide you through the configuration process, making it easy to manage complex setups without editing JSON files manually.
 
 #### Providers
 
