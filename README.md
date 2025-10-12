@@ -237,7 +237,7 @@ For users who prefer terminal-based workflows, you can use the interactive CLI m
 ```shell
 ccr model
 ```
-![](blog/images/model.gif)
+![](blog/images/models.gif)
 
 This command provides an interactive interface to:
 
