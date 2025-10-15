@@ -480,6 +480,7 @@ jobs:
 
 - [AIHubmix](https://aihubmix.com/)
 - [BurnCloud](https://ai.burncloud.com)
+- [302.ai](https://302.ai/)
 - @Simon Leischnig
 - [@duanshuaimin](https://github.com/duanshuaimin)
 - [@vrgitadmin](https://github.com/vrgitadmin)
@@ -562,6 +563,9 @@ jobs:
 - @\*\*飞
 - @\*\*驰
 - @x\*g
+- @\*\*东
+- @\*落
+- @哆\*k
 
 （如果您的名字被屏蔽，请通过我的主页电子邮件与我联系，以便使用您的 GitHub 用户名进行更新。）
 
