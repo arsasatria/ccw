@@ -114,9 +114,10 @@ const getUseModel = async (
       return model[1];
     }
   }
-  // If the model is claude-3-5-haiku, use the background model
+  // Use the background model for any Claude Haiku variant
   if (
-    req.body.model?.startsWith("claude-3-5-haiku") &&
+    req.body.model?.includes("claude") &&
+    req.body.model?.includes("haiku") &&
     config.Router.background
   ) {
     req.log.info(`Using background model for ${req.body.model}`);
