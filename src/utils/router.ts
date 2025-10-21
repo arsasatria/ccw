@@ -243,8 +243,6 @@ export const searchProjectBySession = async (
   if (sessionProjectCache.has(sessionId)) {
     return sessionProjectCache.get(sessionId)!;
   }
-    console.log('读取项目配置')
-
 
   try {
     const dir = await opendir(CLAUDE_PROJECTS_DIR);
