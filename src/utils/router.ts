@@ -9,6 +9,7 @@ import { readFile, access } from "fs/promises";
 import { opendir, stat } from "fs/promises";
 import { join } from "path";
 import { CLAUDE_PROJECTS_DIR, HOME_DIR } from "../constants";
+import { LRUCache } from "lru-cache";
 
 const enc = get_encoding("cl100k_base");
 
@@ -228,9 +229,23 @@ export const router = async (req: any, _res: any, context: any) => {
   return;
 };
 
+// 内存缓存，存储sessionId到项目名称的映射
+// null值表示之前已查找过但未找到项目
+// 使用LRU缓存，限制最大1000个条目
+const sessionProjectCache = new LRUCache<string, string | null>({
+  max: 1000,
+});
+
 export const searchProjectBySession = async (
   sessionId: string
 ): Promise<string | null> => {
+  // 首先检查缓存
+  if (sessionProjectCache.has(sessionId)) {
+    return sessionProjectCache.get(sessionId)!;
+  }
+    console.log('读取项目配置')
+
+
   try {
     const dir = await opendir(CLAUDE_PROJECTS_DIR);
     const folderNames: string[] = [];
@@ -263,13 +278,19 @@ export const searchProjectBySession = async (
     // 返回第一个存在的项目目录名称
     for (const result of results) {
       if (result) {
+        // 缓存找到的结果
+        sessionProjectCache.set(sessionId, result);
         return result;
       }
     }
 
+    // 缓存未找到的结果（null值表示之前已查找过但未找到项目）
+    sessionProjectCache.set(sessionId, null);
     return null; // 没有找到匹配的项目
   } catch (error) {
     console.error("Error searching for project by session:", error);
+    // 出错时也缓存null结果，避免重复出错
+    sessionProjectCache.set(sessionId, null);
     return null;
   }
 };
