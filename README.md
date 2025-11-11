@@ -9,10 +9,11 @@
 ![](blog/images/sponsors/glm-en.jpg)
 > This project is sponsored by Z.ai, supporting us with their GLM CODING PLAN.    
 > GLM CODING PLAN is a subscription service designed for AI coding, starting at just $3/month. It provides access to their flagship GLM-4.6 model across 10+ popular AI coding tools (Claude Code, Cline, Roo Code, etc.), offering developers top-tier, fast, and stable coding experiences.     
-> Get 10% OFF GLM CODING PLAN：https://z.ai/subscribe?ic=8JVLJQFSKB
-
+> Get 10% OFF GLM CODING PLAN：https://z.ai/subscribe?ic=8JVLJQFSKB     
 
 > A powerful tool to route Claude Code requests to different models and customize any request.
+
+> [GLM-4.6 Supports Reasoning and Interleaved Thinking](blog/en/glm-4.6-supports-reasoning.md)
 
 ![](blog/images/claude-code.png)
 
@@ -509,6 +510,7 @@ This setup allows for interesting automations, like running tasks during off-pea
 
 - [Project Motivation and How It Works](blog/en/project-motivation-and-how-it-works.md)
 - [Maybe We Can Do More with the Router](blog/en/maybe-we-can-do-more-with-the-route.md)
+- [GLM-4.6 Supports Reasoning and Interleaved Thinking](blog/en/glm-4.6-supports-reasoning.md)
 
 ## ❤️ Support & Sponsoring
 

@@ -12,6 +12,8 @@
 
 > 一款强大的工具，可将 Claude Code 请求路由到不同的模型，并自定义任何请求。
 
+> [GLM-4.6支持思考及思维链回传](blog/zh/GLM-4.6支持思考及思维链回传.md)
+
 ![](blog/images/claude-code.png)
 
 
