@@ -205,6 +205,32 @@ ccr ui
 
 ![UI](/blog/images/ui.png)
 
+### 5. Activate 命令（环境变量设置）
+
+`activate` 命令允许您在 shell 中全局设置环境变量，使您能够直接使用 `claude` 命令或将 Claude Code Router 与使用 Agent SDK 构建的应用程序集成。
+
+要激活环境变量，请运行：
+
+```shell
+eval "$(ccr activate)"
+```
+
+此命令会以 shell 友好的格式输出必要的环境变量，这些变量将在当前的 shell 会话中设置。激活后，您可以：
+
+- **直接使用 `claude` 命令**：无需使用 `ccr code` 即可运行 `claude` 命令。`claude` 命令将自动通过 Claude Code Router 路由请求。
+- **与 Agent SDK 应用程序集成**：使用 Anthropic Agent SDK 构建的应用程序将自动使用配置的路由器和模型。
+
+`activate` 命令设置以下环境变量：
+
+- `ANTHROPIC_AUTH_TOKEN`: 来自配置的 API 密钥
+- `ANTHROPIC_BASE_URL`: 本地路由器端点（默认：`http://127.0.0.1:3456`）
+- `NO_PROXY`: 设置为 `127.0.0.1` 以防止代理干扰
+- `DISABLE_TELEMETRY`: 禁用遥测
+- `DISABLE_COST_WARNINGS`: 禁用成本警告
+- `API_TIMEOUT_MS`: 来自配置的 API 超时时间
+
+> **注意**：在使用激活的环境变量之前，请确保 Claude Code Router 服务正在运行（`ccr start`）。环境变量仅在当前 shell 会话中有效。要使其持久化，您可以将 `eval "$(ccr activate)"` 添加到您的 shell 配置文件（例如 `~/.zshrc` 或 `~/.bashrc`）中。
+
 #### Providers
 
 `Providers` 数组是您定义要使用的不同模型提供商的地方。每个提供商对象都需要：
