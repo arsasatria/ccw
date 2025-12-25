@@ -13,8 +13,6 @@
 
 > A powerful tool to route Claude Code requests to different models and customize any request.
 
-> [GLM-4.6 Supports Reasoning and Interleaved Thinking](blog/en/glm-4.6-supports-reasoning.md)
-
 ![](blog/images/claude-code.png)
 
 ## ✨ Features
@@ -657,6 +655,10 @@ A huge thank you to all our sponsors for their generous support!
 - \*勤
 - \*\*锟
 - \*涛
+- \*\*明
+- \*知
+- \*语
+- \*瓜
 
 
 (If your name is masked, please contact me via my homepage email to update it with your GitHub username.)
