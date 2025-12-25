@@ -1,10 +1,9 @@
 import { spawn, type StdioOptions } from "child_process";
 import { readConfigFile } from ".";
-// @ts-ignore - server package is built separately
-import { closeService } from "@arsasatria/ccw-server";
 import {
   decrementReferenceCount,
   incrementReferenceCount,
+  closeService,
 } from "./processCheck";
 import { quote } from 'shell-quote';
 import minimist from "minimist";

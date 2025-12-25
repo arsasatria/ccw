@@ -42,6 +42,7 @@ function App() {
   const [newVersionInfo, setNewVersionInfo] = useState<{ version: string; changelog: string } | null>(null);
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
   const [hasCheckedUpdate, setHasCheckedUpdate] = useState(false);
+  const [isUpdateFeatureAvailable, setIsUpdateFeatureAvailable] = useState(true);
   const hasAutoCheckedUpdate = useRef(false);
 
   const saveConfig = async () => {
@@ -155,6 +156,7 @@ function App() {
       setHasCheckedUpdate(true);
     } catch (error) {
       console.error('Failed to check for updates:', error);
+      setIsUpdateFeatureAvailable(false);
       if (showDialog) {
         setToast({ message: t('app.update_check_failed') + ': ' + (error as Error).message, type: 'error' });
       }
@@ -306,26 +308,28 @@ function App() {
               </div>
             </PopoverContent>
           </Popover>
-          {/* 更新版本按钮 */}
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => checkForUpdates(true)}
-            disabled={isCheckingUpdate}
-            className="transition-all-ease hover:scale-110 relative"
-          >
-            <div className="relative">
-              <CircleArrowUp className="h-5 w-5" />
-              {isNewVersionAvailable && !isCheckingUpdate && (
-                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
-              )}
-            </div>
-            {isCheckingUpdate && (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+          {/* 更新版本按钮 - 仅当更新功能可用时显示 */}
+          {isUpdateFeatureAvailable && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => checkForUpdates(true)}
+              disabled={isCheckingUpdate}
+              className="transition-all-ease hover:scale-110 relative"
+            >
+              <div className="relative">
+                <CircleArrowUp className="h-5 w-5" />
+                {isNewVersionAvailable && !isCheckingUpdate && (
+                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+                )}
               </div>
-            )}
-          </Button>
+              {isCheckingUpdate && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                </div>
+              )}
+            </Button>
+          )}
           <Button onClick={saveConfig} variant="outline" className="transition-all-ease hover:scale-[1.02] active:scale-[0.98]">
             <Save className="mr-2 h-4 w-4" />
             {t('app.save')}

@@ -6,16 +6,17 @@ import { initConfig, initDir } from "./utils";
 import { createServer } from "./server";
 import { router } from "./utils/router";
 import { apiKeyAuth } from "./middleware/auth";
-import { PID_FILE, CONFIG_FILE, HOME_DIR } from "@arsasatria/ccw-shared";
+import { CONFIG_FILE, HOME_DIR } from "@ccw/shared";
 import { createStream } from 'rotating-file-stream';
 import { sessionUsageCache } from "./utils/cache";
 import {SSEParserTransform} from "./utils/SSEParser.transform";
 import {SSESerializerTransform} from "./utils/SSESerializer.transform";
 import {rewriteStream} from "./utils/rewriteStream";
 import JSON5 from "json5";
-import { IAgent } from "./agents/type";
+import { IAgent, ITool } from "./agents/type";
 import agentsManager from "./agents";
 import { EventEmitter } from "node:events";
+import {spawn} from "child_process";
 
 const event = new EventEmitter()
 
@@ -44,14 +45,7 @@ interface RunOptions {
   logger?: any;
 }
 
-async function run(options: RunOptions = {}) {
-  // Check if service is already running
-  const isRunning = existsSync(PID_FILE);
-  if (isRunning) {
-    console.log("✅ Service is already running in the background.");
-    return;
-  }
-
+async function getServer(options: RunOptions = {}) {
   await initializeClaudeConfig();
   await initDir();
   const config = await initConfig();
@@ -63,13 +57,10 @@ async function run(options: RunOptions = {}) {
   let HOST = config.HOST || "127.0.0.1";
 
   if (hasProviders) {
-    // When providers are configured, require both HOST and APIKEY
-    if (!config.HOST || !config.APIKEY) {
-      console.error("❌ Both HOST and APIKEY must be configured when Providers are set.");
-      console.error("   Please add HOST and APIKEY to your config file.");
-      process.exit(1);
-    }
     HOST = config.HOST;
+    if (!config.APIKEY) {
+      HOST = "127.0.0.1";
+    }
   } else {
     // When no providers are configured, listen on 0.0.0.0 without authentication
     HOST = "0.0.0.0";
@@ -77,35 +68,6 @@ async function run(options: RunOptions = {}) {
   }
 
   const port = config.PORT || 3456;
-
-  // Save the PID of the background process
-  writeFileSync(PID_FILE, process.pid.toString());
-
-  // Handle SIGINT (Ctrl+C) to clean up PID file
-  process.on("SIGINT", () => {
-    console.log("Received SIGINT, cleaning up...");
-    if (existsSync(PID_FILE)) {
-      try {
-        unlinkSync(PID_FILE);
-      } catch (e) {
-        // Ignore cleanup errors
-      }
-    }
-    process.exit(0);
-  });
-
-  // Handle SIGTERM to clean up PID file
-  process.on("SIGTERM", () => {
-    if (existsSync(PID_FILE)) {
-      try {
-        const fs = require('fs');
-        fs.unlinkSync(PID_FILE);
-      } catch (e) {
-        // Ignore cleanup errors
-      }
-    }
-    process.exit(0);
-  });
 
   // Use port from environment variable if set (for background process)
   const servicePort = process.env.SERVICE_PORT
@@ -159,7 +121,7 @@ async function run(options: RunOptions = {}) {
     }
   }
 
-  const server = createServer({
+  const serverInstance = createServer({
     jsonPath: CONFIG_FILE,
     initialConfig: {
       // ...config,
@@ -175,16 +137,8 @@ async function run(options: RunOptions = {}) {
     logger: loggerConfig,
   });
 
-  // Add global error handlers to prevent the service from crashing
-  process.on("uncaughtException", (err) => {
-    server.logger.error("Uncaught exception:", err);
-  });
-
-  process.on("unhandledRejection", (reason, promise) => {
-    server.logger.error("Unhandled rejection at:", promise, "reason:", reason);
-  });
   // Add async preHandler hook for authentication
-  server.addHook("preHandler", async (req: any, reply: any) => {
+  serverInstance.addHook("preHandler", async (req: any, reply: any) => {
     return new Promise<void>((resolve, reject) => {
       const done = (err?: Error) => {
         if (err) reject(err);
@@ -194,7 +148,7 @@ async function run(options: RunOptions = {}) {
       apiKeyAuth(config)(req, reply, done).catch(reject);
     });
   });
-  server.addHook("preHandler", async (req: any, reply: any) => {
+  serverInstance.addHook("preHandler", async (req: any, reply: any) => {
     if (req.url.startsWith("/v1/messages") && !req.url.startsWith("/v1/messages/count_tokens")) {
       const useAgents = []
 
@@ -231,10 +185,10 @@ async function run(options: RunOptions = {}) {
       });
     }
   });
-  server.addHook("onError", async (request: any, reply: any, error: any) => {
+  serverInstance.addHook("onError", async (request: any, reply: any, error: any) => {
     event.emit('onError', request, reply, error);
   })
-  server.addHook("onSend", (req: any, reply: any, payload: any, done: any) => {
+  serverInstance.addHook("onSend", (req: any, reply: any, payload: any, done: any) => {
     if (req.sessionId && req.url.startsWith("/v1/messages") && !req.url.startsWith("/v1/messages/count_tokens")) {
       if (payload instanceof ReadableStream) {
         if (req.agents) {
@@ -409,16 +363,39 @@ async function run(options: RunOptions = {}) {
     }
     done(null, payload)
   });
-  server.addHook("onSend", async (req: any, reply: any, payload: any) => {
+  serverInstance.addHook("onSend", async (req: any, reply: any, payload: any) => {
     event.emit('onSend', req, reply, payload);
     return payload;
-  })
+  });
 
+  // Add global error handlers to prevent the service from crashing
+  process.on("uncaughtException", (err) => {
+    serverInstance.logger.error("Uncaught exception:", err);
+  });
 
-  server.start();
+  process.on("unhandledRejection", (reason, promise) => {
+    serverInstance.logger.error("Unhandled rejection at:", promise, "reason:", reason);
+  });
+
+  return serverInstance;
 }
 
-export { run };
+async function run() {
+  const server = await getServer();
+  server.app.post("/api/restart", async () => {
+    setTimeout(async () => {
+      process.exit(0);
+    }, 100);
+
+    return { success: true, message: "Service restart initiated" }
+  });
+  await server.start();
+}
+
+export { getServer };
+export type { RunOptions };
+export type { IAgent, ITool } from "./agents/type";
+export { initDir, initConfig, readConfigFile, writeConfigFile, backupConfigFile } from "./utils";
 
 // 如果是直接运行此文件，则启动服务
 if (require.main === module) {

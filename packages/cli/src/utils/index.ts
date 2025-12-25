@@ -4,12 +4,18 @@ import JSON5 from "json5";
 import path from "node:path";
 import {
   CONFIG_FILE,
-  DEFAULT_CONFIG,
-  HOME_DIR,
+  HOME_DIR, PID_FILE,
   PLUGINS_DIR,
-} from "@arsasatria/ccw-shared";
-// @ts-ignore - server package is built separately
-import { cleanupLogFiles } from "@arsasatria/ccw-server";
+  REFERENCE_COUNT_FILE,
+} from "@ccw/shared";
+import { getServer } from "@ccw/server";
+import { writeFileSync, existsSync, readFileSync } from "fs";
+import { checkForUpdates, performUpdate } from "./update";
+import { version } from "../../package.json";
+import { spawn } from "child_process";
+import { cleanupPidFile } from "./processCheck";
+import fastifyStatic from "@fastify/static";
+import {join} from "path";
 
 // Function to interpolate environment variables in config values
 const interpolateEnvVars = (obj: any): any => {
@@ -174,8 +180,66 @@ export const initConfig = async () => {
   return config;
 };
 
-// 导出日志清理函数
-export { cleanupLogFiles };
+export const run = async (args: string[] = []) => {
+  const server = await getServer();
+  // Save the PID of the background process
+  writeFileSync(PID_FILE, process.pid.toString());
 
-// 导出更新功能
-export { checkForUpdates, performUpdate } from "./update";
+  // server.app.post('/api/update/perform', async () => {
+  //   return await performUpdate();
+  // })
+  //
+  // server.app.get('/api/update/check', async () => {
+  //   return await checkForUpdates(version);
+  // })
+
+  server.app.post("/api/restart", async () => {
+    setTimeout(async () => {
+      spawn("ccr", ["restart"], {
+        detached: true,
+        stdio: "ignore",
+      }).unref();
+    }, 100);
+
+    return { success: true, message: "Service restart initiated" }
+  });
+
+  // await server.start() to ensure it starts successfully and keep process alive
+  await server.start();
+}
+
+export const restartService = async () => {
+  // Stop the service if it's running
+  try {
+    const pid = parseInt(readFileSync(PID_FILE, "utf-8"));
+    process.kill(pid);
+    cleanupPidFile();
+    if (existsSync(REFERENCE_COUNT_FILE)) {
+      try {
+        await fs.unlink(REFERENCE_COUNT_FILE);
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }
+    console.log("claude code router service has been stopped.");
+  } catch (e) {
+    console.log("Service was not running or failed to stop.");
+    cleanupPidFile();
+  }
+
+  // Start the service again in the background
+  console.log("Starting claude code router service...");
+  const cliPath = path.join(__dirname, "../cli.js");
+  const startProcess = spawn("node", [cliPath, "start"], {
+    detached: true,
+    stdio: "ignore",
+  });
+
+  startProcess.on("error", (error) => {
+    console.error("Failed to start service:", error);
+    throw error;
+  });
+
+  startProcess.unref();
+  console.log("✅ Service started successfully in the background.");
+};

@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, writeFileSync } from 'fs';
-import { PID_FILE, REFERENCE_COUNT_FILE } from '@arsasatria/ccw-shared';
+import { PID_FILE, REFERENCE_COUNT_FILE } from '@ccw/shared';
 import { readConfigFile } from '.';
 import find from 'find-process';
 import { execSync } from 'child_process'; // 引入 execSync 来执行命令行
@@ -133,4 +133,22 @@ export async function getServiceInfo() {
         pidFile: PID_FILE,
         referenceCount: getReferenceCount()
     };
+}
+
+export async function closeService() {
+    // Check reference count
+    const referenceCount = getReferenceCount();
+
+    // Only stop the service if reference count is 0
+    if (referenceCount === 0) {
+        const pid = getServicePid();
+        if (pid && await isServiceRunning()) {
+            try {
+                // Kill the service process
+                process.kill(pid, 'SIGTERM');
+            } catch (e) {
+                // Ignore kill errors
+            }
+        }
+    }
 }

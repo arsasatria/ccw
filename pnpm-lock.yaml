@@ -23,15 +23,15 @@ importers:
 
   packages/cli:
     dependencies:
+      '@ccw/server':
+        specifier: workspace:*
+        version: link:../server
+      '@ccw/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@inquirer/prompts':
         specifier: ^5.0.0
         version: 5.5.0
-      '@arsasatria/ccw-server':
-        specifier: workspace:*
-        version: link:../server
-      '@arsasatria/ccw-shared':
-        specifier: workspace:*
-        version: link:../shared
       find-process:
         specifier: ^2.0.0
         version: 2.0.0
@@ -57,12 +57,12 @@ importers:
 
   packages/server:
     dependencies:
+      '@ccw/shared':
+        specifier: workspace:*
+        version: link:../shared
       '@fastify/static':
         specifier: ^8.2.0
         version: 8.2.0
-      '@arsasatria/ccw-shared':
-        specifier: workspace:*
-        version: link:../shared
       '@musistudio/llms':
         specifier: ^1.0.51
         version: 1.0.51(ws@8.18.3)

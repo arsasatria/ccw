@@ -1,8 +1,5 @@
 #!/usr/bin/env node
-// @ts-ignore - server package is built separately
-import { run } from "@arsasatria/ccw-server";
-// @ts-ignore - server package is built separately
-import { parseStatusLineData, type StatusLineInput } from "@arsasatria/ccw-server";
+import { run } from "./utils";
 import { showStatus } from "./utils/status";
 import { executeCodeCommand } from "./utils/codeCommand";
 import {
@@ -10,13 +7,14 @@ import {
   isServiceRunning,
   getServiceInfo,
 } from "./utils/processCheck";
-import { runModelSelector } from "./utils/modelSelector"; // ADD THIS LINE
+import { runModelSelector } from "./utils/modelSelector";
 import { activateCommand } from "./utils/activateCommand";
 import { version } from "../package.json";
 import { spawn, exec } from "child_process";
-import { PID_FILE, REFERENCE_COUNT_FILE } from "@arsasatria/ccw-shared";
+import { PID_FILE, REFERENCE_COUNT_FILE } from "@ccw/shared";
 import fs, { existsSync, readFileSync } from "fs";
 import { join } from "path";
+import { parseStatusLineData, StatusLineInput } from "./utils/statusline";
 
 const command = process.argv[2];
 
@@ -68,7 +66,7 @@ async function main() {
   const isRunning = await isServiceRunning()
   switch (command) {
     case "start":
-      run();
+      await run();
       break;
     case "stop":
       try {

@@ -5,6 +5,7 @@ import fastifyStatic from "@fastify/static";
 import { readdirSync, statSync, readFileSync, writeFileSync, existsSync } from "fs";
 import { homedir } from "os";
 import {calculateTokenCount} from "./utils/router";
+import { fork, spawn } from "child_process";
 
 export const createServer = (config: any): any => {
   const server = new Server(config);
@@ -44,20 +45,6 @@ export const createServer = (config: any): any => {
 
     await writeConfigFile(newConfig);
     return { success: true, message: "Config saved successfully" };
-  });
-
-  // Add endpoint to restart the service with access control
-  server.app.post("/api/restart", async (req: any, reply: any) => {
-    reply.send({ success: true, message: "Service restart initiated" });
-
-    // Restart the service after a short delay to allow response to be sent
-    setTimeout(() => {
-      const { spawn } = require("child_process");
-      spawn(process.execPath, [process.argv[1], "restart"], {
-        detached: true,
-        stdio: "ignore",
-      });
-    }, 1000);
   });
 
   // Register static file serving with caching

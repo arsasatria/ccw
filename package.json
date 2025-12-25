@@ -1,17 +1,22 @@
 {
   "name": "@arsasatria/ccw",
-  "version": "1.0.73",
+  "version": "2.0.0",
   "description": "Use Claude Code without an Anthropics account and route it to another LLM provider",
   "private": true,
   "scripts": {
     "build": "node scripts/build.js",
-    "build:cli": "pnpm --filter @arsasatria/ccw-cli build",
-    "build:server": "pnpm --filter @arsasatria/ccw-server build",
-    "build:ui": "pnpm --filter @arsasatria/ccw-ui build",
-    "release": "pnpm build && pnpm publish -r",
-    "dev:cli": "pnpm --filter @arsasatria/ccw-cli dev",
-    "dev:server": "pnpm --filter @arsasatria/ccw-server dev",
-    "dev:ui": "pnpm --filter @arsasatria/ccw-ui dev"
+    "build:cli": "pnpm --filter @ccw/cli build",
+    "build:server": "pnpm --filter @ccw/server build",
+    "build:ui": "pnpm --filter @ccw/ui build",
+    "release": "pnpm build && bash scripts/release.sh all",
+    "release:npm": "bash scripts/release.sh npm",
+    "release:docker": "bash scripts/release.sh docker",
+    "dev:cli": "pnpm --filter @ccw/cli dev",
+    "dev:server": "pnpm --filter @ccw/server dev",
+    "dev:ui": "pnpm --filter @ccw/ui dev"
+  },
+  "bin": {
+    "ccr": "dist/cli.js"
   },
   "keywords": [
     "claude",

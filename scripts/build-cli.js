@@ -75,7 +75,20 @@ try {
     console.warn('⚠ Warning: index.html not found in UI dist, skipping...');
   }
 
-  console.log('CLI build completed successfully!');
+  // Step 7: Copy CLI dist to project root
+  console.log('\nCopying CLI dist to project root...');
+  const rootDistDir = path.join(rootDir, 'dist');
+
+  // Remove existing dist directory in root if it exists
+  if (fs.existsSync(rootDistDir)) {
+    fs.rmSync(rootDistDir, { recursive: true, force: true });
+  }
+
+  // Copy CLI dist to root
+  fs.cpSync(cliDistDir, rootDistDir, { recursive: true });
+  console.log('✓ CLI dist copied to project root successfully!');
+
+  console.log('\nCLI build completed successfully!');
   console.log('\nCLI dist contents:');
   const files = fs.readdirSync(cliDistDir);
   files.forEach(file => {

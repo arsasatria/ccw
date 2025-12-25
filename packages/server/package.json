@@ -1,8 +1,9 @@
 {
-  "name": "@arsasatria/ccw-server",
-  "version": "1.0.73",
+  "name": "@ccw/server",
+  "version": "2.0.0",
   "description": "Server for Claude Code Router",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "node ../../scripts/build-server.js",
     "dev": "ts-node src/index.ts"
@@ -16,7 +17,7 @@
   "author": "musistudio",
   "license": "MIT",
   "dependencies": {
-    "@arsasatria/ccw-shared": "workspace:*",
+    "@ccw/shared": "workspace:*",
     "@fastify/static": "^8.2.0",
     "@musistudio/llms": "^1.0.51",
     "dotenv": "^16.4.7",

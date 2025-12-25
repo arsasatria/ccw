@@ -15,7 +15,14 @@ export const REFERENCE_COUNT_FILE = path.join(os.tmpdir(), "claude-code-referenc
 export const CLAUDE_PROJECTS_DIR = path.join(os.homedir(), ".claude", "projects");
 
 
-export const DEFAULT_CONFIG = {
+export interface DefaultConfig {
+  LOG: boolean;
+  OPENAI_API_KEY: string;
+  OPENAI_BASE_URL: string;
+  OPENAI_MODEL: string;
+}
+
+export const DEFAULT_CONFIG: DefaultConfig = {
   LOG: false,
   OPENAI_API_KEY: "",
   OPENAI_BASE_URL: "",

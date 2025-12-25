@@ -1,6 +1,6 @@
 {
-  "name": "@arsasatria/ccw-cli",
-  "version": "1.0.73",
+  "name": "@ccw/cli",
+  "version": "2.0.0",
   "description": "CLI for Claude Code Router",
   "bin": {
     "ccr": "dist/cli.js"
@@ -18,9 +18,9 @@
   "author": "musistudio",
   "license": "MIT",
   "dependencies": {
-    "@arsasatria/ccw-shared": "workspace:*",
+    "@ccw/shared": "workspace:*",
     "@inquirer/prompts": "^5.0.0",
-    "@arsasatria/ccw-server": "workspace:*",
+    "@ccw/server": "workspace:*",
     "find-process": "^2.0.0",
     "minimist": "^1.2.8",
     "openurl": "^1.1.1"
