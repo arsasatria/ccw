@@ -14,8 +14,6 @@ import { checkForUpdates, performUpdate } from "./update";
 import { version } from "../../package.json";
 import { spawn } from "child_process";
 import { cleanupPidFile } from "./processCheck";
-import fastifyStatic from "@fastify/static";
-import {join} from "path";
 
 // Function to interpolate environment variables in config values
 const interpolateEnvVars = (obj: any): any => {
@@ -185,13 +183,13 @@ export const run = async (args: string[] = []) => {
   // Save the PID of the background process
   writeFileSync(PID_FILE, process.pid.toString());
 
-  // server.app.post('/api/update/perform', async () => {
-  //   return await performUpdate();
-  // })
-  //
-  // server.app.get('/api/update/check', async () => {
-  //   return await checkForUpdates(version);
-  // })
+  server.app.post('/api/update/perform', async () => {
+    return await performUpdate();
+  })
+
+  server.app.get('/api/update/check', async () => {
+    return await checkForUpdates(version);
+  })
 
   server.app.post("/api/restart", async () => {
     setTimeout(async () => {
