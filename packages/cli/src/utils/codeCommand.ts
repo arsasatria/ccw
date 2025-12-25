@@ -1,6 +1,7 @@
 import { spawn, type StdioOptions } from "child_process";
 import { readConfigFile } from ".";
-import { closeService } from "./close";
+// @ts-ignore - server package is built separately
+import { closeService } from "@arsasatria/ccw-server";
 import {
   decrementReferenceCount,
   incrementReferenceCount,
@@ -14,8 +15,8 @@ export async function executeCodeCommand(args: string[] = []) {
   // Set environment variables using shared function
   const config = await readConfigFile();
   const env = await createEnvVariables();
-  const settingsFlag = {
-    env
+  const settingsFlag: ClaudeSettingsFlag = {
+    env: env as ClaudeSettingsFlag['env']
   };
   if (config?.StatusLine?.enabled) {
     settingsFlag.statusLine = {

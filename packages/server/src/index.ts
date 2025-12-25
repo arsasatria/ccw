@@ -1,19 +1,13 @@
-import { existsSync } from "fs";
+import { existsSync, writeFileSync, unlinkSync } from "fs";
 import { writeFile } from "fs/promises";
 import { homedir } from "os";
-import path, { join } from "path";
-import { initConfig, initDir, cleanupLogFiles } from "./utils";
+import { join } from "path";
+import { initConfig, initDir } from "./utils";
 import { createServer } from "./server";
 import { router } from "./utils/router";
 import { apiKeyAuth } from "./middleware/auth";
-import {
-  cleanupPidFile,
-  isServiceRunning,
-  savePid,
-} from "./utils/processCheck";
-import { CONFIG_FILE } from "./constants";
+import { PID_FILE, CONFIG_FILE, HOME_DIR } from "@arsasatria/ccw-shared";
 import { createStream } from 'rotating-file-stream';
-import { HOME_DIR } from "./constants";
 import { sessionUsageCache } from "./utils/cache";
 import {SSEParserTransform} from "./utils/SSEParser.transform";
 import {SSESerializerTransform} from "./utils/SSESerializer.transform";
@@ -47,11 +41,12 @@ async function initializeClaudeConfig() {
 
 interface RunOptions {
   port?: number;
+  logger?: any;
 }
 
 async function run(options: RunOptions = {}) {
   // Check if service is already running
-  const isRunning = await isServiceRunning()
+  const isRunning = existsSync(PID_FILE);
   if (isRunning) {
     console.log("✅ Service is already running in the background.");
     return;
@@ -59,33 +54,56 @@ async function run(options: RunOptions = {}) {
 
   await initializeClaudeConfig();
   await initDir();
-  // Clean up old log files, keeping only the 10 most recent ones
-  await cleanupLogFiles();
   const config = await initConfig();
 
+  // Check if Providers is configured
+  const providers = config.Providers || config.providers || [];
+  const hasProviders = providers && providers.length > 0;
 
   let HOST = config.HOST || "127.0.0.1";
 
-  if (config.HOST && !config.APIKEY) {
-    HOST = "127.0.0.1";
-    console.warn("⚠️ API key is not set. HOST is forced to 127.0.0.1.");
+  if (hasProviders) {
+    // When providers are configured, require both HOST and APIKEY
+    if (!config.HOST || !config.APIKEY) {
+      console.error("❌ Both HOST and APIKEY must be configured when Providers are set.");
+      console.error("   Please add HOST and APIKEY to your config file.");
+      process.exit(1);
+    }
+    HOST = config.HOST;
+  } else {
+    // When no providers are configured, listen on 0.0.0.0 without authentication
+    HOST = "0.0.0.0";
+    console.log("ℹ️  No providers configured. Listening on 0.0.0.0 without authentication.");
   }
 
   const port = config.PORT || 3456;
 
   // Save the PID of the background process
-  savePid(process.pid);
+  writeFileSync(PID_FILE, process.pid.toString());
 
   // Handle SIGINT (Ctrl+C) to clean up PID file
   process.on("SIGINT", () => {
     console.log("Received SIGINT, cleaning up...");
-    cleanupPidFile();
+    if (existsSync(PID_FILE)) {
+      try {
+        unlinkSync(PID_FILE);
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }
     process.exit(0);
   });
 
   // Handle SIGTERM to clean up PID file
   process.on("SIGTERM", () => {
-    cleanupPidFile();
+    if (existsSync(PID_FILE)) {
+      try {
+        const fs = require('fs');
+        fs.unlinkSync(PID_FILE);
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    }
     process.exit(0);
   });
 
@@ -94,33 +112,52 @@ async function run(options: RunOptions = {}) {
     ? parseInt(process.env.SERVICE_PORT)
     : port;
 
-  // Configure logger based on config settings
-  const pad = num => (num > 9 ? "" : "0") + num;
-  const generator = (time, index) => {
+  // Configure logger based on config settings or external options
+  const pad = (num: number) => (num > 9 ? "" : "0") + num;
+  const generator = (time: number | Date | undefined, index: number | undefined) => {
+    let date: Date;
     if (!time) {
-      time = new Date()
+      date = new Date();
+    } else if (typeof time === 'number') {
+      date = new Date(time);
+    } else {
+      date = time;
     }
 
-    var month = time.getFullYear() + "" + pad(time.getMonth() + 1);
-    var day = pad(time.getDate());
-    var hour = pad(time.getHours());
-    var minute = pad(time.getMinutes());
+    const month = date.getFullYear() + "" + pad(date.getMonth() + 1);
+    const day = pad(date.getDate());
+    const hour = pad(date.getHours());
+    const minute = pad(date.getMinutes());
 
-    return `./logs/ccr-${month}${day}${hour}${minute}${pad(time.getSeconds())}${index ? `_${index}` : ''}.log`;
+    return `./logs/ccr-${month}${day}${hour}${minute}${pad(date.getSeconds())}${index ? `_${index}` : ''}.log`;
   };
-  const loggerConfig =
-    config.LOG !== false
-      ? {
-          level: config.LOG_LEVEL || "debug",
-          stream: createStream(generator, {
-            path: HOME_DIR,
-            maxFiles: 3,
-            interval: "1d",
-            compress: false,
-            maxSize: "50M"
-          }),
-        }
-      : false;
+
+  let loggerConfig: any;
+
+  // 如果外部传入了 logger 配置，使用外部的
+  if (options.logger !== undefined) {
+    loggerConfig = options.logger;
+  } else {
+    // 如果没有传入，并且 config.LOG !== false，则启用 logger
+    if (config.LOG !== false) {
+      // 将 config.LOG 设为 true（如果它还未设置）
+      if (config.LOG === undefined) {
+        config.LOG = true;
+      }
+      loggerConfig = {
+        level: config.LOG_LEVEL || "debug",
+        stream: createStream(generator, {
+          path: HOME_DIR,
+          maxFiles: 3,
+          interval: "1d",
+          compress: false,
+          maxSize: "50M"
+        }),
+      };
+    } else {
+      loggerConfig = false;
+    }
+  }
 
   const server = createServer({
     jsonPath: CONFIG_FILE,
@@ -147,8 +184,8 @@ async function run(options: RunOptions = {}) {
     server.logger.error("Unhandled rejection at:", promise, "reason:", reason);
   });
   // Add async preHandler hook for authentication
-  server.addHook("preHandler", async (req, reply) => {
-    return new Promise((resolve, reject) => {
+  server.addHook("preHandler", async (req: any, reply: any) => {
+    return new Promise<void>((resolve, reject) => {
       const done = (err?: Error) => {
         if (err) reject(err);
         else resolve();
@@ -157,7 +194,7 @@ async function run(options: RunOptions = {}) {
       apiKeyAuth(config)(req, reply, done).catch(reject);
     });
   });
-  server.addHook("preHandler", async (req, reply) => {
+  server.addHook("preHandler", async (req: any, reply: any) => {
     if (req.url.startsWith("/v1/messages") && !req.url.startsWith("/v1/messages/count_tokens")) {
       const useAgents = []
 
@@ -194,10 +231,10 @@ async function run(options: RunOptions = {}) {
       });
     }
   });
-  server.addHook("onError", async (request, reply, error) => {
+  server.addHook("onError", async (request: any, reply: any, error: any) => {
     event.emit('onError', request, reply, error);
   })
-  server.addHook("onSend", (req, reply, payload, done) => {
+  server.addHook("onSend", (req: any, reply: any, payload: any, done: any) => {
     if (req.sessionId && req.url.startsWith("/v1/messages") && !req.url.startsWith("/v1/messages/count_tokens")) {
       if (payload instanceof ReadableStream) {
         if (req.agents) {
@@ -281,7 +318,7 @@ async function run(options: RunOptions = {}) {
                 if (!response.ok) {
                   return undefined;
                 }
-                const stream = response.body!.pipeThrough(new SSEParserTransform())
+                const stream = response.body!.pipeThrough(new SSEParserTransform() as any)
                 const reader = stream.getReader()
                 while (true) {
                   try {
@@ -289,7 +326,8 @@ async function run(options: RunOptions = {}) {
                     if (done) {
                       break;
                     }
-                    if (['message_start', 'message_stop'].includes(value.event)) {
+                    const eventData = value as any;
+                    if (['message_start', 'message_stop'].includes(eventData.event)) {
                       continue
                     }
 
@@ -298,7 +336,7 @@ async function run(options: RunOptions = {}) {
                       break;
                     }
 
-                    controller.enqueue(value)
+                    controller.enqueue(eventData)
                   }catch (readError: any) {
                     if (readError.name === 'AbortError' || readError.code === 'ERR_STREAM_PREMATURE_CLOSE') {
                       abortController.abort(); // 中止所有相关操作
@@ -371,7 +409,7 @@ async function run(options: RunOptions = {}) {
     }
     done(null, payload)
   });
-  server.addHook("onSend", async (req, reply, payload) => {
+  server.addHook("onSend", async (req: any, reply: any, payload: any) => {
     event.emit('onSend', req, reply, payload);
     return payload;
   })
@@ -381,4 +419,11 @@ async function run(options: RunOptions = {}) {
 }
 
 export { run };
-// run();
+
+// 如果是直接运行此文件，则启动服务
+if (require.main === module) {
+  run().catch((error) => {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  });
+}

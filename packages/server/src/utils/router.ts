@@ -1,15 +1,34 @@
-import {
-  MessageCreateParamsBase,
-  MessageParam,
-  Tool,
-} from "@anthropic-ai/sdk/resources/messages";
 import { get_encoding } from "tiktoken";
 import { sessionUsageCache, Usage } from "./cache";
 import { readFile, access } from "fs/promises";
 import { opendir, stat } from "fs/promises";
 import { join } from "path";
-import { CLAUDE_PROJECTS_DIR, HOME_DIR } from "../constants";
+import { CLAUDE_PROJECTS_DIR, HOME_DIR } from "@arsasatria/ccw-shared";
 import { LRUCache } from "lru-cache";
+
+// Types from @anthropic-ai/sdk
+interface Tool {
+  name: string;
+  description?: string;
+  input_schema: object;
+}
+
+interface ContentBlockParam {
+  type: string;
+  [key: string]: any;
+}
+
+interface MessageParam {
+  role: string;
+  content: string | ContentBlockParam[];
+}
+
+interface MessageCreateParamsBase {
+  messages?: MessageParam[];
+  system?: string | any[];
+  tools?: Tool[];
+  [key: string]: any;
+}
 
 const enc = get_encoding("cl100k_base");
 
@@ -232,7 +251,7 @@ export const router = async (req: any, _res: any, context: any) => {
 // 内存缓存，存储sessionId到项目名称的映射
 // null值表示之前已查找过但未找到项目
 // 使用LRU缓存，限制最大1000个条目
-const sessionProjectCache = new LRUCache<string, string | null>({
+const sessionProjectCache = new LRUCache<string, string>({
   max: 1000,
 });
 
@@ -241,7 +260,11 @@ export const searchProjectBySession = async (
 ): Promise<string | null> => {
   // 首先检查缓存
   if (sessionProjectCache.has(sessionId)) {
-    return sessionProjectCache.get(sessionId)!;
+    const result = sessionProjectCache.get(sessionId);
+    if (!result || result === '') {
+      return null;
+    }
+    return result;
   }
 
   try {
@@ -283,12 +306,12 @@ export const searchProjectBySession = async (
     }
 
     // 缓存未找到的结果（null值表示之前已查找过但未找到项目）
-    sessionProjectCache.set(sessionId, null);
+    sessionProjectCache.set(sessionId, '');
     return null; // 没有找到匹配的项目
   } catch (error) {
     console.error("Error searching for project by session:", error);
     // 出错时也缓存null结果，避免重复出错
-    sessionProjectCache.set(sessionId, null);
+    sessionProjectCache.set(sessionId, '');
     return null;
   }
 };

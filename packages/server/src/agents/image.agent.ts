@@ -71,7 +71,7 @@ export class ImageAgent implements IAgent {
       )
     ) {
       req.body.model = config.Router.image;
-      const images = [];
+      const images: any[] = [];
       lastMessage.content
         .filter((item: any) => item.type === "tool_result")
         .forEach((item: any) => {
@@ -183,7 +183,7 @@ export class ImageAgent implements IAgent {
           context.req.body.messages[context.req.body.messages.length - 1];
         if (userMessage.role === "user" && Array.isArray(userMessage.content)) {
           const msgs = userMessage.content.filter(
-            (item) =>
+            (item: any) =>
               item.type === "text" &&
               !item.text.includes(
                 "This is an image, if you need to view or analyze it, you need to extract the imageId"
@@ -286,7 +286,7 @@ Your response should consistently follow this rule whenever image-related analys
         } else if (msg.type === "tool_result") {
           if (
             Array.isArray(msg.content) &&
-            msg.content.some((ele) => ele.type === "image")
+            msg.content.some((ele: any) => ele.type === "image")
           ) {
             imageCache.storeImage(
               `${req.id}_Image#${imgId}`,

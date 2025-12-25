@@ -1,29 +1,28 @@
 import Server from "@musistudio/llms";
 import { readConfigFile, writeConfigFile, backupConfigFile } from "./utils";
-import { checkForUpdates, performUpdate } from "./utils";
 import { join } from "path";
 import fastifyStatic from "@fastify/static";
 import { readdirSync, statSync, readFileSync, writeFileSync, existsSync } from "fs";
 import { homedir } from "os";
 import {calculateTokenCount} from "./utils/router";
 
-export const createServer = (config: any): Server => {
+export const createServer = (config: any): any => {
   const server = new Server(config);
 
-  server.app.post("/v1/messages/count_tokens", async (req, reply) => {
+  server.app.post("/v1/messages/count_tokens", async (req: any, reply: any) => {
     const {messages, tools, system} = req.body;
     const tokenCount = calculateTokenCount(messages, system, tools);
     return { "input_tokens": tokenCount }
   });
 
   // Add endpoint to read config.json with access control
-  server.app.get("/api/config", async (req, reply) => {
+  server.app.get("/api/config", async (req: any, reply: any) => {
     return await readConfigFile();
   });
 
-  server.app.get("/api/transformers", async () => {
+  server.app.get("/api/transformers", async (req: any, reply: any) => {
     const transformers =
-      server.app._server!.transformerService.getAllTransformers();
+      (server.app as any)._server!.transformerService.getAllTransformers();
     const transformerList = Array.from(transformers.entries()).map(
       ([name, transformer]: any) => ({
         name,
@@ -34,7 +33,7 @@ export const createServer = (config: any): Server => {
   });
 
   // Add endpoint to save config.json with access control
-  server.app.post("/api/config", async (req, reply) => {
+  server.app.post("/api/config", async (req: any, reply: any) => {
     const newConfig = req.body;
 
     // Backup existing config file if it exists
@@ -48,7 +47,7 @@ export const createServer = (config: any): Server => {
   });
 
   // Add endpoint to restart the service with access control
-  server.app.post("/api/restart", async (req, reply) => {
+  server.app.post("/api/restart", async (req: any, reply: any) => {
     reply.send({ success: true, message: "Service restart initiated" });
 
     // Restart the service after a short delay to allow response to be sent
@@ -69,50 +68,12 @@ export const createServer = (config: any): Server => {
   });
 
   // Redirect /ui to /ui/ for proper static file serving
-  server.app.get("/ui", async (_, reply) => {
+  server.app.get("/ui", async (_: any, reply: any) => {
     return reply.redirect("/ui/");
   });
 
-  // 版本检查端点
-  server.app.get("/api/update/check", async (req, reply) => {
-    try {
-      // 获取当前版本
-      const currentVersion = require("../package.json").version;
-      const { hasUpdate, latestVersion, changelog } = await checkForUpdates(currentVersion);
-
-      return {
-        hasUpdate,
-        latestVersion: hasUpdate ? latestVersion : undefined,
-        changelog: hasUpdate ? changelog : undefined
-      };
-    } catch (error) {
-      console.error("Failed to check for updates:", error);
-      reply.status(500).send({ error: "Failed to check for updates" });
-    }
-  });
-
-  // 执行更新端点
-  server.app.post("/api/update/perform", async (req, reply) => {
-    try {
-      // 只允许完全访问权限的用户执行更新
-      const accessLevel = (req as any).accessLevel || "restricted";
-      if (accessLevel !== "full") {
-        reply.status(403).send("Full access required to perform updates");
-        return;
-      }
-
-      // 执行更新逻辑
-      const result = await performUpdate();
-
-      return result;
-    } catch (error) {
-      console.error("Failed to perform update:", error);
-      reply.status(500).send({ error: "Failed to perform update" });
-    }
-  });
-
   // 获取日志文件列表端点
-  server.app.get("/api/logs/files", async (req, reply) => {
+  server.app.get("/api/logs/files", async (req: any, reply: any) => {
     try {
       const logDir = join(homedir(), ".ccw", "logs");
       const logFiles: Array<{ name: string; path: string; size: number; lastModified: string }> = [];
@@ -146,7 +107,7 @@ export const createServer = (config: any): Server => {
   });
 
   // 获取日志内容端点
-  server.app.get("/api/logs", async (req, reply) => {
+  server.app.get("/api/logs", async (req: any, reply: any) => {
     try {
       const filePath = (req.query as any).file as string;
       let logFilePath: string;
@@ -174,7 +135,7 @@ export const createServer = (config: any): Server => {
   });
 
   // 清除日志内容端点
-  server.app.delete("/api/logs", async (req, reply) => {
+  server.app.delete("/api/logs", async (req: any, reply: any) => {
     try {
       const filePath = (req.query as any).file as string;
       let logFilePath: string;

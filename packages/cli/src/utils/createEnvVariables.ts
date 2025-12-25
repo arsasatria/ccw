@@ -4,7 +4,7 @@ import { readConfigFile } from ".";
  * Get environment variables for Agent SDK/Claude Code integration
  * This function is shared between `ccr env` and `ccr code` commands
  */
-export const createEnvVariables = async () => {
+export const createEnvVariables = async (): Promise<Record<string, string | undefined>> => {
   const config = await readConfigFile();
   const port = config.PORT || 3456;
   const apiKey = config.APIKEY || "test";

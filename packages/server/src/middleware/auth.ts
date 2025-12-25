@@ -8,6 +8,13 @@ export const apiKeyAuth =
       return done();
     }
 
+    // Check if Providers is empty or not configured
+    const providers = config.Providers || config.providers || [];
+    if (!providers || providers.length === 0) {
+      // No providers configured, skip authentication
+      return done();
+    }
+
     const apiKey = config.APIKEY;
     if (!apiKey) {
       // If no API key is set, enable CORS for local

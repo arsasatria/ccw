@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-import { run } from "./index";
+// @ts-ignore - server package is built separately
+import { run } from "@arsasatria/ccw-server";
+// @ts-ignore - server package is built separately
+import { parseStatusLineData, type StatusLineInput } from "@arsasatria/ccw-server";
 import { showStatus } from "./utils/status";
 import { executeCodeCommand } from "./utils/codeCommand";
-import { parseStatusLineData, type StatusLineInput } from "./utils/statusline";
 import {
   cleanupPidFile,
   isServiceRunning,
@@ -12,7 +14,7 @@ import { runModelSelector } from "./utils/modelSelector"; // ADD THIS LINE
 import { activateCommand } from "./utils/activateCommand";
 import { version } from "../package.json";
 import { spawn, exec } from "child_process";
-import { PID_FILE, REFERENCE_COUNT_FILE } from "./constants";
+import { PID_FILE, REFERENCE_COUNT_FILE } from "@arsasatria/ccw-shared";
 import fs, { existsSync, readFileSync } from "fs";
 import { join } from "path";
 

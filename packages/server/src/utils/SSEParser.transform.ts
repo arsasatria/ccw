@@ -5,9 +5,7 @@ export class SSEParserTransform extends TransformStream<string, any> {
     constructor() {
         super({
             transform: (chunk: string, controller) => {
-                const decoder = new TextDecoder();
-                const text = decoder.decode(chunk);
-                this.buffer += text;
+                this.buffer += chunk;
                 const lines = this.buffer.split('\n');
 
                 // 保留最后一行（可能不完整）
