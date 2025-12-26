@@ -4,8 +4,7 @@ import { join } from "path";
 import fastifyStatic from "@fastify/static";
 import { readdirSync, statSync, readFileSync, writeFileSync, existsSync } from "fs";
 import { homedir } from "os";
-import {calculateTokenCount} from "./utils/router";
-import { fork, spawn } from "child_process";
+import { calculateTokenCount } from "./utils/router";
 
 export const createServer = (config: any): any => {
   const server = new Server(config);
