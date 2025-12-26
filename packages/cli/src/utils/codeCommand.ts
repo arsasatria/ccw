@@ -9,14 +9,38 @@ import { quote } from 'shell-quote';
 import minimist from "minimist";
 import { createEnvVariables } from "./createEnvVariables";
 
+export interface PresetConfig {
+  noServer?: boolean;
+  claudeCodeSettings?: {
+    env?: Record<string, any>;
+    statusLine?: any;
+    [key: string]: any;
+  };
+  provider?: string;
+  router?: Record<string, any>;
+  [key: string]: any;
+}
 
-export async function executeCodeCommand(args: string[] = []) {
+export async function executeCodeCommand(
+  args: string[] = [],
+  presetConfig?: PresetConfig | null,
+  envOverrides?: Record<string, string>
+) {
   // Set environment variables using shared function
   const config = await readConfigFile();
   const env = await createEnvVariables();
-  const settingsFlag: ClaudeSettingsFlag = {
+
+  // 应用环境变量覆盖（从 preset 的 provider 配置中获取）
+  if (envOverrides) {
+    Object.assign(env, envOverrides);
+  }
+
+  // 构建 settingsFlag
+  let settingsFlag: ClaudeSettingsFlag = {
     env: env as ClaudeSettingsFlag['env']
   };
+
+  // 如果配置了 StatusLine，添加 statusLine
   if (config?.StatusLine?.enabled) {
     settingsFlag.statusLine = {
       type: "command",
@@ -24,7 +48,22 @@ export async function executeCodeCommand(args: string[] = []) {
       padding: 0,
     }
   }
+
+  // 如果 preset 中有 claudeCodeSettings，合并到 settingsFlag 中
+  if (presetConfig?.claudeCodeSettings) {
+    settingsFlag = {
+      ...settingsFlag,
+      ...presetConfig.claudeCodeSettings,
+      // 深度合并 env
+      env: {
+        ...settingsFlag.env,
+        ...presetConfig.claudeCodeSettings.env,
+      } as ClaudeSettingsFlag['env']
+    };
+  }
+
   args.push('--settings', getSettingsPath(`${JSON.stringify(settingsFlag)}`));
+  console.log(args)
 
   // Non-interactive mode for automation environments
   if (config.NON_INTERACTIVE_MODE) {

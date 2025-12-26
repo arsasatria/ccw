@@ -7,6 +7,7 @@ import {
   CONFIG_FILE,
   HOME_DIR, PID_FILE,
   PLUGINS_DIR,
+  PRESETS_DIR,
   REFERENCE_COUNT_FILE,
 } from "@ccw/shared";
 import { getServer } from "@ccw/server";
@@ -47,6 +48,7 @@ const ensureDir = async (dir_path: string) => {
 export const initDir = async () => {
   await ensureDir(HOME_DIR);
   await ensureDir(PLUGINS_DIR);
+  await ensureDir(PRESETS_DIR);
   await ensureDir(path.join(HOME_DIR, "logs"));
 };
 
@@ -271,4 +273,24 @@ export const getSettingsPath = (content: string): string => {
   writeFileSync(tempFilePath, content, 'utf-8');
 
   return tempFilePath;
+}
+
+/**
+ * 读取 preset 配置文件
+ * @param name preset 名称
+ * @returns preset 配置对象，如果文件不存在则返回 null
+ */
+export const readPresetFile = async (name: string): Promise<any | null> => {
+  try {
+    const presetFile = path.join(PRESETS_DIR, `${name}.ccrsets`);
+    const content = await fs.readFile(presetFile, 'utf-8');
+    return JSON5.parse(content);
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      console.error(`Preset file not found: ${name}.ccrsets`);
+    } else {
+      console.error(`Failed to read preset file: ${error.message}`);
+    }
+    return null;
+  }
 }

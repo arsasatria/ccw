@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { run } from "./utils";
 import { showStatus } from "./utils/status";
-import { executeCodeCommand } from "./utils/codeCommand";
+import { executeCodeCommand, PresetConfig } from "./utils/codeCommand";
 import {
   cleanupPidFile,
   isServiceRunning,
@@ -9,6 +9,7 @@ import {
 } from "./utils/processCheck";
 import { runModelSelector } from "./utils/modelSelector";
 import { activateCommand } from "./utils/activateCommand";
+import { readConfigFile } from "./utils";
 import { version } from "../package.json";
 import { spawn, exec } from "child_process";
 import { PID_FILE, REFERENCE_COUNT_FILE } from "@ccw/shared";
@@ -18,8 +19,26 @@ import { parseStatusLineData, StatusLineInput } from "./utils/statusline";
 
 const command = process.argv[2];
 
+// 定义所有已知命令
+const KNOWN_COMMANDS = [
+  "start",
+  "stop",
+  "restart",
+  "status",
+  "statusline",
+  "code",
+  "model",
+  "activate",
+  "env",
+  "ui",
+  "-v",
+  "version",
+  "-h",
+  "help",
+];
+
 const HELP_TEXT = `
-Usage: ccr [command]
+Usage: ccr [command] [preset-name]
 
 Commands:
   start         Start server
@@ -34,9 +53,13 @@ Commands:
   -v, version   Show version information
   -h, help      Show help information
 
-Example:
+Presets:
+  Any preset-name defined in ~/.ccw/presets/*.ccrsets
+
+Examples:
   ccr start
   ccr code "Write a Hello World"
+  ccr my-preset "Write a Hello World"    # Use preset configuration
   ccr model
   eval "$(ccr activate)"  # Set environment variables globally
   ccr ui
@@ -64,6 +87,96 @@ async function waitForService(
 
 async function main() {
   const isRunning = await isServiceRunning()
+
+  // 如果命令不是已知命令，检查是否是 preset
+  if (command && !KNOWN_COMMANDS.includes(command)) {
+    const { readPresetFile } = await import("./utils");
+    const presetConfig: PresetConfig | null = await readPresetFile(command);
+
+    if (presetConfig) {
+      // 这是一个 preset，执行 code 命令
+      const codeArgs = process.argv.slice(3); // 获取剩余参数
+
+      // 检查 noServer 配置
+      const shouldStartServer = presetConfig.noServer !== true;
+
+      // 处理 provider 配置，构建环境变量覆盖
+      let envOverrides: Record<string, string> | undefined;
+      if (presetConfig.provider) {
+        const config = await readConfigFile();
+        const providerName = presetConfig.provider;
+        const provider = config.Providers?.find((p: any) => p.name === providerName);
+
+        if (provider) {
+          // 处理 api_base_url，去掉 /v1/messages 后缀
+          if (provider.api_base_url) {
+            let baseUrl = provider.api_base_url;
+            if (baseUrl.endsWith('/v1/messages')) {
+              baseUrl = baseUrl.slice(0, -'/v1/messages'.length);
+            } else if (baseUrl.endsWith('/')) {
+              baseUrl = baseUrl.slice(0, -1);
+            }
+            envOverrides = {
+              ...envOverrides,
+              ANTHROPIC_BASE_URL: baseUrl,
+            };
+          }
+
+          // 处理 api_key
+          if (provider.api_key) {
+            envOverrides = {
+              ...envOverrides,
+              ANTHROPIC_AUTH_TOKEN: provider.api_key,
+            };
+          }
+        } else {
+          console.error(`Provider "${providerName}" not found in config`);
+          process.exit(1);
+        }
+      }
+
+      // TODO: 处理 router 配置
+      // 如果 preset 中有 router 配置且需要启动 server，可能需要临时修改配置文件
+
+      if (shouldStartServer && !isRunning) {
+        console.log("Service not running, starting service...");
+        const cliPath = join(__dirname, "cli.js");
+        const startProcess = spawn("node", [cliPath, "start"], {
+          detached: true,
+          stdio: "ignore",
+        });
+
+        startProcess.on("error", (error) => {
+          console.error("Failed to start service:", error.message);
+          process.exit(1);
+        });
+
+        startProcess.unref();
+
+        if (await waitForService()) {
+          executeCodeCommand(codeArgs, presetConfig, envOverrides);
+        } else {
+          console.error(
+            "Service startup timeout, please manually run `ccr start` to start the service"
+          );
+          process.exit(1);
+        }
+      } else {
+        // 服务已运行或不需要启动 server
+        if (shouldStartServer && !isRunning) {
+          console.error("Service is not running. Please start it first with `ccr start`");
+          process.exit(1);
+        }
+        executeCodeCommand(codeArgs, presetConfig, envOverrides);
+      }
+      return;
+    } else {
+      // 不是 preset 也不是已知命令
+      console.log(HELP_TEXT);
+      process.exit(1);
+    }
+  }
+
   switch (command) {
     case "start":
       await run();
@@ -132,27 +245,14 @@ async function main() {
           stdio: "ignore",
         });
 
-        // let errorMessage = "";
-        // startProcess.stderr?.on("data", (data) => {
-        //   errorMessage += data.toString();
-        // });
-
         startProcess.on("error", (error) => {
           console.error("Failed to start service:", error.message);
           process.exit(1);
         });
 
-        // startProcess.on("close", (code) => {
-        //   if (code !== 0 && errorMessage) {
-        //     console.error("Failed to start service:", errorMessage.trim());
-        //     process.exit(1);
-        //   }
-        // });
-
         startProcess.unref();
 
         if (await waitForService()) {
-          // Join all code arguments into a single string to preserve spaces within quotes
           const codeArgs = process.argv.slice(3);
           executeCodeCommand(codeArgs);
         } else {
@@ -162,7 +262,6 @@ async function main() {
           process.exit(1);
         }
       } else {
-        // Join all code arguments into a single string to preserve spaces within quotes
         const codeArgs = process.argv.slice(3);
         executeCodeCommand(codeArgs);
       }

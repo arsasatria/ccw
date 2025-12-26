@@ -7,6 +7,8 @@ export const CONFIG_FILE = path.join(HOME_DIR, "config.json");
 
 export const PLUGINS_DIR = path.join(HOME_DIR, "plugins");
 
+export const PRESETS_DIR = path.join(HOME_DIR, "presets");
+
 export const PID_FILE = path.join(HOME_DIR, '.ccw.pid');
 
 export const REFERENCE_COUNT_FILE = path.join(os.tmpdir(), "claude-code-reference-count.txt");
