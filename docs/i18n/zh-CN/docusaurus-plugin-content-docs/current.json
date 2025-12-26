@@ -1,0 +1,54 @@
+{
+  "version.label": {
+    "message": "Next",
+    "description": "The label for version current"
+  },
+  "sidebar.tutorialSidebar.category.Getting Started": {
+    "message": "Getting Started",
+    "description": "The label for category 'Getting Started' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Getting Started.link.generated-index.title": {
+    "message": "Getting Started",
+    "description": "The generated-index page title for category 'Getting Started' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Getting Started.link.generated-index.description": {
+    "message": "Learn the basics of Claude Code Router",
+    "description": "The generated-index page description for category 'Getting Started' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Configuration": {
+    "message": "Configuration",
+    "description": "The label for category 'Configuration' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Configuration.link.generated-index.title": {
+    "message": "Configuration",
+    "description": "The generated-index page title for category 'Configuration' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Configuration.link.generated-index.description": {
+    "message": "Configure Claude Code Router to suit your needs",
+    "description": "The generated-index page description for category 'Configuration' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Advanced": {
+    "message": "Advanced",
+    "description": "The label for category 'Advanced' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Advanced.link.generated-index.title": {
+    "message": "Advanced Topics",
+    "description": "The generated-index page title for category 'Advanced' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.Advanced.link.generated-index.description": {
+    "message": "Advanced features and customization",
+    "description": "The generated-index page description for category 'Advanced' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.CLI Reference": {
+    "message": "CLI Reference",
+    "description": "The label for category 'CLI Reference' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.CLI Reference.link.generated-index.title": {
+    "message": "CLI Commands",
+    "description": "The generated-index page title for category 'CLI Reference' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.CLI Reference.link.generated-index.description": {
+    "message": "Complete reference for all CLI commands",
+    "description": "The generated-index page description for category 'CLI Reference' in sidebar 'tutorialSidebar'"
+  }
+}

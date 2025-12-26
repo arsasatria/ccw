@@ -8,12 +8,15 @@
     "build:cli": "pnpm --filter @ccw/cli build",
     "build:server": "pnpm --filter @ccw/server build",
     "build:ui": "pnpm --filter @ccw/ui build",
+    "build:docs": "pnpm --filter ccw-docs build",
     "release": "pnpm build && bash scripts/release.sh all",
     "release:npm": "bash scripts/release.sh npm",
     "release:docker": "bash scripts/release.sh docker",
     "dev:cli": "pnpm --filter @ccw/cli dev",
     "dev:server": "pnpm --filter @ccw/server dev",
-    "dev:ui": "pnpm --filter @ccw/ui dev"
+    "dev:ui": "pnpm --filter @ccw/ui dev",
+    "dev:docs": "pnpm --filter ccw-docs start",
+    "serve:docs": "pnpm --filter ccw-docs serve"
   },
   "bin": {
     "ccr": "dist/cli.js"
