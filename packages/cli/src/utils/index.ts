@@ -14,7 +14,7 @@ import { writeFileSync, existsSync, readFileSync } from "fs";
 import { checkForUpdates, performUpdate } from "./update";
 import { version } from "../../package.json";
 import { spawn } from "child_process";
-import { cleanupPidFile } from "./processCheck";
+import {cleanupPidFile, isServiceRunning} from "./processCheck";
 
 // Function to interpolate environment variables in config values
 const interpolateEnvVars = (obj: any): any => {
@@ -180,6 +180,11 @@ export const initConfig = async () => {
 };
 
 export const run = async (args: string[] = []) => {
+  const isRunning = isServiceRunning()
+  if (isRunning) {
+    console.log('ccw server is running');
+    return;
+  }
   const server = await getServer();
   // Save the PID of the background process
   writeFileSync(PID_FILE, process.pid.toString());
