@@ -736,17 +736,27 @@ export function StatusLineConfigDialog({
     const handleKeyDown = (e: KeyboardEvent) => {
       // 检查是否选中了模块
       if (selectedModuleIndex === null) return;
-      
+
       // 检查是否按下了删除键 (Delete 或 Backspace)
       if (e.key === 'Delete' || e.key === 'Backspace') {
-        e.preventDefault();
-        deleteSelectedModule();
+        // 检查当前焦点元素是否是预览区域的模块
+        const activeElement = document.activeElement as HTMLElement;
+
+        // 检查焦点元素是否是预览区域的模块（有 cursor-pointer 类和 tabIndex）
+        const isPreviewModule = activeElement?.classList.contains('cursor-pointer') &&
+                               activeElement?.hasAttribute('tabIndex');
+
+        // 只有当焦点在预览区域的组件上时，才执行删除操作
+        if (isPreviewModule) {
+          e.preventDefault();
+          deleteSelectedModule();
+        }
       }
     };
 
     // 添加事件监听器
     document.addEventListener('keydown', handleKeyDown);
-    
+
     // 清理函数
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
@@ -953,6 +963,7 @@ export function StatusLineConfigDialog({
                     {currentModules.map((module, index) => (
                       <div
                         key={index}
+                        tabIndex={0}
                         className={`cursor-pointer ${
                           selectedModuleIndex === index
                             ? "bg-white/20"
