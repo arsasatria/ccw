@@ -1,5 +1,5 @@
 import { spawn, type StdioOptions } from "child_process";
-import { readConfigFile } from ".";
+import {getSettingsPath, readConfigFile} from ".";
 import {
   decrementReferenceCount,
   incrementReferenceCount,
@@ -24,7 +24,7 @@ export async function executeCodeCommand(args: string[] = []) {
       padding: 0,
     }
   }
-  // args.push('--settings', `${JSON.stringify(settingsFlag)}`);
+  args.push('--settings', getSettingsPath(`${JSON.stringify(settingsFlag)}`));
 
   // Non-interactive mode for automation environments
   if (config.NON_INTERACTIVE_MODE) {
@@ -70,7 +70,6 @@ export async function executeCodeCommand(args: string[] = []) {
     {
       env: {
         ...process.env,
-        ...env
       },
       stdio: stdioConfig,
       shell: true,

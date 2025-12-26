@@ -2,6 +2,7 @@ import fs from "node:fs/promises";
 import readline from "node:readline";
 import JSON5 from "json5";
 import path from "node:path";
+import { createHash } from "node:crypto";
 import {
   CONFIG_FILE,
   HOME_DIR, PID_FILE,
@@ -241,3 +242,28 @@ export const restartService = async () => {
   startProcess.unref();
   console.log("✅ Service started successfully in the background.");
 };
+
+
+/**
+ * 获取设置文件的临时路径
+ * 对内容进行 hash，如果临时目录中已存在该 hash 的文件则直接返回，否则创建新文件
+ * @param content 设置内容字符串
+ * @returns 临时文件的完整路径
+ */
+export const getSettingsPath = (content: string): string => {
+  // 对内容进行 hash（使用 SHA256 算法）
+  const hash = createHash('sha256').update(content, 'utf-8').digest('hex');
+
+  const fileName = `ccr-settings-${hash}.json`;
+  const tempFilePath = path.join(HOME_DIR, fileName);
+
+  // 检查文件是否已存在
+  if (existsSync(tempFilePath)) {
+    return tempFilePath;
+  }
+
+  // 文件不存在，创建并写入内容
+  writeFileSync(tempFilePath, content, 'utf-8');
+
+  return tempFilePath;
+}
