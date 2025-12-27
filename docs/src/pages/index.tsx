@@ -55,11 +55,10 @@ function HomepageHeader() {
             className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-extrabold mb-6 leading-tight animate-fade-in-up"
             style={{ animationDelay: '0.1s' }}
           >
-            <span className="text-gray-900">{t.title}</span>
+            <span className="text-gray-900">Route </span>
+            <span className="text-primary">Claude Code</span>
             <br />
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-primary/70">
-              {t.highlight}
-            </span>
+            <span className="text-gray-900">{t.highlight}</span>
           </Heading>
 
           {/* Subtitle */}
@@ -656,12 +655,9 @@ function CTASection() {
   );
 }
 
-export default function Home(): JSX.Element {
-  const {siteConfig} = useDocusaurusContext();
+export default function Home() {
   return (
-    <Layout
-      title={`${siteConfig.title}`}
-      description="Use Claude Code without an Anthropics account and route it to another LLM provider">
+    <Layout>
       <HomepageHeader />
       <main>
         <FeatureSection />
