@@ -1,0 +1,104 @@
+/**
+ * 预设导出功能 CLI 层
+ * 负责处理 CLI 交互，核心逻辑在 shared 包中
+ */
+
+import { input } from '@inquirer/prompts';
+import { readConfigFile } from '../index';
+import { exportPreset as exportPresetCore, ExportOptions } from '@ccw/shared';
+
+// ANSI 颜色代码
+const RESET = "\x1B[0m";
+const GREEN = "\x1B[32m";
+const BOLDGREEN = "\x1B[1m\x1B[32m";
+const YELLOW = "\x1B[33m";
+const BOLDCYAN = "\x1B[1m\x1B[36m";
+
+/**
+ * 导出预设配置（CLI 版本，带交互）
+ * @param presetName 预设名称
+ * @param options 导出选项
+ */
+export async function exportPresetCli(
+  presetName: string,
+  options: ExportOptions = {}
+): Promise<void> {
+  try {
+    console.log(`\n${BOLDCYAN}═══════════════════════════════════════════════${RESET}`);
+    console.log(`${BOLDCYAN}              Preset Export${RESET}`);
+    console.log(`${BOLDCYAN}═══════════════════════════════════════════════${RESET}\n`);
+
+    // 1. 读取当前配置
+    const config = await readConfigFile();
+
+    // 2. 如果没有通过命令行提供，交互式询问元数据
+    if (!options.description) {
+      try {
+        options.description = await input({
+          message: 'Description (optional):',
+          default: '',
+        });
+      } catch {
+        // 用户取消，使用默认值
+        options.description = '';
+      }
+    }
+
+    if (!options.author) {
+      try {
+        options.author = await input({
+          message: 'Author (optional):',
+          default: '',
+        });
+      } catch {
+        options.author = '';
+      }
+    }
+
+    if (!options.tags) {
+      try {
+        const keywordsInput = await input({
+          message: 'Keywords (comma-separated, optional):',
+          default: '',
+        });
+        options.tags = keywordsInput || '';
+      } catch {
+        options.tags = '';
+      }
+    }
+
+    // 3. 调用核心导出功能
+    const result = await exportPresetCore(presetName, config, options);
+
+    // 4. 显示摘要
+    console.log(`\n${BOLDGREEN}✓ Preset exported successfully${RESET}\n`);
+    console.log(`${BOLDCYAN}Location:${RESET} ${result.outputPath}\n`);
+    console.log(`${BOLDCYAN}Summary:${RESET}`);
+    console.log(`  - Providers: ${result.sanitizedConfig.Providers?.length || 0}`);
+    console.log(`  - Router rules: ${Object.keys(result.sanitizedConfig.Router || {}).length}`);
+    if (!options.includeSensitive) {
+      console.log(`  - Sensitive fields sanitized: ${YELLOW}${result.sanitizedCount}${RESET}`);
+    }
+
+    // 显示元数据
+    if (result.metadata.description) {
+      console.log(`\n${BOLDCYAN}Description:${RESET} ${result.metadata.description}`);
+    }
+    if (result.metadata.author) {
+      console.log(`${BOLDCYAN}Author:${RESET} ${result.metadata.author}`);
+    }
+    if (result.metadata.keywords && result.metadata.keywords.length > 0) {
+      console.log(`${BOLDCYAN}Keywords:${RESET} ${result.metadata.keywords.join(', ')}`);
+    }
+
+    // 显示分享提示
+    console.log(`\n${BOLDCYAN}To share this preset:${RESET}`);
+    console.log(`  1. Share the file: ${result.outputPath}`);
+    console.log(`  2. Upload to GitHub Gist or your repository`);
+    console.log(`  3. Others can install with: ${GREEN}ccr preset install <file>${RESET}\n`);
+
+  } catch (error: any) {
+    console.error(`\n${YELLOW}Error exporting preset:${RESET} ${error.message}`);
+    throw error;
+  }
+}

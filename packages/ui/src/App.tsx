@@ -10,13 +10,14 @@ import { LogViewer } from "@/components/LogViewer";
 import { Button } from "@/components/ui/button";
 import { useConfig } from "@/components/ConfigProvider";
 import { api } from "@/lib/api";
-import { Settings, Languages, Save, RefreshCw, FileJson, CircleArrowUp, FileText } from "lucide-react";
+import { Settings, Languages, Save, RefreshCw, FileJson, CircleArrowUp, FileText, FileCog } from "lucide-react";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Toast } from "@/components/ui/toast";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   Dialog,
   DialogContent,
@@ -270,19 +271,51 @@ function App() {
   }
 
   return (
-    <div className="h-screen bg-gray-50 font-sans">
+    <TooltipProvider>
+      <div className="h-screen bg-gray-50 font-sans">
       <header className="flex h-16 items-center justify-between border-b bg-white px-6">
         <h1 className="text-xl font-semibold text-gray-800">{t('app.title')}</h1>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} className="transition-all-ease hover:scale-110">
-            <Settings className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setIsJsonEditorOpen(true)} className="transition-all-ease hover:scale-110">
-            <FileJson className="h-5 w-5" />
-          </Button>
-          <Button variant="ghost" size="icon" onClick={() => setIsLogViewerOpen(true)} className="transition-all-ease hover:scale-110">
-            <FileText className="h-5 w-5" />
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)} className="transition-all-ease hover:scale-110">
+                <Settings className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t('app.settings')}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => setIsJsonEditorOpen(true)} className="transition-all-ease hover:scale-110">
+                <FileJson className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t('app.json_editor')}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => setIsLogViewerOpen(true)} className="transition-all-ease hover:scale-110">
+                <FileText className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t('app.log_viewer')}</p>
+            </TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon" onClick={() => navigate('/presets')} className="transition-all-ease hover:scale-110">
+                <FileCog className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>{t('app.presets')}</p>
+            </TooltipContent>
+          </Tooltip>
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="ghost" size="icon" className="transition-all-ease hover:scale-110">
@@ -310,25 +343,32 @@ function App() {
           </Popover>
           {/* 更新版本按钮 - 仅当更新功能可用时显示 */}
           {isUpdateFeatureAvailable && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => checkForUpdates(true)}
-              disabled={isCheckingUpdate}
-              className="transition-all-ease hover:scale-110 relative"
-            >
-              <div className="relative">
-                <CircleArrowUp className="h-5 w-5" />
-                {isNewVersionAvailable && !isCheckingUpdate && (
-                  <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
-                )}
-              </div>
-              {isCheckingUpdate && (
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
-                </div>
-              )}
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => checkForUpdates(true)}
+                  disabled={isCheckingUpdate}
+                  className="transition-all-ease hover:scale-110 relative"
+                >
+                  <div className="relative">
+                    <CircleArrowUp className="h-5 w-5" />
+                    {isNewVersionAvailable && !isCheckingUpdate && (
+                      <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white"></div>
+                    )}
+                  </div>
+                  {isCheckingUpdate && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></div>
+                    </div>
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{t('app.check_updates')}</p>
+              </TooltipContent>
+            </Tooltip>
           )}
           <Button onClick={saveConfig} variant="outline" className="transition-all-ease hover:scale-[1.02] active:scale-[0.98]">
             <Save className="mr-2 h-4 w-4" />
@@ -412,6 +452,7 @@ function App() {
         />
       )}
     </div>
+    </TooltipProvider>
   );
 }
 

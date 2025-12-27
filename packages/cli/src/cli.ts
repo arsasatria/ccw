@@ -28,6 +28,7 @@ const KNOWN_COMMANDS = [
   "statusline",
   "code",
   "model",
+  "preset",
   "activate",
   "env",
   "ui",
@@ -48,6 +49,7 @@ Commands:
   statusline    Integrated statusline
   code          Execute claude command
   model         Interactive model selection and configuration
+  preset        Manage presets (export, install, list, delete)
   activate      Output environment variables for shell integration
   ui            Open the web UI in browser
   -v, version   Show version information
@@ -61,6 +63,9 @@ Examples:
   ccr code "Write a Hello World"
   ccr my-preset "Write a Hello World"    # Use preset configuration
   ccr model
+  ccr preset export my-config            # Export current config as preset
+  ccr preset install my-config.ccrsets   # Install a preset
+  ccr preset list                        # List all presets
   eval "$(ccr activate)"  # Set environment variables globally
   ccr ui
 `;
@@ -91,52 +96,62 @@ async function main() {
   // 如果命令不是已知命令，检查是否是 preset
   if (command && !KNOWN_COMMANDS.includes(command)) {
     const { readPresetFile } = await import("./utils");
-    const presetConfig: PresetConfig | null = await readPresetFile(command);
+    const presetData: any = await readPresetFile(command);
 
-    if (presetConfig) {
+    if (presetData) {
       // 这是一个 preset，执行 code 命令
       const codeArgs = process.argv.slice(3); // 获取剩余参数
 
       // 检查 noServer 配置
-      const shouldStartServer = presetConfig.noServer !== true;
+      const shouldStartServer = presetData.noServer !== true;
 
-      // 处理 provider 配置，构建环境变量覆盖
+      // 构建环境变量覆盖
       let envOverrides: Record<string, string> | undefined;
-      if (presetConfig.provider) {
+
+      // 处理 provider 配置（支持新旧两种格式）
+      let provider: any = null;
+
+      // 旧格式：presetData.provider 是 provider 名称
+      if (presetData.provider && typeof presetData.provider === 'string') {
         const config = await readConfigFile();
-        const providerName = presetConfig.provider;
-        const provider = config.Providers?.find((p: any) => p.name === providerName);
+        provider = config.Providers?.find((p: any) => p.name === presetData.provider);
+      }
+      // 新格式：presetData.Providers 是 provider 数组
+      else if (presetData.Providers && presetData.Providers.length > 0) {
+        provider = presetData.Providers[0];
+      }
 
-        if (provider) {
-          // 处理 api_base_url，去掉 /v1/messages 后缀
-          if (provider.api_base_url) {
-            let baseUrl = provider.api_base_url;
-            if (baseUrl.endsWith('/v1/messages')) {
-              baseUrl = baseUrl.slice(0, -'/v1/messages'.length);
-            } else if (baseUrl.endsWith('/')) {
-              baseUrl = baseUrl.slice(0, -1);
-            }
-            envOverrides = {
-              ...envOverrides,
-              ANTHROPIC_BASE_URL: baseUrl,
-            };
+      if (provider) {
+        // 处理 api_base_url，去掉 /v1/messages 后缀
+        if (provider.api_base_url) {
+          let baseUrl = provider.api_base_url;
+          if (baseUrl.endsWith('/v1/messages')) {
+            baseUrl = baseUrl.slice(0, -'/v1/messages'.length);
+          } else if (baseUrl.endsWith('/')) {
+            baseUrl = baseUrl.slice(0, -1);
           }
+          envOverrides = {
+            ...envOverrides,
+            ANTHROPIC_BASE_URL: baseUrl,
+          };
+        }
 
-          // 处理 api_key
-          if (provider.api_key) {
-            envOverrides = {
-              ...envOverrides,
-              ANTHROPIC_AUTH_TOKEN: provider.api_key,
-            };
-          }
-        } else {
-          console.error(`Provider "${providerName}" not found in config`);
-          process.exit(1);
+        // 处理 api_key
+        if (provider.api_key) {
+          envOverrides = {
+            ...envOverrides,
+            ANTHROPIC_AUTH_TOKEN: provider.api_key,
+          };
         }
       }
 
-      // TODO: 处理 router 配置
-      // 如果 preset 中有 router 配置且需要启动 server，可能需要临时修改配置文件
+      // 构建 PresetConfig
+      const presetConfig: PresetConfig = {
+        noServer: presetData.noServer,
+        claudeCodeSettings: presetData.claudeCodeSettings,
+        provider: presetData.provider,
+        router: presetData.router,
+      };
 
       if (shouldStartServer && !isRunning) {
         console.log("Service not running, starting service...");
@@ -231,6 +246,10 @@ async function main() {
     // ADD THIS CASE
     case "model":
       await runModelSelector();
+      break;
+    case "preset":
+      const { handlePresetCommand } = await import("./utils/preset");
+      await handlePresetCommand(process.argv.slice(3));
       break;
     case "activate":
     case "env":

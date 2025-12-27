@@ -235,6 +235,73 @@ class ApiClient {
   async clearLogs(filePath: string): Promise<void> {
     return this.delete<void>(`/logs?file=${encodeURIComponent(filePath)}`);
   }
+
+  // ========== Preset API methods ==========
+
+  // Get presets list
+  async getPresets(): Promise<{ presets: Array<any> }> {
+    return this.get<{ presets: Array<any> }>('/presets');
+  }
+
+  // Get preset details
+  async getPreset(name: string): Promise<any> {
+    return this.get<any>(`/presets/${encodeURIComponent(name)}`);
+  }
+
+  // Install preset from URL
+  async installPresetFromUrl(url: string, name?: string): Promise<any> {
+    return this.post<any>('/presets/install', { url, name });
+  }
+
+  // Upload preset file
+  async uploadPresetFile(file: File, name?: string): Promise<any> {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (name) {
+      formData.append('name', name);
+    }
+
+    const url = `${this.baseUrl}/presets/upload`;
+
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+    };
+
+    // Use temp API key if available, otherwise use regular API key
+    if (this.tempApiKey) {
+      headers['X-Temp-API-Key'] = this.tempApiKey;
+    } else if (this.apiKey) {
+      headers['X-API-Key'] = this.apiKey;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (response.status === 401) {
+      localStorage.removeItem('apiKey');
+      window.dispatchEvent(new CustomEvent('unauthorized'));
+      return new Promise(() => {}) as any;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Failed to upload preset: ${response.status} ${response.statusText}`);
+    }
+
+    return response.json();
+  }
+
+  // Apply preset (configure sensitive fields)
+  async applyPreset(name: string, secrets: Record<string, string>): Promise<any> {
+    return this.post<any>(`/presets/${encodeURIComponent(name)}/apply`, { secrets });
+  }
+
+  // Delete preset
+  async deletePreset(name: string): Promise<any> {
+    return this.delete<any>(`/presets/${encodeURIComponent(name)}`);
+  }
 }
 
 // Create a default instance of the API client

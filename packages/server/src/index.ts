@@ -121,7 +121,7 @@ async function getServer(options: RunOptions = {}) {
     }
   }
 
-  const serverInstance = createServer({
+  const serverInstance = await createServer({
     jsonPath: CONFIG_FILE,
     initialConfig: {
       // ...config,
@@ -370,11 +370,11 @@ async function getServer(options: RunOptions = {}) {
 
   // Add global error handlers to prevent the service from crashing
   process.on("uncaughtException", (err) => {
-    serverInstance.logger.error("Uncaught exception:", err);
+    serverInstance.app.log.error("Uncaught exception:", err);
   });
 
   process.on("unhandledRejection", (reason, promise) => {
-    serverInstance.logger.error("Unhandled rejection at:", promise, "reason:", reason);
+    serverInstance.app.log.error("Unhandled rejection at:", promise, "reason:", reason);
   });
 
   return serverInstance;
