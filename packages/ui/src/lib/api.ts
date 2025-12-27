@@ -302,6 +302,16 @@ class ApiClient {
   async deletePreset(name: string): Promise<any> {
     return this.delete<any>(`/presets/${encodeURIComponent(name)}`);
   }
+
+  // Get market presets
+  async getMarketPresets(): Promise<{ presets: Array<any> }> {
+    return this.get<{ presets: Array<any> }>('/presets/market');
+  }
+
+  // Install preset from GitHub repository
+  async installPresetFromGitHub(repo: string, name?: string): Promise<any> {
+    return this.post<any>('/presets/install/github', { repo, name });
+  }
 }
 
 // Create a default instance of the API client

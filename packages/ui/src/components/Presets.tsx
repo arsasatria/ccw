@@ -42,16 +42,9 @@ interface PresetDetail extends PresetMetadata {
 interface MarketPreset {
   id: string;
   name: string;
-  version: string;
-  description?: string;
   author?: string;
-  homepage?: string;
-  repository?: string;
-  license?: string;
-  keywords?: string[];
-  downloadUrl: string;
-  downloads?: number;
-  rating?: number;
+  description?: string;
+  repo: string;
 }
 
 export function Presets() {
@@ -87,70 +80,8 @@ export function Presets() {
   const loadMarketPresets = async () => {
     setMarketLoading(true);
     try {
-      // TODO: 替换为实际的市场 API
-      // const response = await api.getMarketPresets();
-      // setMarketPresets(response.presets || []);
-
-      // 模拟数据
-      const mockMarketPresets: MarketPreset[] = [
-        {
-          id: 'openai-compatible',
-          name: 'OpenAI Compatible',
-          version: '1.0.0',
-          description: 'Full-featured OpenAI API compatible preset with support for GPT-4, GPT-3.5, and more.',
-          author: 'CCR Community',
-          homepage: 'https://github.com/example/openai-preset',
-          repository: 'https://github.com/example/openai-preset',
-          license: 'MIT',
-          keywords: ['openai', 'gpt', 'chat'],
-          downloadUrl: 'https://example.com/openai.ccrsets',
-          downloads: 1234,
-          rating: 4.8
-        },
-        {
-          id: 'anthropic-optimized',
-          name: 'Anthropic Optimized',
-          version: '1.2.0',
-          description: 'Optimized configuration for Claude and other Anthropic models with enhanced token management.',
-          author: 'CCR Team',
-          homepage: 'https://github.com/example/anthropic-preset',
-          repository: 'https://github.com/example/anthropic-preset',
-          license: 'Apache-2.0',
-          keywords: ['anthropic', 'claude', 'ai'],
-          downloadUrl: 'https://example.com/anthropic.ccrsets',
-          downloads: 892,
-          rating: 4.9
-        },
-        {
-          id: 'multi-provider',
-          name: 'Multi-Provider Router',
-          version: '2.0.0',
-          description: 'Intelligent routing across multiple providers based on cost, speed, and capability.',
-          author: 'CCR Community',
-          homepage: 'https://github.com/example/multi-provider-preset',
-          repository: 'https://github.com/example/multi-provider-preset',
-          license: 'MIT',
-          keywords: ['router', 'multi-provider', 'optimization'],
-          downloadUrl: 'https://example.com/multi-provider.ccrsets',
-          downloads: 567,
-          rating: 4.6
-        },
-        {
-          id: 'development-tools',
-          name: 'Development Tools',
-          version: '1.1.0',
-          description: 'Optimized for coding and development tasks with special focus on code generation and debugging.',
-          author: 'DevTeam',
-          homepage: 'https://github.com/example/dev-tools-preset',
-          repository: 'https://github.com/example/dev-tools-preset',
-          license: 'MIT',
-          keywords: ['development', 'coding', 'programming'],
-          downloadUrl: 'https://example.com/dev-tools.ccrsets',
-          downloads: 445,
-          rating: 4.7
-        }
-      ];
-      setMarketPresets(mockMarketPresets);
+      const response = await api.getMarketPresets();
+      setMarketPresets(response.presets || []);
     } catch (error) {
       console.error('Failed to load market presets:', error);
       setToast({ message: t('presets.load_market_failed'), type: 'error' });
@@ -163,7 +94,7 @@ export function Presets() {
   const handleInstallFromMarket = async (preset: MarketPreset) => {
     try {
       setInstallingFromMarket(preset.id);
-      await api.installPresetFromUrl(preset.downloadUrl);
+      await api.installPresetFromGitHub(preset.repo, preset.name);
       setToast({ message: t('presets.preset_installed'), type: 'success' });
       setMarketDialogOpen(false);
       await loadPresets();
@@ -186,8 +117,7 @@ export function Presets() {
   const filteredMarketPresets = marketPresets.filter(preset =>
     preset.name.toLowerCase().includes(marketSearch.toLowerCase()) ||
     preset.description?.toLowerCase().includes(marketSearch.toLowerCase()) ||
-    preset.author?.toLowerCase().includes(marketSearch.toLowerCase()) ||
-    preset.keywords?.some(keyword => keyword.toLowerCase().includes(marketSearch.toLowerCase()))
+    preset.author?.toLowerCase().includes(marketSearch.toLowerCase())
   );
 
   // 加载预设列表
@@ -583,53 +513,26 @@ export function Presets() {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
                           <h3 className="font-semibold text-lg">{preset.name}</h3>
-                          <span className="text-xs text-gray-500">v{preset.version}</span>
-                          {preset.rating && (
-                            <div className="flex items-center gap-1 text-xs text-yellow-600">
-                              <span>★</span>
-                              <span>{preset.rating}</span>
-                            </div>
-                          )}
                         </div>
                         {preset.description && (
                           <p className="text-sm text-gray-600 mb-2">{preset.description}</p>
                         )}
-                        <div className="flex items-center gap-4 text-sm text-gray-500 mb-2">
+                        <div className="flex items-center gap-4 text-sm text-gray-500">
                           {preset.author && (
                             <div className="flex items-center gap-1.5">
                               <span className="font-medium">{t('presets.by', { author: preset.author })}</span>
-                              {preset.repository && (
-                                <a
-                                  href={preset.repository}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-gray-600 hover:text-gray-900 transition-colors"
-                                  title={t('presets.github_repository')}
-                                >
-                                  <i className="ri-github-fill text-base"></i>
-                                </a>
-                              )}
+                              <a
+                                href={`https://github.com/${preset.repo}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-gray-600 hover:text-gray-900 transition-colors"
+                                title={t('presets.github_repository')}
+                              >
+                                <i className="ri-github-fill text-xl"></i>
+                              </a>
                             </div>
                           )}
-                          {preset.downloads && (
-                            <span>{t('presets.downloads', { count: preset.downloads })}</span>
-                          )}
-                          {preset.license && (
-                            <span>{preset.license}</span>
-                          )}
                         </div>
-                        {preset.keywords && preset.keywords.length > 0 && (
-                          <div className="flex flex-wrap gap-1">
-                            {preset.keywords.map((keyword) => (
-                              <span
-                                key={keyword}
-                                className="px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-xs"
-                              >
-                                {keyword}
-                              </span>
-                            ))}
-                          </div>
-                        )}
                       </div>
                       <Button
                         onClick={() => handleInstallFromMarket(preset)}

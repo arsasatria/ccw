@@ -406,14 +406,101 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
+  // 获取预设市场列表
+  app.get("/api/presets/market", async (req: any, reply: any) => {
+    try {
+      const marketUrl = "https://pub-0dc3e1677e894f07bbea11b17a29e032.r2.dev/presets.json";
+
+      const response = await fetch(marketUrl);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch market presets: ${response.status} ${response.statusText}`);
+      }
+
+      const marketPresets = await response.json();
+      return { presets: marketPresets };
+    } catch (error: any) {
+      console.error("Failed to get market presets:", error);
+      reply.status(500).send({ error: error.message || "Failed to get market presets" });
+    }
+  });
+
+  // 从 GitHub 仓库安装预设
+  app.post("/api/presets/install/github", async (req: any, reply: any) => {
+    try {
+      const { repo, name } = req.body;
+
+      if (!repo) {
+        reply.status(400).send({ error: "Repository URL is required" });
+        return;
+      }
+
+      // 解析 GitHub 仓库 URL
+      // 支持格式: https://github.com/owner/repo 或 https://github.com/owner/repo.git
+      const githubRepoMatch = repo.match(/github\.com[:/]([^/]+)\/([^/.]+)/);
+      if (!githubRepoMatch) {
+        reply.status(400).send({ error: "Invalid GitHub repository URL" });
+        return;
+      }
+
+      const [, owner, repoName] = githubRepoMatch;
+
+      // 下载 GitHub 仓库的 ZIP 文件
+      const downloadUrl = `https://github.com/${owner}/${repoName}/archive/refs/heads/main.zip`;
+      const tempFile = await downloadPresetToTemp(downloadUrl);
+
+      // 加载预设
+      const preset = await loadPresetFromZip(tempFile);
+
+      // 确定预设名称
+      const presetName = name || preset.metadata?.name || repoName;
+
+      // 检查是否已安装
+      if (await isPresetInstalled(presetName)) {
+        unlinkSync(tempFile);
+        reply.status(409).send({ error: "Preset already installed" });
+        return;
+      }
+
+      // 解压到目标目录
+      const targetDir = getPresetDir(presetName);
+      await extractPreset(tempFile, targetDir);
+
+      // 清理临时文件
+      unlinkSync(tempFile);
+
+      return {
+        success: true,
+        presetName,
+        preset: {
+          ...preset.metadata,
+          installed: true,
+        }
+      };
+    } catch (error: any) {
+      console.error("Failed to install preset from GitHub:", error);
+      reply.status(500).send({ error: error.message || "Failed to install preset from GitHub" });
+    }
+  });
+
   // 辅助函数：从 ZIP 加载预设
   async function loadPresetFromZip(zipFile: string): Promise<PresetFile> {
     const AdmZip = (await import('adm-zip')).default;
     const zip = new AdmZip(zipFile);
-    const entry = zip.getEntry('manifest.json');
+
+    // 首先尝试在根目录查找 manifest.json
+    let entry = zip.getEntry('manifest.json');
+
+    // 如果根目录没有，尝试在子目录中查找（处理 GitHub 仓库的压缩包结构）
+    if (!entry) {
+      const entries = zip.getEntries();
+      // 查找任意 manifest.json 文件
+      entry = entries.find(e => e.entryName.includes('manifest.json')) || null;
+    }
+
     if (!entry) {
       throw new Error('Invalid preset file: manifest.json not found');
     }
+
     const manifest = JSON.parse(entry.getData().toString('utf-8')) as ManifestFile;
     return manifestToPresetFile(manifest);
   }

@@ -189,6 +189,7 @@ export const run = async (args: string[] = []) => {
     return;
   }
   const server = await getServer();
+  const app = server.app;
   // Save the PID of the background process
   writeFileSync(PID_FILE, process.pid.toString());
 
