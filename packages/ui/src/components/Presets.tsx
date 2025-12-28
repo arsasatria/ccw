@@ -16,6 +16,44 @@ import {
 } from "@/components/ui/dialog";
 import { Upload, Link, Trash2, Info, Download, CheckCircle2, AlertCircle, Loader2, ArrowLeft, Store, Search, Package } from "lucide-react";
 import { Toast } from "@/components/ui/toast";
+import { DynamicConfigForm } from "./preset/DynamicConfigForm";
+
+// Schema 类型
+interface InputOption {
+  label: string;
+  value: string | number | boolean;
+  description?: string;
+  disabled?: boolean;
+}
+
+interface DynamicOptions {
+  type: 'static' | 'providers' | 'models' | 'custom';
+  options?: InputOption[];
+  providerField?: string;
+}
+
+interface Condition {
+  field: string;
+  operator?: 'eq' | 'ne' | 'in' | 'nin' | 'gt' | 'lt' | 'gte' | 'lte' | 'exists';
+  value?: any;
+}
+
+interface RequiredInput {
+  id: string;
+  type?: 'password' | 'input' | 'select' | 'multiselect' | 'confirm' | 'editor' | 'number';
+  label?: string;
+  prompt?: string;
+  placeholder?: string;
+  options?: InputOption[] | DynamicOptions;
+  when?: Condition | Condition[];
+  defaultValue?: any;
+  required?: boolean;
+  validator?: RegExp | string;
+  min?: number;
+  max?: number;
+  rows?: number;
+  dependsOn?: string[];
+}
 
 interface PresetMetadata {
   id: string;
@@ -34,9 +72,21 @@ interface PresetMetadata {
   installed: boolean;
 }
 
+interface PresetConfigSection {
+  Providers?: Array<{
+    name: string;
+    api_base_url?: string;
+    models?: string[];
+    [key: string]: any;
+  }>;
+  [key: string]: any;
+}
+
 interface PresetDetail extends PresetMetadata {
-  config?: any;
-  requiredInputs?: Array<{ field: string; prompt?: string; placeholder?: string }>;
+  config?: PresetConfigSection;
+  schema?: RequiredInput[];
+  template?: any;
+  configMappings?: any[];
 }
 
 interface MarketPreset {
@@ -145,13 +195,13 @@ export function Presets() {
       setSelectedPreset({ ...preset, ...detail });
       setDetailDialogOpen(true);
 
-      // 初始化 secrets
-      if (detail.requiredInputs) {
-        const initialSecrets: Record<string, string> = {};
-        for (const input of detail.requiredInputs) {
-          initialSecrets[input.field] = '';
+      // 初始化默认值
+      if (detail.schema && detail.schema.length > 0) {
+        const initialValues: Record<string, any> = {};
+        for (const input of detail.schema) {
+          initialValues[input.id] = input.defaultValue ?? '';
         }
-        setSecrets(initialSecrets);
+        setSecrets(initialValues);
       }
     } catch (error) {
       console.error('Failed to load preset details:', error);
@@ -188,21 +238,27 @@ export function Presets() {
   };
 
   // 应用预设（配置敏感信息）
-  const handleApplyPreset = async () => {
+  const handleApplyPreset = async (values?: Record<string, any>) => {
     try {
       setIsApplying(true);
 
+      // 使用传入的values或现有的secrets
+      const inputValues = values || secrets;
+
       // 验证所有必填项都已填写
-      if (selectedPreset?.requiredInputs) {
-        for (const input of selectedPreset.requiredInputs) {
-          if (!secrets[input.field] || secrets[input.field].trim() === '') {
-            setToast({ message: t('presets.please_fill_field', { field: input.field }), type: 'warning' });
+      if (selectedPreset?.schema && selectedPreset.schema.length > 0) {
+        // 验证在 DynamicConfigForm 中已完成
+        // 这里只做简单检查
+        for (const input of selectedPreset.schema) {
+          if (input.required !== false && !inputValues[input.id]) {
+            setToast({ message: t('presets.please_fill_field', { field: input.label || input.id }), type: 'warning' });
+            setIsApplying(false);
             return;
           }
         }
       }
 
-      await api.applyPreset(selectedPreset!.name, secrets);
+      await api.applyPreset(selectedPreset!.name, inputValues);
       setToast({ message: t('presets.preset_applied'), type: 'success' });
       setDetailDialogOpen(false);
       setSecrets({});
@@ -423,23 +479,18 @@ export function Presets() {
               </div>
             )}
 
-            {selectedPreset?.requiredInputs && selectedPreset.requiredInputs.length > 0 && (
-              <div className="mt-6 space-y-4">
-                <h4 className="font-medium text-sm">{t('presets.required_information')}</h4>
-                {selectedPreset.requiredInputs.map((input) => (
-                  <div key={input.field} className="space-y-2">
-                    <Label htmlFor={`secret-${input.field}`}>
-                      {input.prompt || input.field}
-                    </Label>
-                    <Input
-                      id={`secret-${input.field}`}
-                      type="password"
-                      placeholder={input.placeholder || t('presets.please_fill_field', { field: input.field })}
-                      value={secrets[input.field] || ''}
-                      onChange={(e) => setSecrets({ ...secrets, [input.field]: e.target.value })}
-                    />
-                  </div>
-                ))}
+            {/* 配置表单 */}
+            {selectedPreset?.schema && selectedPreset.schema.length > 0 && (
+              <div className="mt-6">
+                <h4 className="font-medium text-sm mb-4">{t('presets.required_information')}</h4>
+                <DynamicConfigForm
+                  schema={selectedPreset.schema}
+                  presetConfig={selectedPreset.config || {}}
+                  onSubmit={(values) => handleApplyPreset(values)}
+                  onCancel={() => setDetailDialogOpen(false)}
+                  isSubmitting={isApplying}
+                  initialValues={secrets}
+                />
               </div>
             )}
           </div>
@@ -447,21 +498,6 @@ export function Presets() {
             <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
               {t('presets.close')}
             </Button>
-            {selectedPreset?.requiredInputs && selectedPreset.requiredInputs.length > 0 && (
-              <Button onClick={handleApplyPreset} disabled={isApplying}>
-                {isApplying ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t('presets.applying')}
-                  </>
-                ) : (
-                  <>
-                    <CheckCircle2 className="mr-2 h-4 w-4" />
-                    {t('presets.apply')}
-                  </>
-                )}
-              </Button>
-            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,22 +1,18 @@
----
-title: Project-Level Configuration
----
+# 项目级配置
 
-# Project-Level Configuration
+除了全局配置，`ccr` 还支持为特定项目设置不同的路由规则。
 
-In addition to global configuration, `ccr` also supports setting different routing rules for specific projects.
+## 项目配置文件
 
-## Project Configuration File
-
-Project configuration file is located at:
+项目配置文件位于：
 
 ```
 ~/.claude/projects/<project-id>/ccw.json
 ```
 
-Where `<project-id>` is the unique identifier of the Claude Code project.
+其中 `<project-id>` 是 Claude Code 项目的唯一标识符。
 
-## Project Configuration Structure
+## 项目配置结构
 
 ```json5
 {
@@ -27,28 +23,28 @@ Where `<project-id>` is the unique identifier of the Claude Code project.
 }
 ```
 
-## Finding Project ID
+## 查找项目 ID
 
-### Method 1: Using CLI
+### 方法一：使用 CLI
 
 ```bash
-# Run in project directory
+# 在项目目录中运行
 ccr status
 ```
 
-Output will show current project ID:
+输出会显示当前项目 ID：
 
 ```
 Project: my-project (abc123def456)
 ```
 
-### Method 2: Check Claude Code Configuration
+### 方法二：查看 Claude Code 配置
 
 ```bash
 cat ~/.claude.json
 ```
 
-Find your project ID:
+找到你的项目 ID：
 
 ```json
 {
@@ -61,15 +57,15 @@ Find your project ID:
 }
 ```
 
-## Creating Project Configuration
+## 创建项目配置
 
-### Manual Creation
+### 手动创建
 
 ```bash
-# Create project configuration directory
+# 创建项目配置目录
 mkdir -p ~/.claude/projects/abc123def456
 
-# Create configuration file
+# 创建配置文件
 cat > ~/.claude/projects/abc123def456/ccw.json << 'EOF'
 {
   "Router": {
@@ -80,29 +76,29 @@ cat > ~/.claude/projects/abc123def456/ccw.json << 'EOF'
 EOF
 ```
 
-### Using ccr model Command
+### 使用 ccr model 命令
 
 ```bash
-# Run in project directory
+# 在项目目录中运行
 cd /path/to/your/project
 ccr model --project
 ```
 
-## Configuration Priority
+## 配置优先级
 
-Routing configuration priority (from high to low):
+路由配置的优先级（从高到低）：
 
-1. **Custom routing function** (`CUSTOM_ROUTER_PATH`)
-2. **Project-level configuration** (`~/.claude/projects/<id>/ccw.json`)
-3. **Global configuration** (`~/.ccw/config.json`)
-4. **Built-in routing rules**
+1. **自定义路由函数** (`CUSTOM_ROUTER_PATH`)
+2. **项目级配置** (`~/.claude/projects/<id>/ccw.json`)
+3. **全局配置** (`~/.ccw/config.json`)
+4. **内置路由规则**
 
-## Use Cases
+## 使用场景
 
-### Scenario 1: Different Projects Use Different Models
+### 场景一：不同项目使用不同模型
 
 ```json5
-// Web project uses GPT-4
+// Web 项目使用 GPT-4
 ~/.claude/projects/web-project-id/ccw.json:
 {
   "Router": {
@@ -110,7 +106,7 @@ Routing configuration priority (from high to low):
   }
 }
 
-// AI project uses Claude
+// AI 项目使用 Claude
 ~/.claude/projects/ai-project-id/ccw.json:
 {
   "Router": {
@@ -119,7 +115,7 @@ Routing configuration priority (from high to low):
 }
 ```
 
-### Scenario 2: Test Projects Use Low-Cost Models
+### 场景二：测试项目使用低成本模型
 
 ```json5
 ~/.claude/projects/test-project-id/ccw.json:
@@ -131,7 +127,7 @@ Routing configuration priority (from high to low):
 }
 ```
 
-### Scenario 3: Long Context Projects
+### 场景三：长上下文项目
 
 ```json5
 ~/.claude/projects/long-context-project-id/ccw.json:
@@ -143,29 +139,29 @@ Routing configuration priority (from high to low):
 }
 ```
 
-## Verify Project Configuration
+## 验证项目配置
 
 ```bash
-# View routing used by current project
+# 查看当前项目使用的路由
 ccr status
 
-# Check logs to confirm routing decisions
+# 查看日志确认路由决策
 tail -f ~/.ccw/ccw.log
 ```
 
-## Delete Project Configuration
+## 删除项目配置
 
 ```bash
 rm ~/.claude/projects/<project-id>/ccw.json
 ```
 
-After deletion, falls back to global configuration.
+删除后会回退到全局配置。
 
-## Complete Example
+## 完整示例
 
-Assume you have two projects:
+假设你有两个项目：
 
-### Global Configuration (`~/.ccw/config.json`)
+### 全局配置（`~/.ccw/config.json`）
 
 ```json5
 {
@@ -190,7 +186,7 @@ Assume you have two projects:
 }
 ```
 
-### Web Project Configuration
+### Web 项目配置
 
 ```json5
 {
@@ -200,7 +196,7 @@ Assume you have two projects:
 }
 ```
 
-### AI Project Configuration
+### AI 项目配置
 
 ```json5
 {
@@ -211,7 +207,7 @@ Assume you have two projects:
 }
 ```
 
-This way:
-- Web project uses GPT-4
-- AI project uses Claude
-- All projects' background tasks use GPT-3.5-turbo (inherit global configuration)
+这样：
+- Web 项目使用 GPT-4
+- AI 项目使用 Claude
+- 所有项目的后台任务使用 GPT-3.5-turbo（继承全局配置）

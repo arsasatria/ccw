@@ -1,14 +1,10 @@
----
-title: Messages API
----
-
-# Messages API
+# 消息 API
 
 ## POST /v1/messages
 
-Send messages to LLM, compatible with Anthropic Claude API format.
+发送消息到 LLM，兼容 Anthropic Claude API 格式。
 
-### Request Format
+### 请求格式
 
 ```bash
 curl -X POST http://localhost:3456/v1/messages \
@@ -26,19 +22,19 @@ curl -X POST http://localhost:3456/v1/messages \
   }'
 ```
 
-### Request Parameters
+### 请求参数
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `model` | string | Yes | Model name (will be routed to actual provider) |
-| `messages` | array | Yes | Array of messages |
-| `max_tokens` | integer | Yes | Maximum tokens to generate |
-| `system` | string | No | System prompt |
-| `tools` | array | No | List of available tools |
-| `stream` | boolean | No | Whether to use streaming response (default false) |
-| `temperature` | number | No | Temperature parameter (0-1) |
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `model` | string | 是 | 模型名称（会被路由到实际提供商） |
+| `messages` | array | 是 | 消息数组 |
+| `max_tokens` | integer | 是 | 最大生成 Token 数 |
+| `system` | string | 否 | 系统提示词 |
+| `tools` | array | 否 | 可用工具列表 |
+| `stream` | boolean | 否 | 是否使用流式响应（默认 false） |
+| `temperature` | number | 否 | 温度参数（0-1） |
 
-### Message Object Format
+### 消息对象格式
 
 ```json
 {
@@ -47,7 +43,7 @@ curl -X POST http://localhost:3456/v1/messages \
 }
 ```
 
-### Response Format (Non-streaming)
+### 响应格式（非流式）
 
 ```json
 {
@@ -69,9 +65,9 @@ curl -X POST http://localhost:3456/v1/messages \
 }
 ```
 
-### Streaming Response
+### 流式响应
 
-Set `stream: true` to enable streaming response:
+设置 `stream: true` 启用流式响应：
 
 ```json
 {
@@ -82,18 +78,18 @@ Set `stream: true` to enable streaming response:
 }
 ```
 
-Streaming response event types:
+流式响应事件类型：
 
-- `message_start` - Message start
-- `content_block_start` - Content block start
-- `content_block_delta` - Content increment
-- `content_block_stop` - Content block end
-- `message_delta` - Message metadata (usage)
-- `message_stop` - Message end
+- `message_start` - 消息开始
+- `content_block_start` - 内容块开始
+- `content_block_delta` - 内容增量
+- `content_block_stop` - 内容块结束
+- `message_delta` - 消息元数据（usage）
+- `message_stop` - 消息结束
 
-### Tool Use
+### 工具使用
 
-Supports function calling (Tool Use):
+支持函数调用（Tool Use）：
 
 ```json
 {
@@ -124,9 +120,9 @@ Supports function calling (Tool Use):
 }
 ```
 
-### Multimodal Support
+### 多模态支持
 
-Supports image input:
+支持图片输入：
 
 ```json
 {
@@ -150,9 +146,9 @@ Supports image input:
 
 ## POST /v1/messages/count_tokens
 
-Count tokens in messages.
+计算消息的 Token 数量。
 
-### Request Format
+### 请求格式
 
 ```bash
 curl -X POST http://localhost:3456/v1/messages/count_tokens \
@@ -171,16 +167,16 @@ curl -X POST http://localhost:3456/v1/messages/count_tokens \
   }'
 ```
 
-### Request Parameters
+### 请求参数
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `model` | string | Yes | Model name |
-| `messages` | array | Yes | Array of messages |
-| `tools` | array | No | List of tools |
-| `system` | string | No | System prompt |
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `model` | string | 是 | 模型名称 |
+| `messages` | array | 是 | 消息数组 |
+| `tools` | array | 否 | 工具列表 |
+| `system` | string | 否 | 系统提示词 |
 
-### Response Format
+### 响应格式
 
 ```json
 {
@@ -188,7 +184,7 @@ curl -X POST http://localhost:3456/v1/messages/count_tokens \
 }
 ```
 
-## Error Responses
+## 错误响应
 
 ### 400 Bad Request
 

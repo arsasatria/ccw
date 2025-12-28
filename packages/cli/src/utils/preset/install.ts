@@ -18,8 +18,14 @@ import {
   findPresetFile,
   isPresetInstalled,
   ManifestFile,
-  PresetFile
+  PresetFile,
+  RequiredInput,
+  UserInputValues,
+  applyConfigMappings,
+  replaceTemplateVariables,
+  setValueByPath,
 } from '@ccw/shared';
+import { collectUserInputs } from '../prompt/schema-input';
 
 // 重新导出 loadPreset
 export { loadPresetShared as loadPreset };
@@ -34,67 +40,38 @@ const BOLDCYAN = "\x1B[1m\x1B[36m";
 const DIM = "\x1B[2m";
 
 /**
- * 收集缺失的敏感信息
+ * 应用用户输入到配置（新版schema）
  */
-async function collectSensitiveInputs(
-  preset: PresetFile
-): Promise<Record<string, string>> {
-  const inputs: Record<string, string> = {};
+function applyUserInputs(
+  preset: PresetFile,
+  values: UserInputValues
+): PresetConfigSection {
+  let config = { ...preset.config };
 
-  if (!preset.requiredInputs || preset.requiredInputs.length === 0) {
-    return inputs;
+  // 1. 先应用 template（如果存在）
+  if (preset.template) {
+    config = replaceTemplateVariables(preset.template, values) as any;
   }
 
-  console.log(`\n${BOLDYELLOW}This preset requires additional information:${RESET}\n`);
-
-  for (const inputField of preset.requiredInputs) {
-    let value: string;
-
-    // 尝试从环境变量获取
-    const envVarName = inputField.placeholder;
-    if (envVarName && process.env[envVarName]) {
-      const useEnv = await confirm({
-        message: `Found ${envVarName} in environment. Use it?`,
-        default: true,
-      });
-
-      if (useEnv) {
-        value = process.env[envVarName]!;
-        inputs[inputField.field] = value;
-        console.log(`${GREEN}✓${RESET} Using ${envVarName} from environment\n`);
-        continue;
-      }
-    }
-
-    // 提示用户输入
-    value = await password({
-      message: inputField.prompt || `Enter ${inputField.field}:`,
-      mask: '*',
-    });
-
-    if (!value || value.trim() === '') {
-      console.error(`${YELLOW}Error:${RESET} ${inputField.field} is required`);
-      process.exit(1);
-    }
-
-    // 验证输入
-    if (inputField.validator) {
-      const regex = typeof inputField.validator === 'string'
-        ? new RegExp(inputField.validator)
-        : inputField.validator;
-
-      if (!regex.test(value)) {
-        console.error(`${YELLOW}Error:${RESET} Invalid format for ${inputField.field}`);
-        console.error(`  Expected: ${inputField.validator}`);
-        process.exit(1);
-      }
-    }
-
-    inputs[inputField.field] = value;
-    console.log('');
+  // 2. 再应用 configMappings（如果存在）
+  if (preset.configMappings && preset.configMappings.length > 0) {
+    config = applyConfigMappings(preset.configMappings, values, config);
   }
 
-  return inputs;
+  // 3. 兼容旧版：直接将 values 应用到 config
+  // 检查是否有任何值没有通过 mappings 应用
+  for (const [key, value] of Object.entries(values)) {
+    // 如果这个值已经在 template 或 mappings 中处理过，跳过
+    // 这里简化处理：直接应用所有值
+    // 在实际使用中，template 和 mappings 应该覆盖所有需要设置的字段
+
+    // 尝试智能判断：如果 key 包含 '.' 或 '['，说明是路径
+    if (key.includes('.') || key.includes('[')) {
+      setValueByPath(config, key, value);
+    }
+  }
+
+  return config;
 }
 
 /**
@@ -136,7 +113,7 @@ export async function applyPresetCli(
       // 检查是否已经配置了敏感信息（例如api_key）
       const hasSecrets = existingManifest.Providers?.some((p: any) => p.api_key && p.api_key !== '');
       if (hasSecrets) {
-        console.log(`\n${GREEN}✓${RESET} Preset already configured with secrets`);
+        console.log(`\n${GREEN}✓${RESET} Preset already configured`);
         console.log(`${DIM}You can use this preset with: ccr ${presetName}${RESET}\n`);
         return;
       }
@@ -144,31 +121,34 @@ export async function applyPresetCli(
       // manifest不存在，继续配置流程
     }
 
-    // 收集敏感信息
-    const sensitiveInputs = await collectSensitiveInputs(preset);
+    // 收集用户输入
+    let userInputs: UserInputValues = {};
+
+    // 使用 schema 系统
+    if (preset.schema && preset.schema.length > 0) {
+      userInputs = await collectUserInputs(preset.schema, preset.config);
+    }
+
+    // 应用用户输入到配置
+    const finalConfig = applyUserInputs(preset, userInputs);
 
     // 读取现有的manifest并更新
     const manifest: ManifestFile = {
       ...(preset.metadata || {}),
-      ...preset.config,
+      ...finalConfig,
     };
 
-    // 将secrets信息应用到manifest中
-    for (const [fieldPath, value] of Object.entries(sensitiveInputs)) {
-      const keys = fieldPath.split(/[.\[\]]+/).filter(k => k !== '');
-      let current = manifest as any;
-      for (let i = 0; i < keys.length - 1; i++) {
-        const key = keys[i];
-        if (!current[key]) {
-          current[key] = {};
-        }
-        current = current[key];
-      }
-      current[keys[keys.length - 1]] = value;
+    // 保存 schema（如果存在）
+    if (preset.schema) {
+      manifest.schema = preset.schema;
     }
 
-    if (preset.requiredInputs) {
-      manifest.requiredInputs = preset.requiredInputs;
+    // 保存其他配置
+    if (preset.template) {
+      manifest.template = preset.template;
+    }
+    if (preset.configMappings) {
+      manifest.configMappings = preset.configMappings;
     }
 
     // 保存到解压目录的manifest.json
@@ -177,7 +157,7 @@ export async function applyPresetCli(
     // 显示摘要
     console.log(`\n${BOLDGREEN}✓ Preset configured successfully!${RESET}\n`);
     console.log(`${BOLDCYAN}Preset directory:${RESET} ${presetDir}`);
-    console.log(`${BOLDCYAN}Secrets configured:${RESET} ${Object.keys(sensitiveInputs).length}`);
+    console.log(`${BOLDCYAN}Inputs configured:${RESET} ${Object.keys(userInputs).length}`);
 
     if (preset.metadata?.description) {
       console.log(`\n${BOLDCYAN}Description:${RESET} ${preset.metadata.description}`);
@@ -193,7 +173,7 @@ export async function applyPresetCli(
     }
 
     console.log(`\n${GREEN}Use this preset:${RESET} ccr ${presetName} "your prompt"`);
-    console.log(`${DIM}Note: Secrets are stored in the manifest file${RESET}\n`);
+    console.log(`${DIM}Note: Configuration is stored in the manifest file${RESET}\n`);
 
   } catch (error: any) {
     console.error(`\n${YELLOW}Error applying preset:${RESET} ${error.message}`);

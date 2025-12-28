@@ -1,81 +1,85 @@
-# API 概览
+---
+title: API Overview
+---
 
-Claude Code Router Server 提供了完整的 HTTP API，支持：
+# API Overview
 
-- **消息 API**：兼容 Anthropic Claude API 的消息接口
-- **配置 API**：读取和更新服务器配置
-- **日志 API**：查看和管理服务日志
-- **工具 API**：计算 Token 数量
+Claude Code Router Server provides a complete HTTP API with support for:
 
-## 基础信息
+- **Messages API**: Message interface compatible with Anthropic Claude API
+- **Configuration API**: Read and update server configuration
+- **Logs API**: View and manage service logs
+- **Tools API**: Calculate token counts
+
+## Basic Information
 
 **Base URL**: `http://localhost:3456`
 
-**认证方式**: API Key（通过 `x-api-key` 请求头）
+**Authentication**: API Key (via `x-api-key` header)
 
 ```bash
 curl -H "x-api-key: your-api-key" http://localhost:3456/api/config
 ```
 
-## API 端点列表
+## API Endpoints
 
-### 消息相关
+### Messages
 
-| 端点 | 方法 | 描述 |
-|------|------|------|
-| `/v1/messages` | POST | 发送消息（兼容 Anthropic API） |
-| `/v1/messages/count_tokens` | POST | 计算消息的 Token 数量 |
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/messages` | POST | Send message (compatible with Anthropic API) |
+| `/v1/messages/count_tokens` | POST | Count tokens in messages |
 
-### 配置管理
+### Configuration Management
 
-| 端点 | 方法 | 描述 |
-|------|------|------|
-| `/api/config` | GET | 获取当前配置 |
-| `/api/config` | POST | 更新配置 |
-| `/api/transformers` | GET | 获取可用的转换器列表 |
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/config` | GET | Get current configuration |
+| `/api/config` | POST | Update configuration |
+| `/api/transformers` | GET | Get list of available transformers |
 
-### 日志管理
+### Log Management
 
-| 端点 | 方法 | 描述 |
-|------|------|------|
-| `/api/logs/files` | GET | 获取日志文件列表 |
-| `/api/logs` | GET | 获取日志内容 |
-| `/api/logs` | DELETE | 清除日志 |
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/logs/files` | GET | Get list of log files |
+| `/api/logs` | GET | Get log content |
+| `/api/logs` | DELETE | Clear logs |
 
-### 服务管理
+### Service Management
 
-| 端点 | 方法 | 描述 |
-|------|------|------|
-| `/api/restart` | POST | 重启服务 |
-| `/ui` | GET | Web 管理界面 |
-| `/ui/` | GET | Web 管理界面（重定向） |
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/restart` | POST | Restart service |
+| `/ui` | GET | Web management interface |
+| `/ui/` | GET | Web management interface (redirect) |
 
-## 错误响应
+## Error Responses
 
-所有 API 在发生错误时返回统一的错误格式：
+All APIs return a unified error format when errors occur:
 
 ```json
 {
   "error": {
     "type": "invalid_request_error",
-    "message": "错误描述"
+    "message": "Error description"
   }
 }
 ```
 
-常见 HTTP 状态码：
+Common HTTP status codes:
 
-- `200` - 成功
-- `400` - 请求参数错误
-- `401` - 未授权（API Key 无效）
-- `404` - 资源不存在
-- `500` - 服务器内部错误
+- `200` - Success
+- `400` - Invalid request parameters
+- `401` - Unauthorized (invalid API Key)
+- `404` - Resource not found
+- `500` - Internal server error
 
-## 认证
+## Authentication
 
-### API Key 认证
+### API Key Authentication
 
-在请求头中添加 API Key：
+Add API Key in request header:
 
 ```bash
 curl -X POST http://localhost:3456/v1/messages \
@@ -84,9 +88,9 @@ curl -X POST http://localhost:3456/v1/messages \
   -d '...'
 ```
 
-### 无认证模式
+### No Authentication Mode
 
-当没有配置 Providers 时，服务器会监听在 `0.0.0.0` 且无需认证：
+When no Providers are configured, the server listens on `0.0.0.0` without authentication:
 
 ```json5
 {
@@ -94,9 +98,9 @@ curl -X POST http://localhost:3456/v1/messages \
 }
 ```
 
-## 流式响应
+## Streaming Responses
 
-消息 API 支持流式响应（Server-Sent Events）：
+The Messages API supports streaming responses (Server-Sent Events):
 
 ```bash
 curl -X POST http://localhost:3456/v1/messages \
@@ -105,7 +109,7 @@ curl -X POST http://localhost:3456/v1/messages \
   -d '{"stream": true, ...}'
 ```
 
-流式响应格式：
+Streaming response format:
 
 ```
 event: message_start
@@ -118,12 +122,12 @@ event: message_stop
 data: {"type":"message_stop"}
 ```
 
-## 速率限制
+## Rate Limiting
 
-服务器本身不实现速率限制，建议通过反向代理（如 Nginx）配置。
+The server itself does not implement rate limiting. It's recommended to configure it through a reverse proxy (e.g., Nginx).
 
-## 版本管理
+## Version Management
 
-当前 API 版本：`v1`
+Current API version: `v1`
 
-所有 `/v1/*` 端点保持向后兼容。
+All `/v1/*` endpoints maintain backward compatibility.

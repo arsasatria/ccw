@@ -1,21 +1,17 @@
----
-title: Configuration API
----
-
-# Configuration API
+# 配置 API
 
 ## GET /api/config
 
-Get current server configuration.
+获取当前服务器配置。
 
-### Request Example
+### 请求示例
 
 ```bash
 curl http://localhost:3456/api/config \
   -H "x-api-key: your-api-key"
 ```
 
-### Response Example
+### 响应示例
 
 ```json
 {
@@ -41,9 +37,9 @@ curl http://localhost:3456/api/config \
 
 ## POST /api/config
 
-Update server configuration. Old configuration is automatically backed up before updating.
+更新服务器配置。更新后会自动备份旧配置。
 
-### Request Example
+### 请求示例
 
 ```bash
 curl -X POST http://localhost:3456/api/config \
@@ -66,19 +62,19 @@ curl -X POST http://localhost:3456/api/config \
   }'
 ```
 
-### Configuration Object Structure
+### 配置对象结构
 
-#### Basic Configuration
+#### 基础配置
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `HOST` | string | No | Listen address (default 127.0.0.1) |
-| `PORT` | integer | No | Listen port (default 3456) |
-| `APIKEY` | string | No | API key |
-| `LOG` | boolean | No | Enable logging (default true) |
-| `LOG_LEVEL` | string | No | Log level (debug/info/warn/error) |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `HOST` | string | 否 | 监听地址（默认 127.0.0.1） |
+| `PORT` | integer | 否 | 监听端口（默认 3456） |
+| `APIKEY` | string | 否 | API 密钥 |
+| `LOG` | boolean | 否 | 是否启用日志（默认 true） |
+| `LOG_LEVEL` | string | 否 | 日志级别（debug/info/warn/error） |
 
-#### Providers Configuration
+#### Providers 配置
 
 ```json
 {
@@ -93,14 +89,14 @@ curl -X POST http://localhost:3456/api/config \
 }
 ```
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `name` | string | Yes | Provider name |
-| `baseUrl` | string | Yes | API base URL |
-| `apiKey` | string | Yes | API key |
-| `models` | array | Yes | List of supported models |
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `name` | string | 是 | 提供商名称 |
+| `baseUrl` | string | 是 | API 基础 URL |
+| `apiKey` | string | 是 | API 密钥 |
+| `models` | array | 是 | 支持的模型列表 |
 
-#### Router Configuration
+#### Router 配置
 
 ```json
 {
@@ -118,7 +114,7 @@ curl -X POST http://localhost:3456/api/config \
 }
 ```
 
-#### Transformers Configuration
+#### Transformers 配置
 
 ```json
 {
@@ -133,9 +129,9 @@ curl -X POST http://localhost:3456/api/config \
 }
 ```
 
-### Response Example
+### 响应示例
 
-Success:
+成功：
 
 ```json
 {
@@ -144,28 +140,28 @@ Success:
 }
 ```
 
-### Configuration Backup
+### 配置备份
 
-Every time configuration is updated, old configuration is automatically backed up to:
+每次更新配置时，旧配置会自动备份到：
 
 ```
 ~/.ccw/config.backup.{timestamp}.json
 ```
 
-Keeps the last 3 backups.
+保留最近 3 个备份。
 
 ## GET /api/transformers
 
-Get list of all transformers loaded by the server.
+获取服务器加载的所有转换器列表。
 
-### Request Example
+### 请求示例
 
 ```bash
 curl http://localhost:3456/api/transformers \
   -H "x-api-key: your-api-key"
 ```
 
-### Response Example
+### 响应示例
 
 ```json
 {
@@ -186,24 +182,24 @@ curl http://localhost:3456/api/transformers \
 }
 ```
 
-### Transformer List
+### 转换器列表
 
-Built-in transformers:
+内置转换器：
 
-- `anthropic` - Anthropic Claude format
-- `openai` - OpenAI format
-- `deepseek` - DeepSeek format
-- `gemini` - Google Gemini format
-- `openrouter` - OpenRouter format
-- `groq` - Groq format
-- `maxtoken` - Adjust max_tokens parameter
-- `tooluse` - Tool use conversion
-- `reasoning` - Reasoning mode conversion
-- `enhancetool` - Enhance tool functionality
+- `anthropic` - Anthropic Claude 格式
+- `openai` - OpenAI 格式
+- `deepseek` - DeepSeek 格式
+- `gemini` - Google Gemini 格式
+- `openrouter` - OpenRouter 格式
+- `groq` - Groq 格式
+- `maxtoken` - 调整 max_tokens 参数
+- `tooluse` - 工具使用转换
+- `reasoning` - 推理模式转换
+- `enhancetool` - 增强工具功能
 
-## Environment Variable Interpolation
+## 环境变量插值
 
-Configuration supports environment variable interpolation:
+配置支持环境变量插值：
 
 ```json
 {
@@ -215,7 +211,7 @@ Configuration supports environment variable interpolation:
 }
 ```
 
-Or use `${VAR_NAME}` format:
+或使用 `${VAR_NAME}` 格式：
 
 ```json
 {

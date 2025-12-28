@@ -1,21 +1,17 @@
----
-title: Logs API
----
-
-# Logs API
+# 日志 API
 
 ## GET /api/logs/files
 
-Get list of all available log files.
+获取所有可用的日志文件列表。
 
-### Request Example
+### 请求示例
 
 ```bash
 curl http://localhost:3456/api/logs/files \
   -H "x-api-key: your-api-key"
 ```
 
-### Response Example
+### 响应示例
 
 ```json
 [
@@ -34,42 +30,42 @@ curl http://localhost:3456/api/logs/files \
 ]
 ```
 
-### Field Description
+### 字段说明
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `name` | string | File name |
-| `path` | string | Complete file path |
-| `size` | integer | File size (bytes) |
-| `lastModified` | string | Last modification time (ISO 8601) |
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `name` | string | 文件名 |
+| `path` | string | 完整文件路径 |
+| `size` | integer | 文件大小（字节） |
+| `lastModified` | string | 最后修改时间（ISO 8601） |
 
-Files are sorted by modification time in descending order.
+文件按修改时间倒序排列。
 
 ## GET /api/logs
 
-Get content of specified log file.
+获取指定日志文件的内容。
 
-### Query Parameters
+### 查询参数
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `file` | string | No | Log file path (default uses app.log) |
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `file` | string | 否 | 日志文件路径（默认使用 app.log） |
 
-### Request Example (Get Default Log)
+### 请求示例（获取默认日志）
 
 ```bash
 curl "http://localhost:3456/api/logs" \
   -H "x-api-key: your-api-key"
 ```
 
-### Request Example (Get Specific File)
+### 请求示例（获取指定文件）
 
 ```bash
 curl "http://localhost:3456/api/logs?file=/home/user/.ccw/logs/ccw-20241226143022.log" \
   -H "x-api-key: your-api-key"
 ```
 
-### Response Example
+### 响应示例
 
 ```json
 [
@@ -79,11 +75,11 @@ curl "http://localhost:3456/api/logs?file=/home/user/.ccw/logs/ccw-2024122614302
 ]
 ```
 
-Returns an array of log lines, each line is a JSON string.
+返回的是日志行数组，每行是一个 JSON 字符串。
 
-### Log Format
+### 日志格式
 
-Logs use Pino format:
+日志使用 Pino 格式：
 
 ```json
 {
@@ -101,42 +97,42 @@ Logs use Pino format:
 }
 ```
 
-### Log Levels
+### 日志级别
 
-| Level | Value | Description |
-|-------|-------|-------------|
-| `trace` | 10 | Most verbose logs |
-| `debug` | 20 | Debug information |
-| `info` | 30 | General information |
-| `warn` | 40 | Warning information |
-| `error` | 50 | Error information |
-| `fatal` | 60 | Fatal error |
+| 级别 | 值 | 说明 |
+|------|------|------|
+| `trace` | 10 | 最详细的日志 |
+| `debug` | 20 | 调试信息 |
+| `info` | 30 | 一般信息 |
+| `warn` | 40 | 警告信息 |
+| `error` | 50 | 错误信息 |
+| `fatal` | 60 | 致命错误 |
 
 ## DELETE /api/logs
 
-Clear content of specified log file.
+清除指定日志文件的内容。
 
-### Query Parameters
+### 查询参数
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `file` | string | No | Log file path (default uses app.log) |
+| 参数 | 类型 | 必需 | 说明 |
+|------|------|------|------|
+| `file` | string | 否 | 日志文件路径（默认使用 app.log） |
 
-### Request Example (Clear Default Log)
+### 请求示例（清除默认日志）
 
 ```bash
 curl -X DELETE "http://localhost:3456/api/logs" \
   -H "x-api-key: your-api-key"
 ```
 
-### Request Example (Clear Specific File)
+### 请求示例（清除指定文件）
 
 ```bash
 curl -X DELETE "http://localhost:3456/api/logs?file=/home/user/.ccw/logs/ccw-20241226143022.log" \
   -H "x-api-key: your-api-key"
 ```
 
-### Response Example
+### 响应示例
 
 ```json
 {
@@ -145,50 +141,50 @@ curl -X DELETE "http://localhost:3456/api/logs?file=/home/user/.ccw/logs/ccw-202
 }
 ```
 
-## Log Locations
+## 日志位置
 
-### Server Logs
+### 服务器日志
 
-Location: `~/.ccw/logs/`
+位置：`~/.ccw/logs/`
 
-File naming: `ccr-{YYYYMMDD}{HH}{MM}{SS}.log`
+文件命名：`ccr-{YYYYMMDD}{HH}{MM}{SS}.log`
 
-Content: HTTP requests, API calls, server events
+内容：HTTP 请求、API 调用、服务器事件
 
-### Application Logs
+### 应用日志
 
-Location: `~/.ccw/ccw.log`
+位置：`~/.ccw/ccw.log`
 
-Content: Routing decisions, business logic events
+内容：路由决策、业务逻辑事件
 
-## Log Rotation
+## 日志轮转
 
-Server logs use rotating-file-stream for automatic rotation:
+服务器日志使用 rotating-file-stream 自动轮转：
 
-- **maxFiles**: 3 - Keep last 3 log files
-- **interval**: 1d - Rotate daily
-- **maxSize**: 50M - Maximum 50MB per file
+- **maxFiles**: 3 - 保留最近 3 个日志文件
+- **interval**: 1d - 每天轮转
+- **maxSize**: 50M - 单个文件最大 50MB
 
-## Log Analysis
+## 日志分析
 
-### Analyze Logs with jq
+### 使用 jq 分析日志
 
 ```bash
-# View all error logs
+# 查看所有错误日志
 curl "http://localhost:3456/api/logs" \
   -H "x-api-key: your-api-key" | \
   jq -r '.[] | fromjson | select(.level >= 40)'
 
-# Count requests
+# 统计请求次数
 curl "http://localhost:3456/api/logs" \
   -H "x-api-key: your-api-key" | \
   jq -r '.[] | fromjson | .req.method' | \
   sort | uniq -c
 ```
 
-### Real-time Log Monitoring
+### 实时监控日志
 
 ```bash
-# Get latest logs in real-time via API
+# 通过 API 实时获取最新日志
 watch -n 5 'curl -s "http://localhost:3456/api/logs" -H "x-api-key: your-api-key" | jq -r ".[-10:]"'
 ```

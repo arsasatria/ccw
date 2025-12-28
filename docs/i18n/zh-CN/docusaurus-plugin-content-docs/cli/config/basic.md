@@ -1,48 +1,44 @@
----
-title: Basic Configuration
----
+# CLI 基础配置
 
-# Basic Configuration
+CLI 使用与 Server 相同的配置文件：`~/.ccw/config.json`
 
-CLI uses the same configuration file as Server: `~/.ccw/config.json`
-
-## Configuration File Location
+## 配置文件位置
 
 ```bash
 ~/.ccw/config.json
 ```
 
-## Quick Configuration
+## 快速配置
 
-Use interactive command to configure:
+使用交互式命令配置：
 
 ```bash
 ccr model
 ```
 
-This will guide you through:
-1. Select LLM provider
-2. Configure API Key
-3. Select model
-4. Set routing rules
+这将引导你完成：
+1. 选择 LLM 提供商
+2. 配置 API Key
+3. 选择模型
+4. 设置路由规则
 
-## Manual Configuration
+## 手动配置
 
-### Edit Configuration File
+### 编辑配置文件
 
 ```bash
-# Open configuration file
+# 打开配置文件
 nano ~/.ccw/config.json
 ```
 
-### Minimal Configuration Example
+### 最小配置示例
 
 ```json5
 {
-  // API key (optional, used to protect service)
+  // API 密钥（可选，用于保护服务）
   "APIKEY": "your-api-key-here",
 
-  // LLM providers
+  // LLM 提供商
   "Providers": [
     {
       "name": "openai",
@@ -52,55 +48,55 @@ nano ~/.ccw/config.json
     }
   ],
 
-  // Default routing
+  // 默认路由
   "Router": {
     "default": "openai,gpt-4"
   }
 }
 ```
 
-## Environment Variables
+## 环境变量
 
-Configuration supports environment variable interpolation:
+配置支持环境变量插值：
 
 ```json5
 {
   "Providers": [
     {
-      "apiKey": "$OPENAI_API_KEY"  // Read from environment variable
+      "apiKey": "$OPENAI_API_KEY"  // 从环境变量读取
     }
   ]
 }
 ```
 
-Set in `.bashrc` or `.zshrc`:
+在 `.bashrc` 或 `.zshrc` 中设置：
 
 ```bash
 export OPENAI_API_KEY="sk-..."
 export ANTHROPIC_API_KEY="sk-ant-..."
 ```
 
-## Common Configuration Options
+## 常用配置项
 
-### HOST and PORT
-
-```json5
-{
-  "HOST": "127.0.0.1",  // Listen address
-  "PORT": 3456          // Listen port
-}
-```
-
-### Logging Configuration
+### HOST 和 PORT
 
 ```json5
 {
-  "LOG": true,          // Enable logging
-  "LOG_LEVEL": "info"   // Log level
+  "HOST": "127.0.0.1",  // 监听地址
+  "PORT": 3456          // 监听端口
 }
 ```
 
-### Routing Configuration
+### 日志配置
+
+```json5
+{
+  "LOG": true,          // 启用日志
+  "LOG_LEVEL": "info"   // 日志级别
+}
+```
+
+### 路由配置
 
 ```json5
 {
@@ -113,41 +109,41 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 }
 ```
 
-## Configuration Validation
+## 配置验证
 
-Configuration file is automatically validated. Common errors:
+配置文件会自动验证。常见错误：
 
-- **Missing Providers**: Must configure at least one provider
-- **Missing API Key**: If Providers are configured, must provide API Key
-- **Model doesn't exist**: Ensure model is in provider's models list
+- **缺少 Providers**：必须至少配置一个提供商
+- **API Key 缺失**：如果配置了 Providers，必须提供 API Key
+- **模型不存在**：确保模型在提供商的 models 列表中
 
-## Configuration Backup
+## 配置备份
 
-Configuration is automatically backed up on each update:
+每次更新配置时会自动备份：
 
 ```
 ~/.ccw/config.backup.{timestamp}.json
 ```
 
-## Reload Configuration
+## 重新加载配置
 
-Restart service after modifying configuration:
+修改配置后需要重启服务：
 
 ```bash
 ccr restart
 ```
 
-## View Current Configuration
+## 查看当前配置
 
 ```bash
-# View via API
+# 通过 API 查看
 curl http://localhost:3456/api/config
 
-# Or view configuration file
+# 或查看配置文件
 cat ~/.ccw/config.json
 ```
 
-## Example Configurations
+## 示例配置
 
 ### OpenAI
 
@@ -185,7 +181,7 @@ cat ~/.ccw/config.json
 }
 ```
 
-### Multiple Providers
+### 多提供商
 
 ```json5
 {

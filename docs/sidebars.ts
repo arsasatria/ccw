@@ -8,7 +8,7 @@ const sidebars: SidebarsConfig = {
       link: {
         type: 'generated-index',
         title: 'Claude Code Router Server',
-        description: '部署和管理 Claude Code Router 服务',
+        description: 'Deploy and manage Claude Code Router server',
         slug: 'category/server',
       },
       items: [
@@ -20,7 +20,7 @@ const sidebars: SidebarsConfig = {
           link: {
             type: 'generated-index',
             title: 'API Reference',
-            description: '服务器 API 接口文档',
+            description: 'Server API documentation',
             slug: 'category/api',
           },
           items: [
@@ -36,7 +36,7 @@ const sidebars: SidebarsConfig = {
           link: {
             type: 'generated-index',
             title: 'Server Configuration',
-            description: '服务器配置说明',
+            description: 'Server configuration guide',
             slug: 'category/server-config',
           },
           items: [
@@ -52,7 +52,7 @@ const sidebars: SidebarsConfig = {
           link: {
             type: 'generated-index',
             title: 'Advanced Topics',
-            description: '高级功能和自定义',
+            description: 'Advanced features and customization',
             slug: 'category/server-advanced',
           },
           items: [
@@ -69,7 +69,7 @@ const sidebars: SidebarsConfig = {
       link: {
         type: 'generated-index',
         title: 'Claude Code Router CLI',
-        description: '命令行工具使用指南',
+        description: 'Command-line tool usage guide',
         slug: 'category/cli',
       },
       items: [
@@ -82,7 +82,7 @@ const sidebars: SidebarsConfig = {
           link: {
             type: 'generated-index',
             title: 'CLI Commands',
-            description: '完整的命令参考',
+            description: 'Complete command reference',
             slug: 'category/cli-commands',
           },
           items: [
@@ -98,7 +98,7 @@ const sidebars: SidebarsConfig = {
           link: {
             type: 'generated-index',
             title: 'CLI Configuration',
-            description: 'CLI 配置说明',
+            description: 'CLI configuration guide',
             slug: 'category/cli-config',
           },
           items: [

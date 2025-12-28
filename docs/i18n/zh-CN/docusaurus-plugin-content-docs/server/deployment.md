@@ -1,14 +1,10 @@
----
-title: Server Deployment
----
+# Server 部署
 
-# Server Deployment
+Claude Code Router Server 支持多种部署方式，从本地开发到生产环境。
 
-Claude Code Router Server supports multiple deployment methods, from local development to production environments.
+## Docker 部署（推荐）
 
-## Docker Deployment (Recommended)
-
-### Using Docker Hub Image
+### 使用 Docker Hub 镜像
 
 ```bash
 docker run -d \
@@ -18,9 +14,9 @@ docker run -d \
   musistudio/ccw:latest
 ```
 
-### Using Docker Compose
+### 使用 Docker Compose
 
-Create `docker-compose.yml`:
+创建 `docker-compose.yml`：
 
 ```yaml
 version: '3.8'
@@ -39,15 +35,15 @@ services:
     restart: unless-stopped
 ```
 
-Start the service:
+启动服务：
 
 ```bash
 docker-compose up -d
 ```
 
-### Custom Build
+### 自定义构建
 
-Build Docker image from source:
+从源码构建 Docker 镜像：
 
 ```bash
 git clone https://github.com/musistudio/ccw.git
@@ -55,9 +51,9 @@ cd ccw
 docker build -t ccw:latest .
 ```
 
-## Configuration File Mounting
+## 配置文件挂载
 
-Mount configuration file into container:
+将配置文件挂载到容器中：
 
 ```bash
 docker run -d \
@@ -67,20 +63,20 @@ docker run -d \
   musistudio/ccw:latest
 ```
 
-Configuration file example:
+配置文件示例：
 
 ```json5
 {
-  // Server configuration
+  // 服务器配置
   "HOST": "0.0.0.0",
   "PORT": 3456,
   "APIKEY": "your-api-key-here",
 
-  // Logging configuration
+  // 日志配置
   "LOG": true,
   "LOG_LEVEL": "info",
 
-  // LLM provider configuration
+  // LLM 提供商配置
   "Providers": [
     {
       "name": "openai",
@@ -90,30 +86,30 @@ Configuration file example:
     }
   ],
 
-  // Routing configuration
+  // 路由配置
   "Router": {
     "default": "openai,gpt-4"
   }
 }
 ```
 
-## Environment Variables
+## 环境变量
 
-Override configuration through environment variables:
+支持通过环境变量覆盖配置：
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `HOST` | Listen address | `127.0.0.1` |
-| `PORT` | Listen port | `3456` |
-| `APIKEY` | API key | - |
-| `LOG_LEVEL` | Log level | `debug` |
-| `LOG` | Enable logging | `true` |
+| 变量名 | 说明 | 默认值 |
+|--------|------|--------|
+| `HOST` | 监听地址 | `127.0.0.1` |
+| `PORT` | 监听端口 | `3456` |
+| `APIKEY` | API 密钥 | - |
+| `LOG_LEVEL` | 日志级别 | `debug` |
+| `LOG` | 是否启用日志 | `true` |
 
-## Production Recommendations
+## 生产环境建议
 
-### 1. Use Reverse Proxy
+### 1. 使用反向代理
 
-Use Nginx as reverse proxy:
+使用 Nginx 作为反向代理：
 
 ```nginx
 server {
@@ -133,17 +129,17 @@ server {
 }
 ```
 
-### 2. Configure HTTPS
+### 2. 配置 HTTPS
 
-Use Let's Encrypt to obtain free certificate:
+使用 Let's Encrypt 获取免费证书：
 
 ```bash
 sudo certbot --nginx -d your-domain.com
 ```
 
-### 3. Log Management
+### 3. 日志管理
 
-Configure log rotation and persistence:
+配置日志轮转和持久化：
 
 ```yaml
 version: '3.8'
@@ -156,9 +152,9 @@ services:
       - LOG_LEVEL=warn
 ```
 
-### 4. Health Check
+### 4. 健康检查
 
-Configure Docker health check:
+配置 Docker 健康检查：
 
 ```yaml
 healthcheck:
@@ -168,19 +164,19 @@ healthcheck:
   retries: 3
 ```
 
-## Access Web UI
+## 访问 Web UI
 
-After deployment is complete, access the Web UI:
+部署完成后，访问 Web UI：
 
 ```
 http://localhost:3456/ui/
 ```
 
-Through the Web UI you can:
-- View and manage configuration
-- Monitor logs
-- Check service status
+通过 Web UI 可以：
+- 查看和管理配置
+- 监控日志
+- 查看服务状态
 
-## Secondary Development
+## 二次开发
 
-If you need to develop based on CCR Server, please see [API Reference](/docs/category/api).
+如果需要基于 CCR Server 进行二次开发，请查看 [API 参考](/docs/category/api)。

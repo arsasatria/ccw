@@ -1,83 +1,87 @@
-# CLI 简介
+---
+title: CLI Introduction
+---
 
-Claude Code Router CLI (`ccr`) 是一个命令行工具，用于管理和控制 Claude Code Router 服务。
+# CLI Introduction
 
-## 功能概述
+Claude Code Router CLI (`ccr`) is a command-line tool for managing and controlling the Claude Code Router service.
 
-`ccr` 提供以下功能：
+## Feature Overview
 
-- **服务管理**：启动、停止、重启服务
-- **配置管理**：交互式配置模型选择
-- **状态查看**：查看服务运行状态
-- **代码执行**：直接执行 `claude` 命令
-- **环境集成**：输出环境变量用于 shell 集成
-- **Web UI**：打开 Web 管理界面
-- **状态栏**：集成到编辑器状态栏
+`ccr` provides the following functionality:
 
-## 安装
+- **Service Management**: Start, stop, restart service
+- **Configuration Management**: Interactive model selection configuration
+- **Status Viewing**: View service running status
+- **Code Execution**: Directly execute `claude` command
+- **Environment Integration**: Output environment variables for shell integration
+- **Web UI**: Open Web management interface
+- **Status Bar**: Integration into editor status bar
+
+## Installation
 
 ```bash
 npm install -g @arsasatria/ccw-cli
 ```
 
-或使用项目别名：
+Or using project alias:
 
 ```bash
 npm install -g ccw
 ```
 
-## 基本使用
+## Basic Usage
 
-### 启动服务
+### Start Service
 
 ```bash
 ccr start
 ```
 
-### 查看状态
+### View Status
 
 ```bash
 ccr status
 ```
 
-### 停止服务
+### Stop Service
 
 ```bash
 ccr stop
 ```
 
-### 查看模型
+### View Models
 
 ```bash
 ccr model
 ```
 
-## 与 Claude Code 集成
+## Integration with Claude Code
 
-`ccr` 可以与 Claude Code 无缝集成，将请求路由到你选择的 LLM 提供商。
+`ccr` integrates seamlessly with Claude Code to route requests to your chosen LLM provider.
 
-### 方式一：设置 API 地址
+### Method 1: Set API Address
 
 ```bash
 export ANTHROPIC_BASE_URL="http://localhost:3456/v1"
 export ANTHROPIC_API_KEY="your-api-key"
 ```
 
-### 方式二：使用 activate 命令
+### Method 2: Use activate Command
 
 ```bash
 eval "$(ccr activate)"
 ```
 
-## 配置文件
+## Configuration File
 
-`ccr` 使用与 Server 相同的配置文件：`~/.ccw/config.json`
+`ccr` uses the same configuration file as Server: `~/.ccw/config.json`
 
-配置一次，CLI 和 Server 都会使用。
+Configure once, and both CLI and Server will use it.
 
-## 下一步
+## Next Steps
 
-- [安装指南](/docs/cli/installation) - 详细安装说明
-- [快速开始](/docs/cli/quick-start) - 5 分钟上手
-- [命令参考](/docs/category/cli-commands) - 完整命令列表
-- [配置说明](/docs/category/cli-config) - 配置文件详解
+- [Installation Guide](/docs/cli/installation) - Detailed installation instructions
+- [Quick Start](/docs/cli/quick-start) - Get started in 5 minutes
+- [Command Reference](/docs/category/cli-commands) - Complete command list
+- [Configuration Guide](/docs/category/cli-config) - Configuration file details
