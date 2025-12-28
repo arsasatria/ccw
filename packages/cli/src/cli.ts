@@ -12,10 +12,12 @@ import { activateCommand } from "./utils/activateCommand";
 import { readConfigFile } from "./utils";
 import { version } from "../package.json";
 import { spawn, exec } from "child_process";
-import { PID_FILE, REFERENCE_COUNT_FILE } from "@ccw/shared";
+import {PID_FILE, readPresetFile, REFERENCE_COUNT_FILE} from "@ccw/shared";
 import fs, { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { parseStatusLineData, StatusLineInput } from "./utils/statusline";
+import {handlePresetCommand} from "./utils/preset";
+
 
 const command = process.argv[2];
 
@@ -95,7 +97,6 @@ async function main() {
 
   // 如果命令不是已知命令，检查是否是 preset
   if (command && !KNOWN_COMMANDS.includes(command)) {
-    const { readPresetFile } = await import("./utils");
     const presetData: any = await readPresetFile(command);
 
     if (presetData) {
@@ -248,7 +249,6 @@ async function main() {
       await runModelSelector();
       break;
     case "preset":
-      const { handlePresetCommand } = await import("./utils/preset");
       await handlePresetCommand(process.argv.slice(3));
       break;
     case "activate":

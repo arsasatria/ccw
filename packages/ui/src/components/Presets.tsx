@@ -144,10 +144,45 @@ export function Presets() {
   const handleInstallFromMarket = async (preset: MarketPreset) => {
     try {
       setInstallingFromMarket(preset.id);
+
+      // 第一步：安装预设（解压到目录）
       await api.installPresetFromGitHub(preset.repo, preset.name);
-      setToast({ message: t('presets.preset_installed'), type: 'success' });
-      setMarketDialogOpen(false);
-      await loadPresets();
+
+      // 第二步：获取预设详情（检查是否需要配置）
+      try {
+        const detail = await api.getPreset(preset.name);
+        const presetDetail: PresetDetail = { ...preset, ...detail };
+
+        // 检查是否需要配置
+        if (detail.schema && detail.schema.length > 0) {
+          // 需要配置，打开配置对话框
+          setSelectedPreset(presetDetail);
+
+          // 初始化默认值
+          const initialValues: Record<string, any> = {};
+          for (const input of detail.schema) {
+            initialValues[input.id] = input.defaultValue ?? '';
+          }
+          setSecrets(initialValues);
+
+          // 关闭市场对话框，打开详情对话框
+          setMarketDialogOpen(false);
+          setDetailDialogOpen(true);
+
+          setToast({ message: t('presets.preset_installed_config_required'), type: 'warning' });
+        } else {
+          // 不需要配置，直接完成
+          setToast({ message: t('presets.preset_installed'), type: 'success' });
+          setMarketDialogOpen(false);
+          await loadPresets();
+        }
+      } catch (error) {
+        // 获取详情失败，但安装成功了，刷新列表
+        console.error('Failed to get preset details after installation:', error);
+        setToast({ message: t('presets.preset_installed'), type: 'success' });
+        setMarketDialogOpen(false);
+        await loadPresets();
+      }
     } catch (error: any) {
       console.error('Failed to install preset:', error);
       setToast({ message: t('presets.preset_install_failed', { error: error.message }), type: 'error' });
@@ -214,21 +249,81 @@ export function Presets() {
     try {
       setIsInstalling(true);
 
-      if (installMethod === 'url' && installUrl) {
-        await api.installPresetFromUrl(installUrl, installName || undefined);
-      } else if (installMethod === 'file' && installFile) {
-        await api.uploadPresetFile(installFile, installName || undefined);
-      } else {
-        setToast({ message: t('presets.please_provide_file_or_url'), type: 'warning' });
+      // 验证输入
+      if (installMethod === 'url' && !installUrl) {
+        setToast({ message: t('presets.please_provide_url'), type: 'warning' });
+        return;
+      }
+      if (installMethod === 'file' && !installFile) {
+        setToast({ message: t('presets.please_provide_file'), type: 'warning' });
         return;
       }
 
-      setToast({ message: t('presets.preset_installed'), type: 'success' });
-      setInstallDialogOpen(false);
-      setInstallUrl('');
-      setInstallFile(null);
-      setInstallName('');
-      await loadPresets();
+      // 确定预设名称
+      const presetName = installName || (
+        installMethod === 'file'
+          ? installFile!.name.replace('.ccrsets', '')
+          : installUrl!.split('/').pop()!.replace('.ccrsets', '')
+      );
+
+      // 第一步：安装预设（解压到目录）
+      if (installMethod === 'url' && installUrl) {
+        await api.installPresetFromUrl(installUrl, presetName);
+      } else if (installMethod === 'file' && installFile) {
+        await api.uploadPresetFile(installFile, presetName);
+      } else {
+        return;
+      }
+
+      // 第二步：获取预设详情（检查是否需要配置）
+      try {
+        const detail = await api.getPreset(presetName);
+
+        // 检查是否需要配置
+        if (detail.schema && detail.schema.length > 0) {
+          // 需要配置，打开配置对话框
+          setSelectedPreset({
+            id: presetName,
+            name: presetName,
+            version: detail.version || '1.0.0',
+            installed: true,
+            ...detail
+          });
+
+          // 初始化默认值
+          const initialValues: Record<string, any> = {};
+          for (const input of detail.schema) {
+            initialValues[input.id] = input.defaultValue ?? '';
+          }
+          setSecrets(initialValues);
+
+          // 关闭安装对话框，打开详情对话框
+          setInstallDialogOpen(false);
+          setInstallUrl('');
+          setInstallFile(null);
+          setInstallName('');
+          setDetailDialogOpen(true);
+
+          setToast({ message: t('presets.preset_installed_config_required'), type: 'warning' });
+        } else {
+          // 不需要配置，直接完成
+          setToast({ message: t('presets.preset_installed'), type: 'success' });
+          setInstallDialogOpen(false);
+          setInstallUrl('');
+          setInstallFile(null);
+          setInstallName('');
+          await loadPresets();
+        }
+      } catch (error) {
+        // 获取详情失败，但安装成功了，刷新列表
+        console.error('Failed to get preset details after installation:', error);
+        setToast({ message: t('presets.preset_installed'), type: 'success' });
+        setInstallDialogOpen(false);
+        setInstallUrl('');
+        setInstallFile(null);
+        setInstallName('');
+        await loadPresets();
+      }
     } catch (error: any) {
       console.error('Failed to install preset:', error);
       setToast({ message: t('presets.preset_install_failed', { error: error.message }), type: 'error' });
@@ -262,6 +357,8 @@ export function Presets() {
       setToast({ message: t('presets.preset_applied'), type: 'success' });
       setDetailDialogOpen(false);
       setSecrets({});
+      // 刷新预设列表
+      await loadPresets();
     } catch (error: any) {
       console.error('Failed to apply preset:', error);
       setToast({ message: t('presets.preset_apply_failed', { error: error.message }), type: 'error' });
@@ -443,7 +540,7 @@ export function Presets() {
               )}
             </DialogTitle>
           </DialogHeader>
-          <div className="flex-1 overflow-y-auto py-4">
+          <div className="flex-1 overflow-y-auto py-4 px-2">
             {selectedPreset?.description && (
               <p className="text-gray-700 mb-4">{selectedPreset.description}</p>
             )}

@@ -2,6 +2,7 @@
 set -e
 
 # 发布脚本
+# - Core 包作为 @musistudio/llms npm 包发布
 # - CLI 包作为 @ccw/cli npm 包发布
 # - Server 包发布为 Docker 镜像
 
@@ -37,7 +38,39 @@ case "$PUBLISH_TYPE" in
 esac
 
 # ===========================
-# 发布 npm 包
+# 发布 Core npm 包 (@musistudio/llms)
+# ===========================
+publish_core_npm() {
+  echo ""
+  echo "========================================="
+  echo "发布 npm 包 @musistudio/llms"
+  echo "========================================="
+
+  # 检查是否已登录 npm
+  if ! npm whoami &>/dev/null; then
+    echo "错误: 未登录 npm，请先运行: npm login"
+    exit 1
+  fi
+
+  CORE_DIR="../packages/core"
+  CORE_VERSION=$(node -p "require('../packages/core/package.json').version")
+
+  # 复制 README 到 core 包
+  cp ../README.md "$CORE_DIR/" 2>/dev/null || echo "README.md 不存在，跳过..."
+  cp ../LICENSE "$CORE_DIR/" 2>/dev/null || echo "LICENSE 文件不存在，跳过..."
+
+  # 发布到 npm
+  cd "$CORE_DIR"
+  echo "执行 npm publish..."
+  npm publish --access public
+
+  echo ""
+  echo "✅ Core npm 包发布成功!"
+  echo "   包名: @musistudio/llms@${CORE_VERSION}"
+}
+
+# ===========================
+# 发布 CLI npm 包
 # ===========================
 publish_npm() {
   echo ""
@@ -138,6 +171,7 @@ publish_docker() {
 # 执行发布
 # ===========================
 if [ "$PUBLISH_TYPE" = "npm" ] || [ "$PUBLISH_TYPE" = "all" ]; then
+  publish_core_npm
   publish_npm
 fi
 

@@ -87,7 +87,7 @@ export function DynamicConfigForm({
       const visible = new Set<string>();
 
       for (const field of schema) {
-        if (shouldShowField(field, values)) {
+        if (shouldShowField(field)) {
           visible.add(field.id);
         }
       }
@@ -334,7 +334,7 @@ export function DynamicConfigForm({
             {field.type === 'select' && (
               <Select
                 value={values[field.id] || ''}
-                onValueChange={(value) => updateValue(field.id, value)}
+                onValueChange={(value: string) => updateValue(field.id, value)}
                 disabled={isSubmitting}
               >
                 <SelectTrigger id={`field-${field.id}`}>
@@ -367,9 +367,9 @@ export function DynamicConfigForm({
                     <Checkbox
                       id={`field-${field.id}-${option.value}`}
                       checked={Array.isArray(values[field.id]) && values[field.id].includes(option.value)}
-                      onCheckedChange={(checked) => {
+                      onCheckedChange={(checked: boolean | 'indeterminate') => {
                         const current = Array.isArray(values[field.id]) ? values[field.id] : [];
-                        if (checked) {
+                        if (checked === true) {
                           updateValue(field.id, [...current, option.value]);
                         } else {
                           updateValue(field.id, current.filter((v: any) => v !== option.value));
@@ -397,7 +397,7 @@ export function DynamicConfigForm({
                 <Checkbox
                   id={`field-${field.id}`}
                   checked={values[field.id] || false}
-                  onCheckedChange={(checked) => updateValue(field.id, checked)}
+                  onCheckedChange={(checked: boolean | 'indeterminate') => updateValue(field.id, checked)}
                   disabled={isSubmitting}
                 />
                 <Label htmlFor={`field-${field.id}`} className="text-sm font-normal cursor-pointer">
@@ -412,7 +412,7 @@ export function DynamicConfigForm({
                 id={`field-${field.id}`}
                 placeholder={field.placeholder}
                 value={values[field.id] || ''}
-                onChange={(e) => updateValue(field.id, e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateValue(field.id, e.target.value)}
                 rows={field.rows || 5}
                 disabled={isSubmitting}
               />

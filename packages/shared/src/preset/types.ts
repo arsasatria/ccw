@@ -140,12 +140,6 @@ export interface PresetConfigSection {
   Providers?: ProviderConfig[];
   Router?: RouterConfig;
   transformers?: TransformerConfig[];
-  PORT?: number;
-  HOST?: string;
-  API_TIMEOUT_MS?: number;
-  PROXY_URL?: string;
-  LOG?: boolean;
-  LOG_LEVEL?: string;
   StatusLine?: any;
   NON_INTERACTIVE_MODE?: boolean;
   [key: string]: any;
@@ -243,5 +237,11 @@ export interface SanitizeResult {
   sanitizedCount: number;
 }
 
-// Provider 冲突处理动作
-export type ProviderConflictAction = 'keep' | 'overwrite' | 'merge' | 'skip';
+// Preset 信息（用于列表展示）
+export interface PresetInfo {
+  name: string;                   // 预设名称
+  version?: string;               // 版本号
+  description?: string;           // 描述
+  author?: string;                // 作者
+  config: PresetConfigSection;
+}

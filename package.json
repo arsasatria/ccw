@@ -5,6 +5,8 @@
   "private": true,
   "scripts": {
     "build": "node scripts/build.js",
+    "build:core": "node scripts/build-core.js",
+    "build:shared": "node scripts/build-shared.js",
     "build:cli": "pnpm --filter @ccw/cli build",
     "build:server": "pnpm --filter @ccw/server build",
     "build:ui": "pnpm --filter @ccw/ui build",

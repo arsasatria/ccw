@@ -4,12 +4,11 @@
  */
 
 import * as fs from 'fs/promises';
-import * as fsSync from 'fs';
 import * as path from 'path';
 import JSON5 from 'json5';
 import AdmZip from 'adm-zip';
-import { PresetFile, MergeStrategy, RequiredInput, ManifestFile } from './types';
-import { HOME_DIR } from '../constants';
+import { PresetFile, MergeStrategy, RequiredInput, ManifestFile, PresetInfo } from './types';
+import { HOME_DIR, PRESETS_DIR } from '../constants';
 
 /**
  * 获取预设目录的完整路径
@@ -48,6 +47,58 @@ export async function extractPreset(sourceZip: string, targetDir: string): Promi
 
   // 解压文件
   const zip = new AdmZip(sourceZip);
+  const entries = zip.getEntries();
+
+  // 检测是否有单一的根目录（GitHub ZIP 文件通常有这个特征）
+  if (entries.length > 0) {
+    // 获取所有顶层目录
+    const rootDirs = new Set<string>();
+    for (const entry of entries) {
+      const parts = entry.entryName.split('/');
+      if (parts.length > 1) {
+        rootDirs.add(parts[0]);
+      }
+    }
+
+    // 如果只有一个根目录，则去除它
+    if (rootDirs.size === 1) {
+      const singleRoot = Array.from(rootDirs)[0];
+
+      // 检查 manifest.json 是否在根目录下
+      const hasManifestInRoot = entries.some(e =>
+        e.entryName === 'manifest.json' || e.entryName.startsWith(`${singleRoot}/manifest.json`)
+      );
+
+      if (hasManifestInRoot) {
+        // 将所有文件从根目录下提取出来
+        for (const entry of entries) {
+          if (entry.isDirectory) {
+            continue;
+          }
+
+          // 去除根目录前缀
+          let newPath = entry.entryName;
+          if (newPath.startsWith(`${singleRoot}/`)) {
+            newPath = newPath.substring(singleRoot.length + 1);
+          }
+
+          // 跳过根目录本身
+          if (newPath === '' || newPath === singleRoot) {
+            continue;
+          }
+
+          // 提取文件
+          const targetPath = path.join(targetDir, newPath);
+          await fs.mkdir(path.dirname(targetPath), { recursive: true });
+          await fs.writeFile(targetPath, entry.getData());
+        }
+
+        return;
+      }
+    }
+  }
+
+  // 如果没有单一的根目录，直接解压
   zip.extractAllTo(targetDir, true);
 }
 
@@ -65,11 +116,11 @@ export async function readManifestFromDir(presetDir: string): Promise<ManifestFi
  * 将manifest转换为PresetFile格式
  */
 export function manifestToPresetFile(manifest: ManifestFile): PresetFile {
-  const { Providers, Router, PORT, HOST, API_TIMEOUT_MS, PROXY_URL, LOG, LOG_LEVEL, StatusLine, NON_INTERACTIVE_MODE, requiredInputs, ...metadata } = manifest;
+  const { Providers, Router, StatusLine, NON_INTERACTIVE_MODE, schema, ...metadata } = manifest;
   return {
     metadata,
-    config: { Providers, Router, PORT, HOST, API_TIMEOUT_MS, PROXY_URL, LOG, LOG_LEVEL, StatusLine, NON_INTERACTIVE_MODE },
-    requiredInputs,
+    config: { Providers, Router, StatusLine, NON_INTERACTIVE_MODE },
+    schema,
   };
 }
 
@@ -236,4 +287,56 @@ export async function isPresetInstalled(presetName: string): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+/**
+ * 列出所有已安装的预设
+ * @returns PresetInfo 数组
+ */
+export async function listPresets(): Promise<PresetInfo[]> {
+  const presetsDir = PRESETS_DIR;
+  const presets: PresetInfo[] = [];
+
+  try {
+    await fs.access(presetsDir);
+  } catch {
+    return presets;
+  }
+
+  // 读取目录下的所有子目录
+  const entries = await fs.readdir(presetsDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      const presetName = entry.name;
+      const presetDir = path.join(presetsDir, presetName);
+      const manifestPath = path.join(presetDir, 'manifest.json');
+
+      try {
+        // 检查 manifest.json 是否存在
+        await fs.access(manifestPath);
+
+        // 读取 manifest.json
+        const content = await fs.readFile(manifestPath, 'utf-8');
+        const manifest = JSON5.parse(content) as ManifestFile;
+
+        // 获取目录创建时间
+        const stats = await fs.stat(presetDir);
+
+        presets.push({
+          name: manifest.name || presetName,
+          version: manifest.version,
+          description: manifest.description,
+          author: manifest.author,
+          config: manifestToPresetFile(manifest).config,
+        });
+      } catch {
+        // 忽略无效的预设目录（没有 manifest.json 或读取失败）
+        // 可以选择跳过或者添加到列表中标记为错误
+        continue;
+      }
+    }
+  }
+
+  return presets;
 }

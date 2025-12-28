@@ -10,8 +10,6 @@ import {
   readManifestFromDir,
   manifestToPresetFile,
   extractPreset,
-  validatePreset,
-  loadPreset,
   saveManifest,
   isPresetInstalled,
   downloadPresetToTemp,
@@ -20,16 +18,15 @@ import {
   type PresetFile,
   type ManifestFile,
   type PresetMetadata,
-  MergeStrategy
 } from "@ccw/shared";
+import fastifyMultipart from "@fastify/multipart";
+import AdmZip from "adm-zip";
 
 export const createServer = async (config: any): Promise<any> => {
   const server = new Server(config);
   const app = server.app;
 
-  // Register multipart plugin for file uploads (dynamic import)
-  const fastifyMultipart = await import('@fastify/multipart');
-  app.register(fastifyMultipart.default, {
+  app.register(fastifyMultipart, {
     limits: {
       fileSize: 50 * 1024 * 1024, // 50MB
     },
@@ -170,8 +167,6 @@ export const createServer = async (config: any): Promise<any> => {
       reply.status(500).send({ error: "Failed to clear logs" });
     }
   });
-
-  // ========== Preset 相关 API ==========
 
   // 获取预设列表
   app.get("/api/presets", async (req: any, reply: any) => {
@@ -435,8 +430,13 @@ export const createServer = async (config: any): Promise<any> => {
       }
 
       // 解析 GitHub 仓库 URL
-      // 支持格式: https://github.com/owner/repo 或 https://github.com/owner/repo.git
-      const githubRepoMatch = repo.match(/github\.com[:/]([^/]+)\/([^/.]+)/);
+      // 支持格式:
+      // - owner/repo (简短格式，来自市场)
+      // - github.com/owner/repo
+      // - https://github.com/owner/repo
+      // - https://github.com/owner/repo.git
+      // - git@github.com:owner/repo.git
+      const githubRepoMatch = repo.match(/(?:github\.com[:/]|^)([^/]+)\/([^/\s#]+?)(?:\.git)?$/);
       if (!githubRepoMatch) {
         reply.status(400).send({ error: "Invalid GitHub repository URL" });
         return;
@@ -484,7 +484,6 @@ export const createServer = async (config: any): Promise<any> => {
 
   // 辅助函数：从 ZIP 加载预设
   async function loadPresetFromZip(zipFile: string): Promise<PresetFile> {
-    const AdmZip = (await import('adm-zip')).default;
     const zip = new AdmZip(zipFile);
 
     // 首先尝试在根目录查找 manifest.json

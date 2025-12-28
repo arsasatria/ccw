@@ -14,8 +14,13 @@ import {
   getDefaultValue,
   sortFieldsByDependencies,
   getAffectedFields,
-} from '@arsasatria/ccw-shared';
-import { input, confirm, select, password } from '@inquirer/prompts';
+} from '@ccw/shared';
+import input from '@inquirer/input';
+import confirm from '@inquirer/confirm';
+import select from '@inquirer/select';
+import password from '@inquirer/password';
+import checkbox from '@inquirer/checkbox';
+import editor from '@inquirer/editor';
 
 // ANSI 颜色代码
 export const COLORS = {
@@ -183,7 +188,6 @@ async function promptField(
       }
 
       // @inquirer/prompts 没有多选，使用 checkbox
-      const { checkbox } = await import('@inquirer/prompts');
       return await checkbox({
         message,
         choices: options.map(opt => ({
@@ -195,7 +199,6 @@ async function promptField(
     }
 
     case InputType.EDITOR: {
-      const { editor } = await import('@inquirer/prompts');
       return await editor({
         message,
         default: field.defaultValue,

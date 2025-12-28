@@ -282,6 +282,9 @@
     "load_presets_failed": "Failed to load presets",
     "load_preset_details_failed": "Failed to load preset details",
     "please_fill_field": "Please fill in {{field}}",
-    "load_market_failed": "Failed to load market presets"
+    "load_market_failed": "Failed to load market presets",
+    "preset_installed_config_required": "Preset installed, please complete configuration",
+    "please_provide_file": "Please provide a preset file",
+    "please_provide_url": "Please provide a preset URL"
   }
 }

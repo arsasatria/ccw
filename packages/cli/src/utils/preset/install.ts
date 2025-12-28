@@ -105,20 +105,11 @@ export async function applyPresetCli(
 
     console.log(`${BOLDCYAN}Validating preset...${RESET} ${GREEN}✓${RESET}`);
 
-    // 检查是否已经配置过（通过检查manifest中是否已有敏感信息）
-    const presetDir = getPresetDir(presetName);
-
-    try {
-      const existingManifest = await readManifestFromDir(presetDir);
-      // 检查是否已经配置了敏感信息（例如api_key）
-      const hasSecrets = existingManifest.Providers?.some((p: any) => p.api_key && p.api_key !== '');
-      if (hasSecrets) {
-        console.log(`\n${GREEN}✓${RESET} Preset already configured`);
-        console.log(`${DIM}You can use this preset with: ccr ${presetName}${RESET}\n`);
-        return;
-      }
-    } catch {
-      // manifest不存在，继续配置流程
+    // 检查是否需要配置
+    if (preset.schema && preset.schema.length > 0) {
+      console.log(`\n${BOLDCYAN}Configuration required:${RESET} ${preset.schema.length} field(s)\n`);
+    } else {
+      console.log(`\n${DIM}No configuration required for this preset${RESET}\n`);
     }
 
     // 收集用户输入

@@ -282,6 +282,9 @@
     "load_presets_failed": "加载预设失败",
     "load_preset_details_failed": "加载预设详情失败",
     "please_fill_field": "请填写 {{field}}",
-    "load_market_failed": "加载市场预设失败"
+    "load_market_failed": "加载市场预设失败",
+    "preset_installed_config_required": "预设已安装，请完成配置",
+    "please_provide_file": "请提供预设文件",
+    "please_provide_url": "请提供预设 URL"
   }
 }

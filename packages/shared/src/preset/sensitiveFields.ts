@@ -128,9 +128,9 @@ function sanitizeObject(
         sanitizedObj[key] = value;
         // 仍然需要记录为必需输入，但使用已有环境变量
         const envVarName = extractEnvVarName(value);
-        if (envVarName && !requiredInputs.some(input => input.field === currentPath)) {
+        if (envVarName && !requiredInputs.some(input => input.id === currentPath)) {
           requiredInputs.push({
-            field: currentPath,
+            id: currentPath,
             prompt: `Enter ${key}`,
             placeholder: envVarName,
           });
@@ -163,7 +163,7 @@ function sanitizeObject(
 
         // 记录为必需输入
         requiredInputs.push({
-          field: currentPath,
+          id: currentPath,
           prompt: `Enter ${key}`,
           placeholder: envVarName,
         });

@@ -8,7 +8,7 @@ Claude Code Router is a tool that routes Claude Code requests to different LLM p
 
 - **cli** (`@arsasatria/ccw-cli`): Command-line tool providing the `ccr` command
 - **server** (`@arsasatria/ccw-server`): Core server handling API routing and transformations
-- **shared** (`@arsasatria/ccw-shared`): Shared constants and utilities
+- **shared** (`@arsasatria/ccw-shared`): Shared constants, utilities, and preset management
 - **ui** (`@arsasatria/ccw-ui`): Web management interface (React + Vite)
 
 ## Build Commands
@@ -127,9 +127,20 @@ ccr restart    # Restart server
 ccr status     # Show status
 ccr code       # Execute claude command
 ccr model      # Interactive model selection and configuration
+ccr preset     # Manage presets (export, install, list, info, delete)
 ccr activate   # Output shell environment variables (for integration)
 ccr ui         # Open Web UI
 ccr statusline # Integrated statusline (reads JSON from stdin)
+```
+
+### Preset Commands
+
+```bash
+ccr preset export <name>      # Export current configuration as a preset
+ccr preset install <source>   # Install a preset from file, URL, or name
+ccr preset list               # List all installed presets
+ccr preset info <name>        # Show preset information
+ccr preset delete <name>      # Delete a preset
 ```
 
 ## Subagent Routing
@@ -139,6 +150,83 @@ Use special tags in subagent prompts to specify models:
 <CCW-SUBAGENT-MODEL>provider,model</CCW-SUBAGENT-MODEL>
 Please help me analyze this code...
 ```
+
+## Preset System
+
+The preset system allows users to save, share, and reuse configurations easily.
+
+### Preset Structure
+
+Presets are stored in `~/.ccw/presets/<preset-name>/manifest.json`
+
+Each preset contains:
+- **Metadata**: name, version, description, author, keywords, etc.
+- **Configuration**: Providers, Router, transformers, and other settings
+- **Dynamic Schema** (optional): Input fields for collecting required information during installation
+- **Required Inputs** (optional): Fields that need to be filled during installation (e.g., API keys)
+
+### Core Functions
+
+Located in `packages/shared/src/preset/`:
+
+- **export.ts**: Export current configuration as a preset (.ccrsets file)
+  - `exportPreset(presetName, config, options)`: Creates ZIP archive with manifest.json
+  - Automatically sanitizes sensitive data (api_key fields become `{{field}}` placeholders)
+
+- **install.ts**: Install and manage presets
+  - `installPreset(preset, config, options)`: Install preset to config
+  - `loadPreset(source)`: Load preset from file, URL, or directory
+  - `listPresets()`: List all installed presets
+  - `isPresetInstalled(presetName)`: Check if preset is installed
+  - `validatePreset(preset)`: Validate preset structure
+
+- **merge.ts**: Merge preset configuration with existing config
+  - Handles conflicts using different strategies (ask, overwrite, merge, skip)
+
+- **sensitiveFields.ts**: Identify and sanitize sensitive fields
+  - Detects api_key, password, secret fields automatically
+  - Creates `requiredInputs` array for installation prompts
+
+### Preset File Format
+
+**manifest.json** (in ZIP archive or extracted directory):
+```json
+{
+  "name": "my-preset",
+  "version": "1.0.0",
+  "description": "My configuration",
+  "author": "Author Name",
+  "keywords": ["openai", "production"],
+  "Providers": [...],
+  "Router": {...},
+  "schema": [
+    {
+      "id": "apiKey",
+      "type": "password",
+      "label": "OpenAI API Key",
+      "prompt": "Enter your OpenAI API key"
+    }
+  ],
+  "requiredInputs": [
+    {
+      "field": "Providers[0].api_key",
+      "placeholder": "Enter your API key"
+    }
+  ]
+}
+```
+
+### CLI Integration
+
+The CLI layer (`packages/cli/src/utils/preset/`) handles:
+- User interaction and prompts
+- File operations
+- Display formatting
+
+Key files:
+- `commands.ts`: Command handlers for `ccr preset` subcommands
+- `export.ts`: CLI wrapper for export functionality
+- `install.ts`: CLI wrapper for install functionality
 
 ## Dependencies
 

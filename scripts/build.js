@@ -5,7 +5,11 @@ const { execSync } = require('child_process');
 console.log('Building Claude Code Router (Monorepo)...');
 
 try {
-  // Build shared package first
+  // Build core package first (@musistudio/llms)
+  console.log('Building core package (@musistudio/llms)...');
+  execSync('node scripts/build-core.js', { stdio: 'inherit' });
+
+  // Build shared package
   console.log('Building shared package...');
   execSync('node scripts/build-shared.js', { stdio: 'inherit' });
 
@@ -15,10 +19,11 @@ try {
 
   console.log('\n✅ Build completed successfully!');
   console.log('\nArtifacts are available in packages/*/dist:');
-  console.log('  - packages/shared/dist/    (Shared package)');
-  console.log('  - packages/cli/dist/       (CLI + UI + tiktoken)');
-  console.log('  - packages/server/dist/    (Server standalone)');
-  console.log('  - packages/ui/dist/        (UI standalone)');
+  console.log('  - packages/core/dist/     (Core package: @musistudio/llms)');
+  console.log('  - packages/shared/dist/   (Shared package)');
+  console.log('  - packages/cli/dist/      (CLI + UI + tiktoken)');
+  console.log('  - packages/server/dist/   (Server standalone)');
+  console.log('  - packages/ui/dist/       (UI standalone)');
 } catch (error) {
   console.error('Build failed:', error.message);
   process.exit(1);

@@ -1,4 +1,4 @@
-import { existsSync, writeFileSync, unlinkSync } from "fs";
+import { existsSync } from "fs";
 import { writeFile } from "fs/promises";
 import { homedir } from "os";
 import { join } from "path";
@@ -6,7 +6,7 @@ import { initConfig, initDir } from "./utils";
 import { createServer } from "./server";
 import { router } from "./utils/router";
 import { apiKeyAuth } from "./middleware/auth";
-import { CONFIG_FILE, HOME_DIR } from "@ccw/shared";
+import {CONFIG_FILE, HOME_DIR, listPresets} from "@ccw/shared";
 import { createStream } from 'rotating-file-stream';
 import { sessionUsageCache } from "./utils/cache";
 import {SSEParserTransform} from "./utils/SSEParser.transform";
@@ -16,7 +16,6 @@ import JSON5 from "json5";
 import { IAgent, ITool } from "./agents/type";
 import agentsManager from "./agents";
 import { EventEmitter } from "node:events";
-import {spawn} from "child_process";
 
 const event = new EventEmitter()
 
@@ -121,6 +120,8 @@ async function getServer(options: RunOptions = {}) {
     }
   }
 
+  const presets = await listPresets();
+
   const serverInstance = await createServer({
     jsonPath: CONFIG_FILE,
     initialConfig: {
@@ -136,6 +137,11 @@ async function getServer(options: RunOptions = {}) {
     },
     logger: loggerConfig,
   });
+
+  presets.forEach(preset => {
+    console.log(preset.name, preset.config);
+    serverInstance.registerNamespace(preset.name, preset.config);
+  })
 
   // Add async preHandler hook for authentication
   serverInstance.addHook("preHandler", async (req: any, reply: any) => {

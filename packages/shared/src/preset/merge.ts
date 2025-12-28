@@ -2,72 +2,24 @@
  * 配置合并策略
  */
 
-import { MergeStrategy, ProviderConfig, RouterConfig, TransformerConfig, ProviderConflictAction } from './types';
+import { MergeStrategy, ProviderConfig, RouterConfig, TransformerConfig } from './types';
 
 /**
  * 合并 Provider 配置
+ * 如果 provider 已存在则直接覆盖，否则添加
  */
-async function mergeProviders(
+function mergeProviders(
   existing: ProviderConfig[],
-  incoming: ProviderConfig[],
-  strategy: MergeStrategy,
-  onProviderConflict?: (providerName: string) => Promise<ProviderConflictAction>
-): Promise<ProviderConfig[]> {
+  incoming: ProviderConfig[]
+): ProviderConfig[] {
   const result = [...existing];
-  const existingNames = new Set(existing.map(p => p.name));
+  const existingNames = new Map(existing.map(p => [p.name, result.findIndex(x => x.name === p.name)]));
 
   for (const provider of incoming) {
-    if (existingNames.has(provider.name)) {
-      // Provider 已存在，需要处理冲突
-      let action: ProviderConflictAction;
-
-      if (strategy === MergeStrategy.ASK && onProviderConflict) {
-        action = await onProviderConflict(provider.name);
-      } else if (strategy === MergeStrategy.OVERWRITE) {
-        action = 'overwrite';
-      } else if (strategy === MergeStrategy.MERGE) {
-        action = 'merge';
-      } else {
-        action = 'skip';
-      }
-
-      switch (action) {
-        case 'keep':
-          // 保留现有，不做任何操作
-          break;
-        case 'overwrite':
-          const index = result.findIndex(p => p.name === provider.name);
-          result[index] = provider;
-          break;
-        case 'merge':
-          const existingProvider = result.find(p => p.name === provider.name)!;
-          // 合并模型列表，去重
-          const mergedModels = [...new Set([
-            ...existingProvider.models,
-            ...provider.models,
-          ])];
-          existingProvider.models = mergedModels;
-
-          // 合并 transformer 配置
-          if (provider.transformer) {
-            if (!existingProvider.transformer) {
-              existingProvider.transformer = provider.transformer;
-            } else {
-              // 合并 transformer.use
-              if (provider.transformer.use && existingProvider.transformer.use) {
-                const mergedTransformers = [...new Set([
-                  ...existingProvider.transformer.use,
-                  ...provider.transformer.use,
-                ])];
-                existingProvider.transformer.use = mergedTransformers as any;
-              }
-            }
-          }
-          break;
-        case 'skip':
-          // 跳过，不做任何操作
-          break;
-      }
+    const existingIndex = existingNames.get(provider.name);
+    if (existingIndex !== undefined) {
+      // Provider 已存在，直接覆盖
+      result[existingIndex] = provider;
     } else {
       // 新 Provider，直接添加
       result.push(provider);
@@ -216,7 +168,6 @@ async function mergeOtherConfig(
  * 合并交互回调接口
  */
 export interface MergeCallbacks {
-  onProviderConflict?: (providerName: string) => Promise<ProviderConflictAction>;
   onRouterConflict?: (key: string, existingValue: any, newValue: any) => Promise<boolean>;
   onTransformerConflict?: (transformerPath: string) => Promise<'keep' | 'overwrite' | 'skip'>;
   onConfigConflict?: (key: string) => Promise<boolean>;
@@ -240,11 +191,9 @@ export async function mergeConfig(
 
   // 合并 Providers
   if (presetConfig.Providers) {
-    result.Providers = await mergeProviders(
+    result.Providers = mergeProviders(
       result.Providers || [],
-      presetConfig.Providers,
-      strategy,
-      callbacks?.onProviderConflict
+      presetConfig.Providers
     );
   }
 
