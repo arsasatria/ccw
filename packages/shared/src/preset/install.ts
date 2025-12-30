@@ -1,37 +1,77 @@
 /**
- * 预设安装核心功能
- * 注意：这个模块不包含 CLI 交互逻辑，交互逻辑由调用者提供
+ * Core preset installation functionality
+ * Note: This module does not contain CLI interaction logic, interaction logic is provided by the caller
  */
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import JSON5 from 'json5';
 import AdmZip from 'adm-zip';
-import { PresetFile, MergeStrategy, RequiredInput, ManifestFile, PresetInfo } from './types';
+import { PresetFile, MergeStrategy, RequiredInput, ManifestFile, PresetInfo, PresetMetadata } from './types';
 import { HOME_DIR, PRESETS_DIR } from '../constants';
+import { loadConfigFromManifest } from './schema';
 
 /**
- * 获取预设目录的完整路径
- * @param presetName 预设名称
+ * Validate if preset name is safe (prevent path traversal attacks)
+ * @param presetName Preset name
+ */
+function validatePresetName(presetName: string): void {
+  if (!presetName || presetName.trim() === '') {
+    throw new Error('Preset name cannot be empty');
+  }
+
+  // Reject names containing path traversal sequences
+  if (presetName.includes('..') || presetName.includes('/') || presetName.includes('\\')) {
+    throw new Error('Invalid preset name: path traversal detected');
+  }
+
+  // Reject absolute paths
+  if (path.isAbsolute(presetName)) {
+    throw new Error('Invalid preset name: absolute path not allowed');
+  }
+}
+
+/**
+ * Get the full path of the preset directory
+ * @param presetName Preset name
  */
 export function getPresetDir(presetName: string): string {
+  validatePresetName(presetName);
   return path.join(HOME_DIR, 'presets', presetName);
 }
 
 /**
- * 获取临时目录路径
+ * Get temporary directory path
  */
 export function getTempDir(): string {
   return path.join(HOME_DIR, 'temp');
 }
 
 /**
- * 解压预设文件到目标目录
- * @param sourceZip 源ZIP文件路径
- * @param targetDir 目标目录
+ * Validate and normalize file path, ensuring it's within the target directory
+ * @param targetDir Target directory
+ * @param entryPath ZIP entry path
+ * @returns Safe absolute path
+ */
+function validateAndResolvePath(targetDir: string, entryPath: string): string {
+  const resolvedTargetDir = path.resolve(targetDir);
+  const resolvedPath = path.resolve(targetDir, entryPath);
+
+  // Verify that the resolved path is within the target directory
+  if (!resolvedPath.startsWith(resolvedTargetDir)) {
+    throw new Error(`Path traversal detected: ${entryPath}`);
+  }
+
+  return resolvedPath;
+}
+
+/**
+ * Extract preset file to target directory
+ * @param sourceZip Source ZIP file path
+ * @param targetDir Target directory
  */
 export async function extractPreset(sourceZip: string, targetDir: string): Promise<void> {
-  // 检查目标目录是否已存在
+  // Check if target directory already exists
   try {
     await fs.access(targetDir);
     throw new Error(`Preset directory already exists: ${path.basename(targetDir)}`);
@@ -39,19 +79,19 @@ export async function extractPreset(sourceZip: string, targetDir: string): Promi
     if (error.code !== 'ENOENT') {
       throw error;
     }
-    // ENOENT 表示目录不存在，可以继续
+    // ENOENT means directory does not exist, can continue
   }
 
-  // 创建目标目录
+  // Create target directory
   await fs.mkdir(targetDir, { recursive: true });
 
-  // 解压文件
+  // Extract files
   const zip = new AdmZip(sourceZip);
   const entries = zip.getEntries();
 
-  // 检测是否有单一的根目录（GitHub ZIP 文件通常有这个特征）
+  // Detect if there's a single root directory (GitHub ZIP files usually have this characteristic)
   if (entries.length > 0) {
-    // 获取所有顶层目录
+    // Get all top-level directories
     const rootDirs = new Set<string>();
     for (const entry of entries) {
       const parts = entry.entryName.split('/');
@@ -60,35 +100,35 @@ export async function extractPreset(sourceZip: string, targetDir: string): Promi
       }
     }
 
-    // 如果只有一个根目录，则去除它
+    // If there's only one root directory, remove it
     if (rootDirs.size === 1) {
       const singleRoot = Array.from(rootDirs)[0];
 
-      // 检查 manifest.json 是否在根目录下
+      // Check if manifest.json is in root directory
       const hasManifestInRoot = entries.some(e =>
         e.entryName === 'manifest.json' || e.entryName.startsWith(`${singleRoot}/manifest.json`)
       );
 
       if (hasManifestInRoot) {
-        // 将所有文件从根目录下提取出来
+        // Extract all files from the root directory
         for (const entry of entries) {
           if (entry.isDirectory) {
             continue;
           }
 
-          // 去除根目录前缀
+          // Remove root directory prefix
           let newPath = entry.entryName;
           if (newPath.startsWith(`${singleRoot}/`)) {
             newPath = newPath.substring(singleRoot.length + 1);
           }
 
-          // 跳过根目录本身
+          // Skip root directory itself
           if (newPath === '' || newPath === singleRoot) {
             continue;
           }
 
-          // 提取文件
-          const targetPath = path.join(targetDir, newPath);
+          // Validate path safety and extract file
+          const targetPath = validateAndResolvePath(targetDir, newPath);
           await fs.mkdir(path.dirname(targetPath), { recursive: true });
           await fs.writeFile(targetPath, entry.getData());
         }
@@ -98,13 +138,22 @@ export async function extractPreset(sourceZip: string, targetDir: string): Promi
     }
   }
 
-  // 如果没有单一的根目录，直接解压
-  zip.extractAllTo(targetDir, true);
+  // If there's no single root directory, validate and extract files one by one
+  for (const entry of entries) {
+    if (entry.isDirectory) {
+      continue;
+    }
+
+    // Validate path safety
+    const targetPath = validateAndResolvePath(targetDir, entry.entryName);
+    await fs.mkdir(path.dirname(targetPath), { recursive: true });
+    await fs.writeFile(targetPath, entry.getData());
+  }
 }
 
 /**
- * 从解压目录读取manifest
- * @param presetDir 预设目录路径
+ * Read manifest from extracted directory
+ * @param presetDir Preset directory path
  */
 export async function readManifestFromDir(presetDir: string): Promise<ManifestFile> {
   const manifestPath = path.join(presetDir, 'manifest.json');
@@ -113,21 +162,68 @@ export async function readManifestFromDir(presetDir: string): Promise<ManifestFi
 }
 
 /**
- * 将manifest转换为PresetFile格式
+ * List of known metadata fields
+ */
+const METADATA_FIELDS = [
+  'name',
+  'version',
+  'description',
+  'author',
+  'homepage',
+  'repository',
+  'license',
+  'keywords',
+  'ccwVersion',
+  'source',
+  'sourceType',
+  'checksum',
+];
+
+/**
+ * Dynamic configuration system field list
+ */
+const DYNAMIC_CONFIG_FIELDS = [
+  'schema',
+  'template',
+  'configMappings',
+];
+
+/**
+ * Convert manifest to PresetFile format
+ * Correctly separate metadata, config, and dynamic configuration system fields
  */
 export function manifestToPresetFile(manifest: ManifestFile): PresetFile {
-  const { Providers, Router, StatusLine, NON_INTERACTIVE_MODE, schema, ...metadata } = manifest;
+  const metadata: any = {};
+  const config: any = {};
+  const dynamicConfig: any = {};
+
+  // Categorize all fields
+  for (const [key, value] of Object.entries(manifest)) {
+    if (METADATA_FIELDS.includes(key)) {
+      // metadata fields
+      metadata[key] = value;
+    } else if (DYNAMIC_CONFIG_FIELDS.includes(key)) {
+      // dynamic configuration system fields
+      dynamicConfig[key] = value;
+    } else {
+      // configuration fields
+      config[key] = value;
+    }
+  }
+
   return {
-    metadata,
-    config: { Providers, Router, StatusLine, NON_INTERACTIVE_MODE },
-    schema,
+    metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+    config,
+    schema: dynamicConfig.schema,
+    template: dynamicConfig.template,
+    configMappings: dynamicConfig.configMappings,
   };
 }
 
 /**
- * 下载预设文件到临时位置
- * @param url 下载URL
- * @returns 临时文件路径
+ * Download preset file to temporary location
+ * @param url Download URL
+ * @returns Temporary file path
  */
 export async function downloadPresetToTemp(url: string): Promise<string> {
   const response = await fetch(url);
@@ -136,7 +232,7 @@ export async function downloadPresetToTemp(url: string): Promise<string> {
   }
   const buffer = await response.arrayBuffer();
 
-  // 创建临时文件
+  // Create temporary file
   const tempDir = getTempDir();
   await fs.mkdir(tempDir, { recursive: true });
 
@@ -147,8 +243,8 @@ export async function downloadPresetToTemp(url: string): Promise<string> {
 }
 
 /**
- * 从本地ZIP文件加载预设
- * @param zipFile ZIP文件路径
+ * Load preset from local ZIP file
+ * @param zipFile ZIP file path
  * @returns PresetFile
  */
 export async function loadPresetFromZip(zipFile: string): Promise<PresetFile> {
@@ -162,33 +258,33 @@ export async function loadPresetFromZip(zipFile: string): Promise<PresetFile> {
 }
 
 /**
- * 加载预设文件
- * @param source 预设来源（文件路径、URL 或预设名称）
+ * Load preset file
+ * @param source Preset source (file path, URL, or preset name)
  */
 export async function loadPreset(source: string): Promise<PresetFile> {
-  // 判断是否是 URL
+  // Check if it's a URL
   if (source.startsWith('http://') || source.startsWith('https://')) {
     const tempFile = await downloadPresetToTemp(source);
     const preset = await loadPresetFromZip(tempFile);
-    // 删除临时文件
+    // Delete temp file
     await fs.unlink(tempFile).catch(() => {});
     return preset;
   }
 
-  // 判断是否是绝对路径或相对路径（包含 / 或 \）
+  // Check if it's absolute or relative path (contains / or \)
   if (source.includes('/') || source.includes('\\')) {
-    // 文件路径
+    // File path
     return await loadPresetFromZip(source);
   }
 
-  // 否则作为预设名称处理（从解压目录读取）
+  // Otherwise treat as preset name (read from extracted directory)
   const presetDir = getPresetDir(source);
   const manifest = await readManifestFromDir(presetDir);
   return manifestToPresetFile(manifest);
 }
 
 /**
- * 验证预设文件
+ * Validate preset file
  */
 export async function validatePreset(preset: PresetFile): Promise<{
   valid: boolean;
@@ -198,7 +294,7 @@ export async function validatePreset(preset: PresetFile): Promise<{
   const errors: string[] = [];
   const warnings: string[] = [];
 
-  // 验证元数据
+  // Validate metadata
   if (!preset.metadata) {
     warnings.push('Missing metadata section');
   } else {
@@ -210,12 +306,12 @@ export async function validatePreset(preset: PresetFile): Promise<{
     }
   }
 
-  // 验证配置部分
+  // Validate configuration section
   if (!preset.config) {
     errors.push('Missing config section');
   }
 
-  // 验证 Providers
+  // Validate Providers
   if (preset.config.Providers) {
     for (const provider of preset.config.Providers) {
       if (!provider.name) {
@@ -238,9 +334,35 @@ export async function validatePreset(preset: PresetFile): Promise<{
 }
 
 /**
- * 保存 manifest 到预设目录
- * @param presetName 预设名称
- * @param manifest manifest 对象
+ * Extract metadata fields from manifest
+ * @param manifest Manifest object
+ * @returns Metadata object
+ */
+export function extractMetadata(manifest: ManifestFile): PresetMetadata {
+  const metadata: PresetMetadata = {
+    name: manifest.name,
+    version: manifest.version,
+  };
+
+  // Optional fields
+  if (manifest.description !== undefined) metadata.description = manifest.description;
+  if (manifest.author !== undefined) metadata.author = manifest.author;
+  if (manifest.homepage !== undefined) metadata.homepage = manifest.homepage;
+  if (manifest.repository !== undefined) metadata.repository = manifest.repository;
+  if (manifest.license !== undefined) metadata.license = manifest.license;
+  if (manifest.keywords !== undefined) metadata.keywords = manifest.keywords;
+  if (manifest.ccwVersion !== undefined) metadata.ccwVersion = manifest.ccwVersion;
+  if (manifest.source !== undefined) metadata.source = manifest.source;
+  if (manifest.sourceType !== undefined) metadata.sourceType = manifest.sourceType;
+  if (manifest.checksum !== undefined) metadata.checksum = manifest.checksum;
+
+  return metadata;
+}
+
+/**
+ * Save manifest to preset directory
+ * @param presetName Preset name
+ * @param manifest Manifest object
  */
 export async function saveManifest(presetName: string, manifest: ManifestFile): Promise<void> {
   const presetDir = getPresetDir(presetName);
@@ -249,23 +371,23 @@ export async function saveManifest(presetName: string, manifest: ManifestFile): 
 }
 
 /**
- * 查找预设文件
- * @param source 预设来源
- * @returns 文件路径或 null
+ * Find preset file
+ * @param source Preset source
+ * @returns File path or null
  */
 export async function findPresetFile(source: string): Promise<string | null> {
-  // 当前目录文件
+  // Current directory file
   const currentDirFile = path.join(process.cwd(), `${source}.ccrsets`);
 
-  // presets 目录文件
+  // presets directory file
   const presetsDirFile = path.join(HOME_DIR, 'presets', `${source}.ccrsets`);
 
-  // 检查当前目录
+  // Check current directory
   try {
     await fs.access(currentDirFile);
     return currentDirFile;
   } catch {
-    // 检查presets目录
+    // Check presets directory
     try {
       await fs.access(presetsDirFile);
       return presetsDirFile;
@@ -276,8 +398,8 @@ export async function findPresetFile(source: string): Promise<string | null> {
 }
 
 /**
- * 检查预设是否已安装
- * @param presetName 预设名称
+ * Check if preset is already installed
+ * @param presetName Preset name
  */
 export async function isPresetInstalled(presetName: string): Promise<boolean> {
   const presetDir = getPresetDir(presetName);
@@ -290,8 +412,8 @@ export async function isPresetInstalled(presetName: string): Promise<boolean> {
 }
 
 /**
- * 列出所有已安装的预设
- * @returns PresetInfo 数组
+ * List all installed presets
+ * @returns Array of PresetInfo
  */
 export async function listPresets(): Promise<PresetInfo[]> {
   const presetsDir = PRESETS_DIR;
@@ -303,7 +425,7 @@ export async function listPresets(): Promise<PresetInfo[]> {
     return presets;
   }
 
-  // 读取目录下的所有子目录
+  // Read all subdirectories in the directory
   const entries = await fs.readdir(presetsDir, { withFileTypes: true });
 
   for (const entry of entries) {
@@ -313,14 +435,14 @@ export async function listPresets(): Promise<PresetInfo[]> {
       const manifestPath = path.join(presetDir, 'manifest.json');
 
       try {
-        // 检查 manifest.json 是否存在
+        // Check if manifest.json exists
         await fs.access(manifestPath);
 
-        // 读取 manifest.json
+        // Read manifest.json
         const content = await fs.readFile(manifestPath, 'utf-8');
         const manifest = JSON5.parse(content) as ManifestFile;
 
-        // 获取目录创建时间
+        // Get directory creation time
         const stats = await fs.stat(presetDir);
 
         presets.push({
@@ -328,11 +450,11 @@ export async function listPresets(): Promise<PresetInfo[]> {
           version: manifest.version,
           description: manifest.description,
           author: manifest.author,
-          config: manifestToPresetFile(manifest).config,
+          config: loadConfigFromManifest(manifest),
         });
       } catch {
-        // 忽略无效的预设目录（没有 manifest.json 或读取失败）
-        // 可以选择跳过或者添加到列表中标记为错误
+        // Ignore invalid preset directories (no manifest.json or read failed)
+        // Can choose to skip or add to list marked as error
         continue;
       }
     }

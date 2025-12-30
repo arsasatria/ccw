@@ -43,12 +43,12 @@ export function Toast({ message, type, onClose }: ToastProps) {
   };
 
   return (
-    <div className={`fixed top-4 right-4 z-50 flex items-center justify-between p-4 rounded-lg border shadow-lg ${getBackgroundColor()} transition-all duration-300 ease-in-out`}>
+    <div className={`fixed top-4 right-4 z-[100] flex items-center justify-between p-4 rounded-lg border shadow-lg ${getBackgroundColor()} transition-all duration-300 ease-in-out`}>
       <div className="flex items-center space-x-2">
         {getIcon()}
         <span className="text-sm font-medium">{message}</span>
       </div>
-      <button 
+      <button
         onClick={onClose}
         className="ml-4 text-gray-500 hover:text-gray-700 focus:outline-none"
       >

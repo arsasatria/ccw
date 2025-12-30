@@ -1,17 +1,16 @@
 /**
- * 预设命令处理器 CLI 层
- * 负责处理 CLI 交互，核心逻辑在 shared 包中
+ * Preset command handler CLI layer
+ * Handles CLI interactions, core logic is in the shared package
  */
 
 import * as fs from 'fs/promises';
-import * as fsSync from 'fs';
 import * as path from 'path';
 import JSON5 from 'json5';
 import { exportPresetCli } from './export';
 import { installPresetCli, loadPreset } from './install';
-import { MergeStrategy, HOME_DIR } from '@ccw/shared';
+import { HOME_DIR } from '@ccw/shared';
 
-// ANSI 颜色代码
+// ANSI color codes
 const RESET = "\x1B[0m";
 const GREEN = "\x1B[32m";
 const YELLOW = "\x1B[33m";
@@ -20,7 +19,7 @@ const BOLDYELLOW = "\x1B[1m\x1B[33m";
 const DIM = "\x1B[2m";
 
 /**
- * 列出本地预设
+ * List local presets
  */
 async function listPresets(): Promise<void> {
   const presetsDir = path.join(HOME_DIR, 'presets');
@@ -51,7 +50,7 @@ async function listPresets(): Promise<void> {
       const content = await fs.readFile(manifestPath, 'utf-8');
       const manifest = JSON5.parse(content);
 
-      // 从manifest中提取metadata字段
+      // Extract metadata fields from manifest
       const { Providers, Router, PORT, HOST, API_TIMEOUT_MS, PROXY_URL, LOG, LOG_LEVEL, StatusLine, NON_INTERACTIVE_MODE, requiredInputs, ...metadata } = manifest;
 
       const name = metadata.name || dirName;
@@ -59,19 +58,19 @@ async function listPresets(): Promise<void> {
       const author = metadata.author || '';
       const version = metadata.version;
 
-      // 显示预设名称
+      // Display preset name
       if (version) {
         console.log(`${GREEN}•${RESET} ${BOLDCYAN}${name}${RESET} (v${version})`);
       } else {
         console.log(`${GREEN}•${RESET} ${BOLDCYAN}${name}${RESET}`);
       }
 
-      // 显示描述
+      // Display description
       if (description) {
         console.log(`  ${description}`);
       }
 
-      // 显示作者
+      // Display author
       if (author) {
         console.log(`  ${DIM}by ${author}${RESET}`);
       }
@@ -85,14 +84,21 @@ async function listPresets(): Promise<void> {
 }
 
 /**
- * 删除预设
+ * Delete preset
  */
 async function deletePreset(name: string): Promise<void> {
   const presetsDir = path.join(HOME_DIR, 'presets');
+
+  // Validate preset name (prevent path traversal)
+  if (!name || name.includes('..') || name.includes('/') || name.includes('\\')) {
+    console.error(`\n${YELLOW}Error:${RESET} Invalid preset name.\n`);
+    process.exit(1);
+  }
+
   const presetDir = path.join(presetsDir, name);
 
   try {
-    // 递归删除整个目录
+    // Recursively delete entire directory
     await fs.rm(presetDir, { recursive: true, force: true });
     console.log(`\n${GREEN}✓${RESET} Preset "${name}" deleted.\n`);
   } catch (error: any) {
@@ -106,27 +112,27 @@ async function deletePreset(name: string): Promise<void> {
 }
 
 /**
- * 显示预设信息
+ * Show preset information
  */
 async function showPresetInfo(name: string): Promise<void> {
   try {
     const preset = await loadPreset(name);
 
     const config = preset.config;
-    const metadata = preset.metadata || {};
+    const metadata = preset.metadata;
 
     console.log(`\n${BOLDCYAN}═══════════════════════════════════════════════${RESET}`);
-    if (metadata.name) {
+    if (metadata?.name) {
       console.log(`${BOLDCYAN}Preset: ${RESET}${metadata.name}`);
     } else {
       console.log(`${BOLDCYAN}Preset: ${RESET}${name}`);
     }
     console.log(`${BOLDCYAN}═══════════════════════════════════════════════${RESET}\n`);
 
-    if (metadata.version) console.log(`${BOLDCYAN}Version:${RESET} ${metadata.version}`);
-    if (metadata.description) console.log(`${BOLDCYAN}Description:${RESET} ${metadata.description}`);
-    if (metadata.author) console.log(`${BOLDCYAN}Author:${RESET} ${metadata.author}`);
-    const keywords = (metadata as any).keywords;
+    if (metadata?.version) console.log(`${BOLDCYAN}Version:${RESET} ${metadata.version}`);
+    if (metadata?.description) console.log(`${BOLDCYAN}Description:${RESET} ${metadata.description}`);
+    if (metadata?.author) console.log(`${BOLDCYAN}Author:${RESET} ${metadata.author}`);
+    const keywords = metadata?.keywords;
     if (keywords && keywords.length > 0) {
       console.log(`${BOLDCYAN}Keywords:${RESET} ${keywords.join(', ')}`);
     }
@@ -142,11 +148,12 @@ async function showPresetInfo(name: string): Promise<void> {
       console.log(`  Provider: ${config.provider}`);
     }
 
-    if (preset.requiredInputs && preset.requiredInputs.length > 0) {
+    if (preset.schema && preset.schema.length > 0) {
       console.log(`\n${BOLDYELLOW}Required inputs:${RESET}`);
-      for (const input of preset.requiredInputs) {
-        const envVar = input.placeholder || input.field;
-        console.log(`  - ${input.field} ${DIM}(${envVar})${RESET}`);
+      for (const input of preset.schema) {
+        const label = input.label || input.id;
+        const prompt = input.prompt || '';
+        console.log(`  - ${label}${prompt ? ` ${DIM}(${prompt})${RESET}` : ''}`);
       }
     }
 
@@ -158,7 +165,7 @@ async function showPresetInfo(name: string): Promise<void> {
 }
 
 /**
- * 处理预设命令
+ * Handle preset commands
  */
 export async function handlePresetCommand(args: string[]): Promise<void> {
   const subCommand = args[0];
@@ -172,7 +179,7 @@ export async function handlePresetCommand(args: string[]): Promise<void> {
         process.exit(1);
       }
 
-      // 解析选项
+      // Parse options
       const options: any = {};
       for (let i = 2; i < args.length; i++) {
         if (args[i] === '--output' && args[i + 1]) {
@@ -199,22 +206,7 @@ export async function handlePresetCommand(args: string[]): Promise<void> {
         process.exit(1);
       }
 
-      // 解析选项
-      const installOptions: any = {};
-      for (let i = 2; i < args.length; i++) {
-        if (args[i] === '--strategy' && args[i + 1]) {
-          const strategy = args[++i];
-          if (['ask', 'overwrite', 'merge', 'skip'].includes(strategy)) {
-            installOptions.strategy = strategy as MergeStrategy;
-          } else {
-            console.error(`\nError: Invalid merge strategy "${strategy}"\n`);
-            console.error('Valid strategies: ask, overwrite, merge, skip\n');
-            process.exit(1);
-          }
-        }
-      }
-
-      await installPresetCli(source, installOptions);
+      await installPresetCli(source, {});
       break;
 
     case 'list':

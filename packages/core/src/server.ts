@@ -118,9 +118,23 @@ class Server {
     this.app.addHook(hookName as any, hookFunction);
   }
 
-  public async registerNamespace(name: string, options: any) {
+  public async registerNamespace(name: string, options?: any) {
     if (!name) throw new Error("name is required");
-    const configService = new ConfigService(options);
+    if (name === '/') {
+      await this.app.register(async (fastify) => {
+        fastify.decorate('configService', this.configService);
+        fastify.decorate('transformerService', this.transformerService);
+        fastify.decorate('providerService', this.providerService);
+        await registerApiRoutes(fastify);
+      });
+      return
+    }
+    if (!options) throw new Error("options is required");
+    const configService = new ConfigService({
+      initialConfig: {
+        providers: options.Providers,
+      }
+    });
     const transformerService = new TransformerService(
       configService,
       this.app.log
@@ -131,12 +145,17 @@ class Server {
       transformerService,
       this.app.log
     );
-    this.app.register((fastify) => {
+    // await this.app.register((fastify) => {
+    //   fastify.decorate('configService', configService);
+    //   fastify.decorate('transformerService', transformerService);
+    //   fastify.decorate('providerService', providerService);
+    // }, { prefix: name });
+    await this.app.register(async (fastify) => {
       fastify.decorate('configService', configService);
       fastify.decorate('transformerService', transformerService);
       fastify.decorate('providerService', providerService);
+      await registerApiRoutes(fastify);
     }, { prefix: name });
-    this.app.register(registerApiRoutes, { prefix: name });
   }
 
   async start(): Promise<void> {
@@ -179,7 +198,7 @@ class Server {
         }
       );
 
-      this.app.register(registerApiRoutes);
+      await this.registerNamespace('/')
 
       const address = await this.app.listen({
         port: parseInt(this.configService.get("PORT") || "3000", 10),

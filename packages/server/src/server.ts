@@ -15,6 +15,8 @@ import {
   downloadPresetToTemp,
   getTempDir,
   HOME_DIR,
+  extractMetadata,
+  loadConfigFromManifest,
   type PresetFile,
   type ManifestFile,
   type PresetMetadata,
@@ -81,7 +83,7 @@ export const createServer = async (config: any): Promise<any> => {
     return reply.redirect("/ui/");
   });
 
-  // 获取日志文件列表端点
+  // Get log file list endpoint
   app.get("/api/logs/files", async (req: any, reply: any) => {
     try {
       const logDir = join(homedir(), ".ccw", "logs");
@@ -104,7 +106,7 @@ export const createServer = async (config: any): Promise<any> => {
           }
         }
 
-        // 按修改时间倒序排列
+        // Sort by modification time in descending order
         logFiles.sort((a, b) => new Date(b.lastModified).getTime() - new Date(a.lastModified).getTime());
       }
 
@@ -115,17 +117,17 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
-  // 获取日志内容端点
+  // Get log content endpoint
   app.get("/api/logs", async (req: any, reply: any) => {
     try {
       const filePath = (req.query as any).file as string;
       let logFilePath: string;
 
       if (filePath) {
-        // 如果指定了文件路径，使用指定的路径
+        // If file path is specified, use the specified path
         logFilePath = filePath;
       } else {
-        // 如果没有指定文件路径，使用默认的日志文件路径
+        // If file path is not specified, use default log file path
         logFilePath = join(homedir(), ".ccw", "logs", "app.log");
       }
 
@@ -143,17 +145,17 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
-  // 清除日志内容端点
+  // Clear log content endpoint
   app.delete("/api/logs", async (req: any, reply: any) => {
     try {
       const filePath = (req.query as any).file as string;
       let logFilePath: string;
 
       if (filePath) {
-        // 如果指定了文件路径，使用指定的路径
+        // If file path is specified, use the specified path
         logFilePath = filePath;
       } else {
-        // 如果没有指定文件路径，使用默认的日志文件路径
+        // If file path is not specified, use default log file path
         logFilePath = join(homedir(), ".ccw", "logs", "app.log");
       }
 
@@ -168,7 +170,7 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
-  // 获取预设列表
+  // Get presets list
   app.get("/api/presets", async (req: any, reply: any) => {
     try {
       const presetsDir = join(HOME_DIR, "presets");
@@ -189,11 +191,11 @@ export const createServer = async (config: any): Promise<any> => {
           const content = readFileSync(manifestPath, 'utf-8');
           const manifest = JSON.parse(content);
 
-          // 提取 metadata 字段
+          // Extract metadata fields
           const { Providers, Router, PORT, HOST, API_TIMEOUT_MS, PROXY_URL, LOG, LOG_LEVEL, StatusLine, NON_INTERACTIVE_MODE, requiredInputs, ...metadata } = manifest;
 
           presets.push({
-            id: dirName,  // 目录名作为唯一标识
+            id: dirName,  // Use directory name as unique identifier
             name: metadata.name || dirName,
             version: metadata.version || '1.0.0',
             description: metadata.description,
@@ -220,7 +222,7 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
-  // 获取预设详情
+  // Get preset details
   app.get("/api/presets/:name", async (req: any, reply: any) => {
     try {
       const { name } = req.params;
@@ -232,39 +234,44 @@ export const createServer = async (config: any): Promise<any> => {
       }
 
       const manifest = await readManifestFromDir(presetDir);
-      const preset = manifestToPresetFile(manifest);
+      const presetFile = manifestToPresetFile(manifest);
 
-      return preset;
+      // Return preset info, config uses the applied userValues configuration
+      return {
+        ...presetFile,
+        config: loadConfigFromManifest(manifest),
+        userValues: manifest.userValues || {},
+      };
     } catch (error: any) {
       console.error("Failed to get preset:", error);
       reply.status(500).send({ error: error.message || "Failed to get preset" });
     }
   });
 
-  // 上传并安装预设（支持文件上传）
+  // Upload and install preset (supports file upload)
   app.post("/api/presets/install", async (req: any, reply: any) => {
     try {
       const { source, name, url } = req.body;
 
-      // 如果提供了 URL，从 URL 下载
+      // If URL is provided, download from URL
       if (url) {
         const tempFile = await downloadPresetToTemp(url);
         const preset = await loadPresetFromZip(tempFile);
 
-        // 确定预设名称
+        // Determine preset name
         const presetName = name || preset.metadata?.name || `preset-${Date.now()}`;
 
-        // 检查是否已安装
+        // Check if already installed
         if (await isPresetInstalled(presetName)) {
           reply.status(409).send({ error: "Preset already installed" });
           return;
         }
 
-        // 解压到目标目录
+        // Extract to target directory
         const targetDir = getPresetDir(presetName);
         await extractPreset(tempFile, targetDir);
 
-        // 清理临时文件
+        // Clean up temp file
         unlinkSync(tempFile);
 
         return {
@@ -277,8 +284,8 @@ export const createServer = async (config: any): Promise<any> => {
         };
       }
 
-      // 如果没有 URL，需要处理文件上传（使用 multipart/form-data）
-      // 这部分需要在客户端使用 FormData 上传
+      // If no URL, need to handle file upload (using multipart/form-data)
+      // This part requires FormData upload on client side
       reply.status(400).send({ error: "Please provide a URL or upload a file" });
     } catch (error: any) {
       console.error("Failed to install preset:", error);
@@ -286,7 +293,7 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
-  // 上传预设文件（multipart/form-data）
+  // Upload preset file (multipart/form-data)
   app.post("/api/presets/upload", async (req: any, reply: any) => {
     try {
       const data = await req.file();
@@ -300,28 +307,28 @@ export const createServer = async (config: any): Promise<any> => {
 
       const tempFile = join(tempDir, `preset-${Date.now()}.ccrsets`);
 
-      // 保存上传的文件到临时位置
+      // Save uploaded file to temp location
       const buffer = await data.toBuffer();
       writeFileSync(tempFile, buffer);
 
-      // 加载预设
+      // Load preset
       const preset = await loadPresetFromZip(tempFile);
 
-      // 确定预设名称
+      // Determine preset name
       const presetName = data.fields.name?.value || preset.metadata?.name || `preset-${Date.now()}`;
 
-      // 检查是否已安装
+      // Check if already installed
       if (await isPresetInstalled(presetName)) {
         unlinkSync(tempFile);
         reply.status(409).send({ error: "Preset already installed" });
         return;
       }
 
-      // 解压到目标目录
+      // Extract to target directory
       const targetDir = getPresetDir(presetName);
       await extractPreset(tempFile, targetDir);
 
-      // 清理临时文件
+      // Clean up temp file
       unlinkSync(tempFile);
 
       return {
@@ -338,7 +345,7 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
-  // 应用预设（配置敏感信息）
+  // Apply preset (configure sensitive information)
   app.post("/api/presets/:name/apply", async (req: any, reply: any) => {
     try {
       const { name } = req.params;
@@ -351,27 +358,22 @@ export const createServer = async (config: any): Promise<any> => {
         return;
       }
 
-      // 读取现有 manifest
+      // Read existing manifest
       const manifest = await readManifestFromDir(presetDir);
 
-      // 将 secrets 信息应用到 manifest 中
-      if (secrets) {
-        for (const [fieldPath, value] of Object.entries(secrets)) {
-          const keys = fieldPath.split(/[.\[\]]+/).filter(k => k !== '');
-          let current = manifest as any;
-          for (let i = 0; i < keys.length - 1; i++) {
-            const key = keys[i];
-            if (!current[key]) {
-              current[key] = {};
-            }
-            current = current[key];
-          }
-          current[keys[keys.length - 1]] = value;
-        }
+      // Save user input to userValues (keep original config unchanged)
+      const updatedManifest: ManifestFile = { ...manifest };
+
+      // Save or update userValues
+      if (secrets && Object.keys(secrets).length > 0) {
+        updatedManifest.userValues = {
+          ...updatedManifest.userValues,
+          ...secrets,
+        };
       }
 
-      // 保存更新后的 manifest
-      await saveManifest(name, manifest);
+      // Save updated manifest
+      await saveManifest(name, updatedManifest);
 
       return { success: true, message: "Preset applied successfully" };
     } catch (error: any) {
@@ -380,7 +382,7 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
-  // 删除预设
+  // Delete preset
   app.delete("/api/presets/:name", async (req: any, reply: any) => {
     try {
       const { name } = req.params;
@@ -391,7 +393,7 @@ export const createServer = async (config: any): Promise<any> => {
         return;
       }
 
-      // 递归删除整个目录
+      // Recursively delete entire directory
       rmSync(presetDir, { recursive: true, force: true });
 
       return { success: true, message: "Preset deleted successfully" };
@@ -401,7 +403,7 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
-  // 获取预设市场列表
+  // Get preset market list
   app.get("/api/presets/market", async (req: any, reply: any) => {
     try {
       const marketUrl = "https://pub-0dc3e1677e894f07bbea11b17a29e032.r2.dev/presets.json";
@@ -419,7 +421,7 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
-  // 从 GitHub 仓库安装预设
+  // Install preset from GitHub repository
   app.post("/api/presets/install/github", async (req: any, reply: any) => {
     try {
       const { repo, name } = req.body;
@@ -429,9 +431,9 @@ export const createServer = async (config: any): Promise<any> => {
         return;
       }
 
-      // 解析 GitHub 仓库 URL
-      // 支持格式:
-      // - owner/repo (简短格式，来自市场)
+      // Parse GitHub repository URL
+      // Supported formats:
+      // - owner/repo (short format, from market)
       // - github.com/owner/repo
       // - https://github.com/owner/repo
       // - https://github.com/owner/repo.git
@@ -444,28 +446,28 @@ export const createServer = async (config: any): Promise<any> => {
 
       const [, owner, repoName] = githubRepoMatch;
 
-      // 下载 GitHub 仓库的 ZIP 文件
+      // Download GitHub repository ZIP file
       const downloadUrl = `https://github.com/${owner}/${repoName}/archive/refs/heads/main.zip`;
       const tempFile = await downloadPresetToTemp(downloadUrl);
 
-      // 加载预设
+      // Load preset
       const preset = await loadPresetFromZip(tempFile);
 
-      // 确定预设名称
+      // Determine preset name
       const presetName = name || preset.metadata?.name || repoName;
 
-      // 检查是否已安装
+      // Check if already installed
       if (await isPresetInstalled(presetName)) {
         unlinkSync(tempFile);
         reply.status(409).send({ error: "Preset already installed" });
         return;
       }
 
-      // 解压到目标目录
+      // Extract to target directory
       const targetDir = getPresetDir(presetName);
       await extractPreset(tempFile, targetDir);
 
-      // 清理临时文件
+      // Clean up temp file
       unlinkSync(tempFile);
 
       return {
@@ -482,17 +484,17 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
-  // 辅助函数：从 ZIP 加载预设
+  // Helper function: Load preset from ZIP
   async function loadPresetFromZip(zipFile: string): Promise<PresetFile> {
     const zip = new AdmZip(zipFile);
 
-    // 首先尝试在根目录查找 manifest.json
+    // First try to find manifest.json in root directory
     let entry = zip.getEntry('manifest.json');
 
-    // 如果根目录没有，尝试在子目录中查找（处理 GitHub 仓库的压缩包结构）
+    // If not in root, try to find in subdirectories (handle GitHub repo archive structure)
     if (!entry) {
       const entries = zip.getEntries();
-      // 查找任意 manifest.json 文件
+      // Find any manifest.json file
       entry = entries.find(e => e.entryName.includes('manifest.json')) || null;
     }
 

@@ -285,6 +285,17 @@
     "load_market_failed": "加载市场预设失败",
     "preset_installed_config_required": "预设已安装，请完成配置",
     "please_provide_file": "请提供预设文件",
-    "please_provide_url": "请提供预设 URL"
+    "please_provide_url": "请提供预设 URL",
+    "form": {
+      "field_required": "{{field}} 为必填项",
+      "must_be_number": "{{field}} 必须是数字",
+      "must_be_at_least": "{{field}} 至少为 {{min}}",
+      "must_be_at_most": "{{field}} 最多为 {{max}}",
+      "format_invalid": "{{field}} 格式无效",
+      "select": "选择 {{label}}",
+      "applying": "应用中...",
+      "apply": "应用",
+      "cancel": "取消"
+    }
   }
 }

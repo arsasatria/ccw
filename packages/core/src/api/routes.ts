@@ -8,10 +8,28 @@ import { RegisterProviderRequest, LLMProvider } from "@/types/llm";
 import { sendUnifiedRequest } from "@/utils/request";
 import { createApiError } from "./middleware";
 import { version } from "../../package.json";
+import { ConfigService } from "@/services/config";
+import { ProviderService } from "@/services/provider";
+import { TransformerService } from "@/services/transformer";
+import { Transformer } from "@/types/transformer";
+
+// Extend FastifyInstance to include custom services
+declare module "fastify" {
+  interface FastifyInstance {
+    configService: ConfigService;
+    providerService: ProviderService;
+    transformerService: TransformerService;
+  }
+
+  interface FastifyRequest {
+    provider?: string;
+  }
+}
 
 /**
- * 处理transformer端点的主函数
- * 协调整个请求处理流程：验证提供者、处理请求转换器、发送请求、处理响应转换器、格式化响应
+ * Main handler for transformer endpoints
+ * Coordinates the entire request processing flow: validate provider, handle request transformers,
+ * send request, handle response transformers, format response
  */
 async function handleTransformerEndpoint(
   req: FastifyRequest,
@@ -21,9 +39,9 @@ async function handleTransformerEndpoint(
 ) {
   const body = req.body as any;
   const providerName = req.provider!;
-  const provider = fastify._server!.providerService.getProvider(providerName);
+  const provider = fastify.providerService.getProvider(providerName);
 
-  // 验证提供者是否存在
+  // Validate provider exists
   if (!provider) {
     throw createApiError(
       `Provider '${providerName}' not found`,
@@ -32,7 +50,7 @@ async function handleTransformerEndpoint(
     );
   }
 
-  // 处理请求转换器链
+  // Process request transformer chain
   const { requestBody, config, bypass } = await processRequestTransformers(
     body,
     provider,
@@ -43,7 +61,7 @@ async function handleTransformerEndpoint(
     }
   );
 
-  // 发送请求到LLM提供者
+  // Send request to LLM provider
   const response = await sendRequestToProvider(
     requestBody,
     config,
@@ -56,7 +74,7 @@ async function handleTransformerEndpoint(
     }
   );
 
-  // 处理响应转换器链
+  // Process response transformer chain
   const finalResponse = await processResponseTransformers(
     requestBody,
     response,
@@ -68,14 +86,14 @@ async function handleTransformerEndpoint(
     }
   );
 
-  // 格式化并返回响应
+  // Format and return response
   return formatResponse(finalResponse, reply, body);
 }
 
 /**
- * 处理请求转换器链
- * 依次执行transformRequestOut、provider transformers、model-specific transformers
- * 返回处理后的请求体、配置和是否跳过转换器的标志
+ * Process request transformer chain
+ * Sequentially execute transformRequestOut, provider transformers, model-specific transformers
+ * Returns processed request body, config, and flag indicating whether to skip transformers
  */
 async function processRequestTransformers(
   body: any,
@@ -88,7 +106,7 @@ async function processRequestTransformers(
   let config: any = {};
   let bypass = false;
 
-  // 检查是否应该跳过转换器（透传参数）
+  // Check if transformers should be bypassed (passthrough mode)
   bypass = shouldBypassTransformers(provider, transformer, body);
 
   if (bypass) {
@@ -100,7 +118,7 @@ async function processRequestTransformers(
     config.headers = headers;
   }
 
-  // 执行transformer的transformRequestOut方法
+  // Execute transformer's transformRequestOut method
   if (!bypass && typeof transformer.transformRequestOut === "function") {
     const transformOut = await transformer.transformRequestOut(requestBody);
     if (transformOut.body) {
@@ -111,7 +129,7 @@ async function processRequestTransformers(
     }
   }
 
-  // 执行provider级别的转换器
+  // Execute provider-level transformers
   if (!bypass && provider.transformer?.use?.length) {
     for (const providerTransformer of provider.transformer.use) {
       if (
@@ -134,7 +152,7 @@ async function processRequestTransformers(
     }
   }
 
-  // 执行模型特定的转换器
+  // Execute model-specific transformers
   if (!bypass && provider.transformer?.[body.model]?.use?.length) {
     for (const modelTransformer of provider.transformer[body.model].use) {
       if (
@@ -155,8 +173,8 @@ async function processRequestTransformers(
 }
 
 /**
- * 判断是否应该跳过转换器（透传参数）
- * 当provider只使用一个transformer且该transformer与当前transformer相同时，跳过其他转换器
+ * Determine if transformers should be bypassed (passthrough mode)
+ * Skip other transformers when provider only uses one transformer and it matches the current one
  */
 function shouldBypassTransformers(
   provider: any,
@@ -173,8 +191,8 @@ function shouldBypassTransformers(
 }
 
 /**
- * 发送请求到LLM提供者
- * 处理认证、构建请求配置、发送请求并处理错误
+ * Send request to LLM provider
+ * Handle authentication, build request config, send request and handle errors
  */
 async function sendRequestToProvider(
   requestBody: any,
@@ -187,7 +205,7 @@ async function sendRequestToProvider(
 ) {
   const url = config.url || new URL(provider.baseUrl);
 
-  // 在透传参数下处理认证
+  // Handle authentication in passthrough mode
   if (bypass && typeof transformer.auth === "function") {
     const auth = await transformer.auth(requestBody, provider);
     if (auth.body) {
@@ -211,8 +229,8 @@ async function sendRequestToProvider(
     }
   }
 
-  // 发送HTTP请求
-  // 准备headers
+  // Send HTTP request
+  // Prepare headers
   const requestHeaders: Record<string, string> = {
     Authorization: `Bearer ${provider.apiKey}`,
     ...(config?.headers || {}),
@@ -233,7 +251,7 @@ async function sendRequestToProvider(
     url,
     requestBody,
     {
-      httpsProxy: fastify._server!.configService.getHttpsProxy(),
+      httpsProxy: fastify.configService.getHttpsProxy(),
       ...config,
       headers: JSON.parse(JSON.stringify(requestHeaders)),
     },
@@ -241,7 +259,7 @@ async function sendRequestToProvider(
     fastify.log
   );
 
-  // 处理请求错误
+  // Handle request errors
   if (!response.ok) {
     const errorText = await response.text();
     fastify.log.error(
@@ -258,8 +276,8 @@ async function sendRequestToProvider(
 }
 
 /**
- * 处理响应转换器链
- * 依次执行provider transformers、model-specific transformers、transformer的transformResponseIn
+ * Process response transformer chain
+ * Sequentially execute provider transformers, model-specific transformers, transformer's transformResponseIn
  */
 async function processResponseTransformers(
   requestBody: any,
@@ -271,43 +289,43 @@ async function processResponseTransformers(
 ) {
   let finalResponse = response;
 
-  // 执行provider级别的响应转换器
+  // Execute provider-level response transformers
   if (!bypass && provider.transformer?.use?.length) {
     for (const providerTransformer of Array.from(
       provider.transformer.use
-    ).reverse()) {
+    ).reverse() as Transformer[]) {
       if (
         !providerTransformer ||
         typeof providerTransformer.transformResponseOut !== "function"
       ) {
         continue;
       }
-      finalResponse = await providerTransformer.transformResponseOut(
+      finalResponse = await providerTransformer.transformResponseOut!(
         finalResponse,
         context
       );
     }
   }
 
-  // 执行模型特定的响应转换器
+  // Execute model-specific response transformers
   if (!bypass && provider.transformer?.[requestBody.model]?.use?.length) {
     for (const modelTransformer of Array.from(
       provider.transformer[requestBody.model].use
-    ).reverse()) {
+    ).reverse() as Transformer[]) {
       if (
         !modelTransformer ||
         typeof modelTransformer.transformResponseOut !== "function"
       ) {
         continue;
       }
-      finalResponse = await modelTransformer.transformResponseOut(
+      finalResponse = await modelTransformer.transformResponseOut!(
         finalResponse,
         context
       );
     }
   }
 
-  // 执行transformer的transformResponseIn方法
+  // Execute transformer's transformResponseIn method
   if (!bypass && transformer.transformResponseIn) {
     finalResponse = await transformer.transformResponseIn(
       finalResponse,
@@ -319,16 +337,16 @@ async function processResponseTransformers(
 }
 
 /**
- * 格式化并返回响应
- * 处理HTTP状态码、流式响应和普通响应的格式化
+ * Format and return response
+ * Handle HTTP status codes, format streaming and regular responses
  */
 function formatResponse(response: any, reply: FastifyReply, body: any) {
-  // 设置HTTP状态码
+  // Set HTTP status code
   if (!response.ok) {
     reply.code(response.status);
   }
 
-  // 处理流式响应
+  // Handle streaming response
   const isStream = body.stream === true;
   if (isStream) {
     reply.header("Content-Type", "text/event-stream");
@@ -336,12 +354,12 @@ function formatResponse(response: any, reply: FastifyReply, body: any) {
     reply.header("Connection", "keep-alive");
     return reply.send(response.body);
   } else {
-    // 处理普通JSON响应
+    // Handle regular JSON response
     return response.json();
   }
 }
 
-export const registerApiRoutes: FastifyPluginAsync = async (
+export const registerApiRoutes = async (
   fastify: FastifyInstance
 ) => {
   // Health and info endpoints
@@ -354,7 +372,7 @@ export const registerApiRoutes: FastifyPluginAsync = async (
   });
 
   const transformersWithEndpoint =
-    fastify._server!.transformerService.getTransformersWithEndpoint();
+    fastify.transformerService.getTransformersWithEndpoint();
 
   for (const { transformer } of transformersWithEndpoint) {
     if (transformer.endPoint) {
@@ -421,7 +439,7 @@ export const registerApiRoutes: FastifyPluginAsync = async (
       }
 
       // Check if provider already exists
-      if (fastify._server!.providerService.getProvider(request.body.name)) {
+      if (fastify.providerService.getProvider(request.body.name)) {
         throw createApiError(
           `Provider with name '${request.body.name}' already exists`,
           400,
@@ -429,12 +447,12 @@ export const registerApiRoutes: FastifyPluginAsync = async (
         );
       }
 
-      return fastify._server!.providerService.registerProvider(request.body);
+      return fastify.providerService.registerProvider(request.body);
     }
   );
 
   fastify.get("/providers", async () => {
-    return fastify._server!.providerService.getProviders();
+    return fastify.providerService.getProviders();
   });
 
   fastify.get(
@@ -449,7 +467,7 @@ export const registerApiRoutes: FastifyPluginAsync = async (
       },
     },
     async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      const provider = fastify._server!.providerService.getProvider(
+      const provider = fastify.providerService.getProvider(
         request.params.id
       );
       if (!provider) {
@@ -488,7 +506,7 @@ export const registerApiRoutes: FastifyPluginAsync = async (
       }>,
       reply
     ) => {
-      const provider = fastify._server!.providerService.updateProvider(
+      const provider = fastify.providerService.updateProvider(
         request.params.id,
         request.body
       );
@@ -511,7 +529,7 @@ export const registerApiRoutes: FastifyPluginAsync = async (
       },
     },
     async (request: FastifyRequest<{ Params: { id: string } }>) => {
-      const success = fastify._server!.providerService.deleteProvider(
+      const success = fastify.providerService.deleteProvider(
         request.params.id
       );
       if (!success) {
@@ -544,7 +562,7 @@ export const registerApiRoutes: FastifyPluginAsync = async (
       }>,
       reply
     ) => {
-      const success = fastify._server!.providerService.toggleProvider(
+      const success = fastify.providerService.toggleProvider(
         request.params.id,
         request.body.enabled
       );

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -11,9 +12,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle2, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 
-// 类型定义
+// Type definitions
 interface InputOption {
   label: string;
   value: string | number | boolean;
@@ -77,11 +78,12 @@ export function DynamicConfigForm({
   isSubmitting = false,
   initialValues = {},
 }: DynamicConfigFormProps) {
+  const { t } = useTranslation();
   const [values, setValues] = useState<Record<string, any>>(initialValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [visibleFields, setVisibleFields] = useState<Set<string>>(new Set());
 
-  // 计算可见字段
+  // Calculate visible fields
   useEffect(() => {
     const updateVisibility = () => {
       const visible = new Set<string>();
@@ -98,7 +100,7 @@ export function DynamicConfigForm({
     updateVisibility();
   }, [values, schema]);
 
-  // 评估条件
+  // Evaluate condition
   const evaluateCondition = (condition: Condition): boolean => {
     const actualValue = values[condition.field];
 
@@ -132,7 +134,7 @@ export function DynamicConfigForm({
     }
   };
 
-  // 判断字段是否应该显示
+  // Determine if field should be displayed
   const shouldShowField = (field: RequiredInput): boolean => {
     if (!field.when) {
       return true;
@@ -142,7 +144,7 @@ export function DynamicConfigForm({
     return conditions.every(condition => evaluateCondition(condition));
   };
 
-  // 获取选项列表
+  // Get options list
   const getOptions = (field: RequiredInput): InputOption[] => {
     if (!field.options) {
       return [];
@@ -197,13 +199,13 @@ export function DynamicConfigForm({
     return [];
   };
 
-  // 更新字段值
+  // Update field value
   const updateValue = (fieldId: string, value: any) => {
     setValues((prev) => ({
       ...prev,
       [fieldId]: value,
     }));
-    // 清除该字段的错误
+    // Clear errors for this field
     setErrors((prev) => {
       const newErrors = { ...prev };
       delete newErrors[fieldId];
@@ -211,44 +213,44 @@ export function DynamicConfigForm({
     });
   };
 
-  // 验证单个字段
+  // Validate single field
   const validateField = (field: RequiredInput): string | null => {
     const value = values[field.id];
+    const fieldName = field.label || field.id;
 
-    // 检查必填
-    if (field.required !== false && (value === undefined || value === null || value === '')) {
-      return `${field.label || field.id} is required`;
+    // Check required (for confirm type, false is a valid value)
+    const isEmpty = value === undefined || value === null || value === '' ||
+      (Array.isArray(value) && value.length === 0);
+
+    if (field.required !== false && isEmpty) {
+      return t('presets.form.field_required', { field: fieldName });
     }
 
-    if (!value && field.required === false) {
-      return null;
-    }
-
-    // 类型检查
-    if (field.type === 'number' && isNaN(Number(value))) {
-      return `${field.label || field.id} must be a number`;
+    // Type check
+    if (field.type === 'number' && value !== '' && isNaN(Number(value))) {
+      return t('presets.form.must_be_number', { field: fieldName });
     }
 
     if (field.type === 'number') {
       const numValue = Number(value);
       if (field.min !== undefined && numValue < field.min) {
-        return `${field.label || field.id} must be at least ${field.min}`;
+        return t('presets.form.must_be_at_least', { field: fieldName, min: field.min });
       }
       if (field.max !== undefined && numValue > field.max) {
-        return `${field.label || field.id} must be at most ${field.max}`;
+        return t('presets.form.must_be_at_most', { field: fieldName, max: field.max });
       }
     }
 
-    // 自定义验证器
-    if (field.validator) {
+    // Custom validator
+    if (field.validator && value !== '') {
       if (field.validator instanceof RegExp) {
         if (!field.validator.test(String(value))) {
-          return `${field.label || field.id} format is invalid`;
+          return t('presets.form.format_invalid', { field: fieldName });
         }
       } else if (typeof field.validator === 'string') {
         const regex = new RegExp(field.validator);
         if (!regex.test(String(value))) {
-          return `${field.label || field.id} format is invalid`;
+          return t('presets.form.format_invalid', { field: fieldName });
         }
       }
     }
@@ -256,11 +258,11 @@ export function DynamicConfigForm({
     return null;
   };
 
-  // 提交表单
+  // Submit form
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // 验证所有可见字段
+    // Validate all visible fields
     const newErrors: Record<string, string> = {};
 
     for (const field of schema) {
@@ -338,7 +340,7 @@ export function DynamicConfigForm({
                 disabled={isSubmitting}
               >
                 <SelectTrigger id={`field-${field.id}`}>
-                  <SelectValue placeholder={field.placeholder || `Select ${label}`} />
+                  <SelectValue placeholder={field.placeholder || t('presets.form.select', { label })} />
                 </SelectTrigger>
                 <SelectContent>
                   {getOptions(field).map((option) => (
@@ -432,19 +434,16 @@ export function DynamicConfigForm({
           onClick={onCancel}
           disabled={isSubmitting}
         >
-          Cancel
+          {t('app.cancel')}
         </Button>
         <Button type="submit" disabled={isSubmitting}>
           {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Applying...
+              {t('presets.form.saving')}
             </>
           ) : (
-            <>
-              <CheckCircle2 className="mr-2 h-4 w-4" />
-              Apply
-            </>
+            t('app.save')
           )}
         </Button>
       </div>

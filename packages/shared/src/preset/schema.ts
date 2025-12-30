@@ -1,6 +1,6 @@
 /**
- * 动态配置 Schema 处理器
- * 负责解析和验证配置 schema，处理条件逻辑和变量替换
+ * Dynamic configuration Schema handler
+ * Responsible for parsing and validating configuration schema, handling conditional logic and variable replacement
  */
 
 import {
@@ -12,16 +12,14 @@ import {
   ConfigMapping,
   TemplateConfig,
   PresetConfigSection,
+  PresetFile,
+  ManifestFile,
+  UserInputValues,
 } from './types';
 
-// 用户输入值集合
-export interface UserInputValues {
-  [inputId: string]: any;
-}
-
 /**
- * 解析字段路径（支持数组和嵌套）
- * 例如：Providers[0].name => ['Providers', '0', 'name']
+ * Parse field path (supports arrays and nesting)
+ * Example: Providers[0].name => ['Providers', '0', 'name']
  */
 export function parseFieldPath(path: string): string[] {
   const regex = /(\w+)|\[(\d+)\]/g;
@@ -36,7 +34,7 @@ export function parseFieldPath(path: string): string[] {
 }
 
 /**
- * 根据字段路径获取对象中的值
+ * Get value from object by field path
  */
 export function getValueByPath(obj: any, path: string): any {
   const parts = parseFieldPath(path);
@@ -53,7 +51,7 @@ export function getValueByPath(obj: any, path: string): any {
 }
 
 /**
- * 根据字段路径设置对象中的值
+ * Set value in object by field path
  */
 export function setValueByPath(obj: any, path: string, value: any): void {
   const parts = parseFieldPath(path);
@@ -62,7 +60,7 @@ export function setValueByPath(obj: any, path: string, value: any): void {
 
   for (const part of parts) {
     if (!(part in current)) {
-      // 判断是数组还是对象
+      // Determine if it's an array or object
       const nextPart = parts[parts.indexOf(part) + 1];
       if (nextPart && /^\d+$/.test(nextPart)) {
         current[part] = [];
@@ -77,7 +75,7 @@ export function setValueByPath(obj: any, path: string, value: any): void {
 }
 
 /**
- * 评估条件表达式
+ * Evaluate conditional expression
  */
 export function evaluateCondition(
   condition: Condition,
@@ -85,22 +83,22 @@ export function evaluateCondition(
 ): boolean {
   const actualValue = values[condition.field];
 
-  // 处理 exists 操作符
+  // Handle exists operator
   if (condition.operator === 'exists') {
     return actualValue !== undefined && actualValue !== null;
   }
 
-  // 处理 in 操作符
+  // Handle in operator
   if (condition.operator === 'in') {
     return Array.isArray(condition.value) && condition.value.includes(actualValue);
   }
 
-  // 处理 nin 操作符
+  // Handle nin operator
   if (condition.operator === 'nin') {
     return Array.isArray(condition.value) && !condition.value.includes(actualValue);
   }
 
-  // 处理其他操作符
+  // Handle other operators
   switch (condition.operator) {
     case 'eq':
       return actualValue === condition.value;
@@ -115,13 +113,13 @@ export function evaluateCondition(
     case 'lte':
       return actualValue <= condition.value;
     default:
-      // 默认使用 eq
+      // Default to eq
       return actualValue === condition.value;
   }
 }
 
 /**
- * 评估多个条件（AND 逻辑）
+ * Evaluate multiple conditions (AND logic)
  */
 export function evaluateConditions(
   conditions: Condition | Condition[],
@@ -135,12 +133,12 @@ export function evaluateConditions(
     return evaluateCondition(conditions, values);
   }
 
-  // 如果是数组，使用 AND 逻辑（所有条件都必须满足）
+  // If array, use AND logic (all conditions must be satisfied)
   return conditions.every(condition => evaluateCondition(condition, values));
 }
 
 /**
- * 判断字段是否应该显示
+ * Determine if field should be displayed
  */
 export function shouldShowField(
   field: RequiredInput,
@@ -154,7 +152,7 @@ export function shouldShowField(
 }
 
 /**
- * 获取动态选项列表
+ * Get dynamic options list
  */
 export function getDynamicOptions(
   dynamicOptions: DynamicOptions,
@@ -166,7 +164,7 @@ export function getDynamicOptions(
       return dynamicOptions.options || [];
 
     case 'providers': {
-      // 从预设的 Providers 中提取选项
+      // Extract options from preset's Providers
       const providers = presetConfig.Providers || [];
       return providers.map((p: any) => ({
         label: p.name || p.id || String(p),
@@ -176,13 +174,13 @@ export function getDynamicOptions(
     }
 
     case 'models': {
-      // 从指定 provider 的 models 中提取
+      // Extract from specified provider's models
       const providerField = dynamicOptions.providerField;
       if (!providerField) {
         return [];
       }
 
-      // 解析 provider 引用（如 {{selectedProvider}}）
+      // Parse provider reference (e.g. {{selectedProvider}})
       const providerId = String(providerField).replace(/^{{(.+)}}$/, '$1');
       const selectedProvider = values[providerId];
 
@@ -190,7 +188,7 @@ export function getDynamicOptions(
         return [];
       }
 
-      // 查找对应的 provider
+      // Find corresponding provider
       const provider = presetConfig.Providers.find(
         (p: any) => p.name === selectedProvider || p.id === selectedProvider
       );
@@ -206,7 +204,7 @@ export function getDynamicOptions(
     }
 
     case 'custom':
-      // 预留，暂未实现
+      // Reserved, not implemented yet
       return [];
 
     default:
@@ -215,7 +213,7 @@ export function getDynamicOptions(
 }
 
 /**
- * 解析选项（支持静态和动态选项）
+ * Resolve options (supports static and dynamic options)
  */
 export function resolveOptions(
   field: RequiredInput,
@@ -226,16 +224,16 @@ export function resolveOptions(
     return [];
   }
 
-  // 判断是静态选项还是动态选项
+  // Determine if static or dynamic options
   const options = field.options as any;
 
   if (Array.isArray(options)) {
-    // 静态选项数组
+    // Static options array
     return options as InputOption[];
   }
 
   if (options.type) {
-    // 动态选项
+    // Dynamic options
     return getDynamicOptions(options, presetConfig, values);
   }
 
@@ -243,8 +241,8 @@ export function resolveOptions(
 }
 
 /**
- * 模板变量替换
- * 支持 {{variable}} 语法
+ * Template variable replacement
+ * Supports {{variable}} syntax
  */
 export function replaceTemplateVariables(
   template: any,
@@ -254,19 +252,19 @@ export function replaceTemplateVariables(
     return template;
   }
 
-  // 处理字符串
+  // Handle strings
   if (typeof template === 'string') {
     return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
       return values[key] !== undefined ? String(values[key]) : '';
     });
   }
 
-  // 处理数组
+  // Handle arrays
   if (Array.isArray(template)) {
     return template.map(item => replaceTemplateVariables(item, values));
   }
 
-  // 处理对象
+  // Handle objects
   if (typeof template === 'object') {
     const result: any = {};
     for (const [key, value] of Object.entries(template)) {
@@ -275,12 +273,12 @@ export function replaceTemplateVariables(
     return result;
   }
 
-  // 其他类型直接返回
+  // Return other types directly
   return template;
 }
 
 /**
- * 应用配置映射
+ * Apply configuration mappings
  */
 export function applyConfigMappings(
   mappings: ConfigMapping[],
@@ -290,23 +288,23 @@ export function applyConfigMappings(
   const result = { ...config };
 
   for (const mapping of mappings) {
-    // 检查条件
+    // Check condition
     if (mapping.when && !evaluateConditions(mapping.when, values)) {
       continue;
     }
 
-    // 解析值
+    // Resolve value
     let value: any;
     if (typeof mapping.value === 'string' && mapping.value.startsWith('{{')) {
-      // 变量引用
+      // Variable reference
       const varName = mapping.value.replace(/^{{(.+)}}$/, '$1');
       value = values[varName];
     } else {
-      // 固定值
+      // Fixed value
       value = mapping.value;
     }
 
-    // 应用到目标路径
+    // Apply to target path
     setValueByPath(result, mapping.target, value);
   }
 
@@ -314,13 +312,74 @@ export function applyConfigMappings(
 }
 
 /**
- * 验证用户输入
+ * Get all field ids defined in schema
+ */
+function getSchemaFields(schema?: RequiredInput[]): Set<string> {
+  if (!schema) return new Set();
+  return new Set(schema.map(field => field.id));
+}
+
+/**
+ * Apply user inputs to preset configuration
+ * This is the core function of the preset configuration system, uniformly handling
+ * configuration application for both CLI and UI layers
+ *
+ * @param presetFile Preset file object
+ * @param values User input values (schema id -> value)
+ * @returns Applied configuration object
+ */
+export function applyUserInputs(
+  presetFile: PresetFile,
+  values: UserInputValues
+): PresetConfigSection {
+  let config: PresetConfigSection = {};
+
+  // Get field ids defined in schema, for subsequent filtering
+  const schemaFields = getSchemaFields(presetFile.schema);
+
+  // 1. First apply template (if exists)
+  // template completely defines configuration structure, using {{variable}} placeholders
+  if (presetFile.template) {
+    config = replaceTemplateVariables(presetFile.template, values) as any;
+  } else {
+    // If no template, start from preset's existing config
+    // Keep all fields, including schema's id fields (because they may contain placeholders)
+    // These fields will be updated or replaced in subsequent configMappings
+    config = presetFile.config ? { ...presetFile.config } : {};
+
+    // Replace placeholders in config (e.g. {{apiKey}} -> actual value)
+    config = replaceTemplateVariables(config, values) as any;
+
+    // Finally, remove schema id fields (they should not appear in final configuration)
+    for (const schemaField of schemaFields) {
+      delete config[schemaField];
+    }
+  }
+
+  // 2. Then apply configMappings (if exists)
+  // Map user inputs to specific configuration paths
+  if (presetFile.configMappings && presetFile.configMappings.length > 0) {
+    config = applyConfigMappings(presetFile.configMappings, values, config);
+  }
+
+  // 3. Compatible with legacy: apply to keys containing paths (e.g. "Providers[0].api_key")
+  for (const [key, value] of Object.entries(values)) {
+    if (key.includes('.') || key.includes('[')) {
+      setValueByPath(config, key, value);
+    }
+  }
+
+  return config;
+}
+
+/**
+ * Validate user input
  */
 export function validateInput(
   field: RequiredInput,
   value: any
 ): { valid: boolean; error?: string } {
-  // 检查必填
+  // Check required
   if (field.required !== false && (value === undefined || value === null || value === '')) {
     return {
       valid: false,
@@ -328,12 +387,12 @@ export function validateInput(
     };
   }
 
-  // 如果值为空且非必填，跳过验证
+  // If value is empty and not required, skip validation
   if (!value && field.required === false) {
     return { valid: true };
   }
 
-  // 类型检查
+  // Type check
   switch (field.type) {
     case InputType.NUMBER:
       if (isNaN(Number(value))) {
@@ -359,12 +418,12 @@ export function validateInput(
 
     case InputType.SELECT:
     case InputType.MULTISELECT:
-      // 检查值是否在选项中
-      // 这里暂时跳过，因为需要动态获取选项
+      // Check if value is in options
+      // Skip here for now, as options need to be dynamically retrieved
       break;
   }
 
-  // 自定义验证器
+  // Custom validator
   if (field.validator) {
     if (field.validator instanceof RegExp) {
       if (!field.validator.test(String(value))) {
@@ -401,14 +460,14 @@ export function validateInput(
 }
 
 /**
- * 获取字段的默认值
+ * Get field default value
  */
 export function getDefaultValue(field: RequiredInput): any {
   if (field.defaultValue !== undefined) {
     return field.defaultValue;
   }
 
-  // 根据类型返回默认值
+  // Return default value based on type
   switch (field.type) {
     case InputType.CONFIRM:
       return false;
@@ -422,8 +481,8 @@ export function getDefaultValue(field: RequiredInput): any {
 }
 
 /**
- * 根据依赖关系排序字段
- * 确保被依赖的字段排在前面
+ * Sort fields by dependency
+ * Ensure dependent fields are arranged first
  */
 export function sortFieldsByDependencies(
   fields: RequiredInput[]
@@ -438,7 +497,7 @@ export function sortFieldsByDependencies(
 
     visited.add(field.id);
 
-    // 先处理依赖的字段
+    // First handle dependent fields
     const dependencies = field.dependsOn || [];
     for (const depId of dependencies) {
       const depField = fields.find(f => f.id === depId);
@@ -447,7 +506,7 @@ export function sortFieldsByDependencies(
       }
     }
 
-    // 从 when 条件中提取依赖
+    // Extract dependencies from when conditions
     if (field.when) {
       const conditions = Array.isArray(field.when) ? field.when : [field.when];
       for (const cond of conditions) {
@@ -469,7 +528,7 @@ export function sortFieldsByDependencies(
 }
 
 /**
- * 构建字段依赖图（用于优化更新顺序）
+ * Build field dependency graph (for optimizing update order)
  */
 export function buildDependencyGraph(
   fields: RequiredInput[]
@@ -479,14 +538,14 @@ export function buildDependencyGraph(
   for (const field of fields) {
     const deps = new Set<string>();
 
-    // 从 dependsOn 提取依赖
+    // Extract from dependsOn
     if (field.dependsOn) {
       for (const dep of field.dependsOn) {
         deps.add(dep);
       }
     }
 
-    // 从 when 条件提取依赖
+    // Extract dependencies from when conditions
     if (field.when) {
       const conditions = Array.isArray(field.when) ? field.when : [field.when];
       for (const cond of conditions) {
@@ -494,7 +553,7 @@ export function buildDependencyGraph(
       }
     }
 
-    // 从动态选项提取依赖
+    // Extract dependencies from dynamic options
     if (field.options) {
       const options = field.options as any;
       if (options.type === 'models' && options.providerField) {
@@ -510,7 +569,7 @@ export function buildDependencyGraph(
 }
 
 /**
- * 获取受影响字段（当某个字段值变化时，哪些字段需要重新计算）
+ * Get affected fields (when a field value changes, which fields need to be recalculated)
  */
 export function getAffectedFields(
   changedFieldId: string,
@@ -519,7 +578,7 @@ export function getAffectedFields(
   const affected = new Set<string>();
   const graph = buildDependencyGraph(fields);
 
-  // 找出所有依赖于 changedFieldId 的字段
+  // Find all fields that depend on changedFieldId
   for (const [fieldId, deps] of graph.entries()) {
     if (deps.has(changedFieldId)) {
       affected.add(fieldId);
@@ -527,4 +586,56 @@ export function getAffectedFields(
   }
 
   return affected;
+}
+
+/**
+ * Load configuration from Manifest and apply userValues
+ * Used when reading installed presets, applying user configuration values at runtime
+ *
+ * @param manifest Manifest object (contains original configuration and userValues)
+ * @returns Applied configuration object
+ */
+export function loadConfigFromManifest(manifest: ManifestFile): PresetConfigSection {
+  // Convert manifest to PresetFile format
+  const presetFile: PresetFile = {
+    metadata: {
+      name: manifest.name,
+      version: manifest.version,
+      description: manifest.description,
+      author: manifest.author,
+      homepage: manifest.homepage,
+      repository: manifest.repository,
+      license: manifest.license,
+      keywords: manifest.keywords,
+      ccwVersion: manifest.ccwVersion,
+      source: manifest.source,
+      sourceType: manifest.sourceType,
+      checksum: manifest.checksum,
+    },
+    config: {},
+    schema: manifest.schema,
+    template: manifest.template,
+    configMappings: manifest.configMappings,
+  };
+
+  // Extract configuration section from manifest (exclude metadata and dynamic configuration fields)
+  const METADATA_FIELDS = [
+    'name', 'version', 'description', 'author', 'homepage', 'repository',
+    'license', 'keywords', 'ccwVersion', 'source', 'sourceType', 'checksum',
+  ];
+  const DYNAMIC_CONFIG_FIELDS = ['schema', 'template', 'configMappings', 'userValues'];
+
+  for (const [key, value] of Object.entries(manifest)) {
+    if (!METADATA_FIELDS.includes(key) && !DYNAMIC_CONFIG_FIELDS.includes(key)) {
+      presetFile.config[key] = value;
+    }
+  }
+
+  // If userValues exist, apply them
+  if (manifest.userValues && Object.keys(manifest.userValues).length > 0) {
+    return applyUserInputs(presetFile, manifest.userValues);
+  }
+
+  // If no userValues, return original configuration directly
+  return presetFile.config;
 }

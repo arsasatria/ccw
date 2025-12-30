@@ -1,11 +1,10 @@
 /**
- * 预设安装功能 CLI 层
- * 负责处理 CLI 交互，核心逻辑在 shared 包中
+ * Preset installation functionality CLI layer
+ * Handles CLI interactions, core logic is in the shared package
  */
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import { password, confirm } from '@inquirer/prompts';
 import {
   loadPreset as loadPresetShared,
   validatePreset,
@@ -19,18 +18,14 @@ import {
   isPresetInstalled,
   ManifestFile,
   PresetFile,
-  RequiredInput,
   UserInputValues,
-  applyConfigMappings,
-  replaceTemplateVariables,
-  setValueByPath,
 } from '@ccw/shared';
 import { collectUserInputs } from '../prompt/schema-input';
 
-// 重新导出 loadPreset
+// Re-export loadPreset
 export { loadPresetShared as loadPreset };
 
-// ANSI 颜色代码
+// ANSI color codes
 const RESET = "\x1B[0m";
 const GREEN = "\x1B[32m";
 const BOLDGREEN = "\x1B[1m\x1B[32m";
@@ -40,44 +35,9 @@ const BOLDCYAN = "\x1B[1m\x1B[36m";
 const DIM = "\x1B[2m";
 
 /**
- * 应用用户输入到配置（新版schema）
- */
-function applyUserInputs(
-  preset: PresetFile,
-  values: UserInputValues
-): PresetConfigSection {
-  let config = { ...preset.config };
-
-  // 1. 先应用 template（如果存在）
-  if (preset.template) {
-    config = replaceTemplateVariables(preset.template, values) as any;
-  }
-
-  // 2. 再应用 configMappings（如果存在）
-  if (preset.configMappings && preset.configMappings.length > 0) {
-    config = applyConfigMappings(preset.configMappings, values, config);
-  }
-
-  // 3. 兼容旧版：直接将 values 应用到 config
-  // 检查是否有任何值没有通过 mappings 应用
-  for (const [key, value] of Object.entries(values)) {
-    // 如果这个值已经在 template 或 mappings 中处理过，跳过
-    // 这里简化处理：直接应用所有值
-    // 在实际使用中，template 和 mappings 应该覆盖所有需要设置的字段
-
-    // 尝试智能判断：如果 key 包含 '.' 或 '['，说明是路径
-    if (key.includes('.') || key.includes('[')) {
-      setValueByPath(config, key, value);
-    }
-  }
-
-  return config;
-}
-
-/**
- * 应用预设到配置
- * @param presetName 预设名称
- * @param preset 预设对象
+ * Apply preset to configuration
+ * @param presetName Preset name
+ * @param preset Preset object
  */
 export async function applyPresetCli(
   presetName: string,
@@ -86,7 +46,7 @@ export async function applyPresetCli(
   try {
     console.log(`${BOLDCYAN}Loading preset...${RESET} ${GREEN}✓${RESET}`);
 
-    // 验证预设
+    // Validate preset
     const validation = await validatePreset(preset);
     if (validation.warnings.length > 0) {
       console.log(`\n${YELLOW}Warnings:${RESET}`);
@@ -105,36 +65,35 @@ export async function applyPresetCli(
 
     console.log(`${BOLDCYAN}Validating preset...${RESET} ${GREEN}✓${RESET}`);
 
-    // 检查是否需要配置
+    // Check if configuration is required
     if (preset.schema && preset.schema.length > 0) {
       console.log(`\n${BOLDCYAN}Configuration required:${RESET} ${preset.schema.length} field(s)\n`);
     } else {
       console.log(`\n${DIM}No configuration required for this preset${RESET}\n`);
     }
 
-    // 收集用户输入
+    // Collect user inputs
     let userInputs: UserInputValues = {};
 
-    // 使用 schema 系统
+    // Use schema system
     if (preset.schema && preset.schema.length > 0) {
       userInputs = await collectUserInputs(preset.schema, preset.config);
     }
 
-    // 应用用户输入到配置
-    const finalConfig = applyUserInputs(preset, userInputs);
-
-    // 读取现有的manifest并更新
+    // Build manifest, keep original config, store user values in userValues
     const manifest: ManifestFile = {
+      name: presetName,
+      version: preset.metadata?.version || '1.0.0',
       ...(preset.metadata || {}),
-      ...finalConfig,
+      ...preset.config,  // Keep original config (may contain placeholders)
     };
 
-    // 保存 schema（如果存在）
+    // Save schema (if exists)
     if (preset.schema) {
       manifest.schema = preset.schema;
     }
 
-    // 保存其他配置
+    // Save other configurations
     if (preset.template) {
       manifest.template = preset.template;
     }
@@ -142,10 +101,17 @@ export async function applyPresetCli(
       manifest.configMappings = preset.configMappings;
     }
 
-    // 保存到解压目录的manifest.json
+    // Save user-filled values to userValues
+    if (Object.keys(userInputs).length > 0) {
+      manifest.userValues = userInputs;
+    }
+
+    // Save to manifest.json in extracted directory
     await saveManifest(presetName, manifest);
 
-    // 显示摘要
+    const presetDir = getPresetDir(presetName);
+
+    // Display summary
     console.log(`\n${BOLDGREEN}✓ Preset configured successfully!${RESET}\n`);
     console.log(`${BOLDCYAN}Preset directory:${RESET} ${presetDir}`);
     console.log(`${BOLDCYAN}Inputs configured:${RESET} ${Object.keys(userInputs).length}`);
@@ -173,7 +139,7 @@ export async function applyPresetCli(
 }
 
 /**
- * 安装预设（主入口）
+ * Install preset (main entry point)
  */
 export async function installPresetCli(
   source: string,
@@ -182,37 +148,32 @@ export async function installPresetCli(
     name?: string;
   } = {}
 ): Promise<void> {
-  let tempFile: string | null = null;
   try {
-    // 确定预设名称
+    // Determine preset name
     let presetName = options.name;
-    let sourceZip: string;
-    let isReconfigure = false; // 是否是重新配置已安装的preset
+    let sourceZip: string | undefined;
+    let isReconfigure = false; // Whether to reconfigure installed preset
 
-    // 判断source类型并获取ZIP文件路径
+    // Determine source type and get ZIP file path
     if (source.startsWith('http://') || source.startsWith('https://')) {
-      // URL：下载到临时文件
+      // URL: download to temp file
       if (!presetName) {
         const urlParts = source.split('/');
         const filename = urlParts[urlParts.length - 1];
         presetName = filename.replace('.ccrsets', '');
       }
-      // 这里直接从 shared 包导入的 downloadPresetToTemp 会返回临时文件
-      // 但我们会在 loadPreset 中自动清理，所以不需要在这里处理
-      const preset = await loadPreset(source);
-      if (!presetName) {
-        presetName = preset.metadata?.name || 'preset';
-      }
-      // 重新下载到临时文件以供 extractPreset 使用
-      // 由于 loadPreset 已经下载并删除了，这里需要特殊处理
+      // downloadPresetToTemp imported from shared package will return temp file
+      // but we'll auto-cleanup in loadPreset, so no need to handle here
+      // Re-download to temp file for extractPreset usage
+      // Since loadPreset already downloaded and deleted, special handling needed here
       throw new Error('URL installation not fully implemented yet');
     } else if (source.includes('/') || source.includes('\\')) {
-      // 文件路径
+      // File path
       if (!presetName) {
         const filename = path.basename(source);
         presetName = filename.replace('.ccrsets', '');
       }
-      // 验证文件存在
+      // Verify file exists
       try {
         await fs.access(source);
       } catch {
@@ -220,48 +181,51 @@ export async function installPresetCli(
       }
       sourceZip = source;
     } else {
-      // 预设名称（不带路径）
+      // Preset name (without path)
       presetName = source;
 
-      // 按优先级查找文件：当前目录 -> presets目录
+      // Search files by priority: current directory -> presets directory
       const presetFile = await findPresetFile(source);
 
       if (presetFile) {
         sourceZip = presetFile;
       } else {
-        // 检查是否已安装（目录存在）
+        // Check if already installed (directory exists)
         if (await isPresetInstalled(source)) {
-          // 已安装，重新配置
+          // Already installed, reconfigure
           isReconfigure = true;
         } else {
-          // 都不存在，报错
+          // Neither exists, error
           throw new Error(`Preset '${source}' not found in current directory or presets directory.`);
         }
       }
     }
 
     if (isReconfigure) {
-      // 重新配置已安装的preset
+      // Reconfigure installed preset
       console.log(`${BOLDCYAN}Reconfiguring preset:${RESET} ${presetName}\n`);
 
       const presetDir = getPresetDir(presetName);
       const manifest = await readManifestFromDir(presetDir);
       const preset = manifestToPresetFile(manifest);
 
-      // 应用preset（会询问敏感信息）
+      // Apply preset (will ask for sensitive info)
       await applyPresetCli(presetName, preset);
     } else {
-      // 新安装：解压到目标目录
+      // New installation: extract to target directory
+      if (!sourceZip) {
+        throw new Error('Source ZIP file is required for installation');
+      }
       const targetDir = getPresetDir(presetName);
       console.log(`${BOLDCYAN}Extracting preset to:${RESET} ${targetDir}`);
       await extractPreset(sourceZip, targetDir);
       console.log(`${GREEN}✓${RESET} Extracted successfully\n`);
 
-      // 从解压目录读取manifest
+      // Read manifest from extracted directory
       const manifest = await readManifestFromDir(targetDir);
       const preset = manifestToPresetFile(manifest);
 
-      // 应用preset（询问用户信息等）
+      // Apply preset (ask user info, etc.)
       await applyPresetCli(presetName, preset);
     }
 

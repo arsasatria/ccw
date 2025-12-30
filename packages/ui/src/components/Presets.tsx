@@ -18,7 +18,7 @@ import { Upload, Link, Trash2, Info, Download, CheckCircle2, AlertCircle, Loader
 import { Toast } from "@/components/ui/toast";
 import { DynamicConfigForm } from "./preset/DynamicConfigForm";
 
-// Schema 类型
+// Schema types
 interface InputOption {
   label: string;
   value: string | number | boolean;
@@ -87,6 +87,7 @@ interface PresetDetail extends PresetMetadata {
   schema?: RequiredInput[];
   template?: any;
   configMappings?: any[];
+  userValues?: Record<string, any>;
 }
 
 interface MarketPreset {
@@ -126,7 +127,7 @@ export function Presets() {
     navigate('/dashboard');
   };
 
-  // 加载市场预设
+  // Load market presets
   const loadMarketPresets = async () => {
     setMarketLoading(true);
     try {
@@ -140,44 +141,51 @@ export function Presets() {
     }
   };
 
-  // 从市场安装预设
+  // Install preset from market
   const handleInstallFromMarket = async (preset: MarketPreset) => {
     try {
       setInstallingFromMarket(preset.id);
 
-      // 第一步：安装预设（解压到目录）
-      await api.installPresetFromGitHub(preset.repo, preset.name);
+      // Step 1: Install preset (extract to directory)
+      const installResult = await api.installPresetFromGitHub(preset.repo);
 
-      // 第二步：获取预设详情（检查是否需要配置）
+      // Step 2: Get preset details (check if configuration is required)
       try {
-        const detail = await api.getPreset(preset.name);
-        const presetDetail: PresetDetail = { ...preset, ...detail };
+        const installedPresetName = installResult.presetName || preset.name;
+        const detail = await api.getPreset(installedPresetName);
+        const presetDetail: PresetDetail = { ...preset, ...detail, id: installedPresetName };
 
-        // 检查是否需要配置
+        // Check if configuration is required
         if (detail.schema && detail.schema.length > 0) {
-          // 需要配置，打开配置对话框
+          // Configuration required, open configuration dialog
           setSelectedPreset(presetDetail);
 
-          // 初始化默认值
+          // Initialize form values: prefer saved userValues, otherwise use defaultValue
           const initialValues: Record<string, any> = {};
           for (const input of detail.schema) {
-            initialValues[input.id] = input.defaultValue ?? '';
+            // Prefer saved values
+            if (detail.userValues && detail.userValues[input.id] !== undefined) {
+              initialValues[input.id] = detail.userValues[input.id];
+            } else {
+              // Otherwise use default value
+              initialValues[input.id] = input.defaultValue ?? '';
+            }
           }
           setSecrets(initialValues);
 
-          // 关闭市场对话框，打开详情对话框
+          // Close market dialog, open details dialog
           setMarketDialogOpen(false);
           setDetailDialogOpen(true);
 
           setToast({ message: t('presets.preset_installed_config_required'), type: 'warning' });
         } else {
-          // 不需要配置，直接完成
+          // No configuration required, complete directly
           setToast({ message: t('presets.preset_installed'), type: 'success' });
           setMarketDialogOpen(false);
           await loadPresets();
         }
       } catch (error) {
-        // 获取详情失败，但安装成功了，刷新列表
+        // Failed to get details, but installation succeeded, refresh list
         console.error('Failed to get preset details after installation:', error);
         setToast({ message: t('presets.preset_installed'), type: 'success' });
         setMarketDialogOpen(false);
@@ -191,21 +199,21 @@ export function Presets() {
     }
   };
 
-  // 打开市场对话框时加载预设
+  // Load presets when opening market dialog
   useEffect(() => {
     if (marketDialogOpen && marketPresets.length === 0) {
       loadMarketPresets();
     }
   }, [marketDialogOpen]);
 
-  // 过滤市场预设
+  // Filter market presets
   const filteredMarketPresets = marketPresets.filter(preset =>
     preset.name.toLowerCase().includes(marketSearch.toLowerCase()) ||
     preset.description?.toLowerCase().includes(marketSearch.toLowerCase()) ||
     preset.author?.toLowerCase().includes(marketSearch.toLowerCase())
   );
 
-  // 加载预设列表
+  // Load presets list
   const loadPresets = async () => {
     try {
       setLoading(true);
@@ -223,18 +231,24 @@ export function Presets() {
     loadPresets();
   }, []);
 
-  // 查看预设详情
+  // View preset details
   const handleViewDetail = async (preset: PresetMetadata) => {
     try {
       const detail = await api.getPreset(preset.id);
       setSelectedPreset({ ...preset, ...detail });
       setDetailDialogOpen(true);
 
-      // 初始化默认值
+      // 初始化表单值：优先使用已保存的 userValues，否则使用 defaultValue
       if (detail.schema && detail.schema.length > 0) {
         const initialValues: Record<string, any> = {};
         for (const input of detail.schema) {
-          initialValues[input.id] = input.defaultValue ?? '';
+          // 优先使用已保存的值
+          if (detail.userValues && detail.userValues[input.id] !== undefined) {
+            initialValues[input.id] = detail.userValues[input.id];
+          } else {
+            // Otherwise use default value
+            initialValues[input.id] = input.defaultValue ?? '';
+          }
         }
         setSecrets(initialValues);
       }
@@ -266,38 +280,47 @@ export function Presets() {
           : installUrl!.split('/').pop()!.replace('.ccrsets', '')
       );
 
-      // 第一步：安装预设（解压到目录）
+      // Step 1: Install preset (extract to directory)
+      let installResult;
       if (installMethod === 'url' && installUrl) {
-        await api.installPresetFromUrl(installUrl, presetName);
+        installResult = await api.installPresetFromUrl(installUrl, presetName);
       } else if (installMethod === 'file' && installFile) {
-        await api.uploadPresetFile(installFile, presetName);
+        installResult = await api.uploadPresetFile(installFile, presetName);
       } else {
         return;
       }
 
-      // 第二步：获取预设详情（检查是否需要配置）
+      // Step 2: Get preset details (check if configuration is required)
       try {
-        const detail = await api.getPreset(presetName);
+        // 使用服务器返回的实际预设名称
+        const actualPresetName = installResult?.presetName || presetName;
+        const detail = await api.getPreset(actualPresetName);
 
-        // 检查是否需要配置
+        // Check if configuration is required
         if (detail.schema && detail.schema.length > 0) {
-          // 需要配置，打开配置对话框
+          // Configuration required, open configuration dialog
           setSelectedPreset({
-            id: presetName,
-            name: presetName,
+            id: actualPresetName,
+            name: detail.name || actualPresetName,
             version: detail.version || '1.0.0',
             installed: true,
             ...detail
           });
 
-          // 初始化默认值
+          // Initialize form values: prefer saved userValues, otherwise use defaultValue
           const initialValues: Record<string, any> = {};
           for (const input of detail.schema) {
-            initialValues[input.id] = input.defaultValue ?? '';
+            // Prefer saved values
+            if (detail.userValues && detail.userValues[input.id] !== undefined) {
+              initialValues[input.id] = detail.userValues[input.id];
+            } else {
+              // Otherwise use default value
+              initialValues[input.id] = input.defaultValue ?? '';
+            }
           }
           setSecrets(initialValues);
 
-          // 关闭安装对话框，打开详情对话框
+          // Close installation dialog, open details dialog
           setInstallDialogOpen(false);
           setInstallUrl('');
           setInstallFile(null);
@@ -306,7 +329,7 @@ export function Presets() {
 
           setToast({ message: t('presets.preset_installed_config_required'), type: 'warning' });
         } else {
-          // 不需要配置，直接完成
+          // No configuration required, complete directly
           setToast({ message: t('presets.preset_installed'), type: 'success' });
           setInstallDialogOpen(false);
           setInstallUrl('');
@@ -315,7 +338,7 @@ export function Presets() {
           await loadPresets();
         }
       } catch (error) {
-        // 获取详情失败，但安装成功了，刷新列表
+        // Failed to get details, but installation succeeded, refresh list
         console.error('Failed to get preset details after installation:', error);
         setToast({ message: t('presets.preset_installed'), type: 'success' });
         setInstallDialogOpen(false);
@@ -332,20 +355,24 @@ export function Presets() {
     }
   };
 
-  // 应用预设（配置敏感信息）
+  // Apply preset (configure sensitive information)
   const handleApplyPreset = async (values?: Record<string, any>) => {
     try {
       setIsApplying(true);
 
-      // 使用传入的values或现有的secrets
+      // Use passed values or existing secrets
       const inputValues = values || secrets;
 
-      // 验证所有必填项都已填写
+      // Verify all required fields are filled
       if (selectedPreset?.schema && selectedPreset.schema.length > 0) {
-        // 验证在 DynamicConfigForm 中已完成
-        // 这里只做简单检查
+        // Validation completed in DynamicConfigForm
+        // 这里只做简单检查（对于 confirm 类型，false 是有效值）
         for (const input of selectedPreset.schema) {
-          if (input.required !== false && !inputValues[input.id]) {
+          const value = inputValues[input.id];
+          const isEmpty = value === undefined || value === null || value === '' ||
+            (Array.isArray(value) && value.length === 0);
+
+          if (input.required !== false && isEmpty) {
             setToast({ message: t('presets.please_fill_field', { field: input.label || input.id }), type: 'warning' });
             setIsApplying(false);
             return;
@@ -353,11 +380,11 @@ export function Presets() {
         }
       }
 
-      await api.applyPreset(selectedPreset!.name, inputValues);
+      await api.applyPreset(selectedPreset!.id, inputValues);
       setToast({ message: t('presets.preset_applied'), type: 'success' });
       setDetailDialogOpen(false);
       setSecrets({});
-      // 刷新预设列表
+      // Refresh presets list
       await loadPresets();
     } catch (error: any) {
       console.error('Failed to apply preset:', error);
@@ -367,7 +394,7 @@ export function Presets() {
     }
   };
 
-  // 删除预设
+  // Delete preset
   const handleDelete = async () => {
     if (!presetToDelete) return;
 
@@ -576,7 +603,7 @@ export function Presets() {
               </div>
             )}
 
-            {/* 配置表单 */}
+            {/* Configuration form */}
             {selectedPreset?.schema && selectedPreset.schema.length > 0 && (
               <div className="mt-6">
                 <h4 className="font-medium text-sm mb-4">{t('presets.required_information')}</h4>
@@ -591,11 +618,6 @@ export function Presets() {
               </div>
             )}
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDetailDialogOpen(false)}>
-              {t('presets.close')}
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
 
