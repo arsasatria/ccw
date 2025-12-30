@@ -122,7 +122,16 @@ async function main() {
         provider = presetData.Providers[0];
       }
 
-      if (provider) {
+      // 如果 noServer 不为 true，使用本地 server 的 baseurl
+      if (shouldStartServer) {
+        const config = await readConfigFile();
+        const port = config.PORT || 3456;
+        const presetName = command;
+        envOverrides = {
+          ...envOverrides,
+          ANTHROPIC_BASE_URL: `http://127.0.0.1:${port}/${presetName}`,
+        };
+      } else if (provider) {
         // 处理 api_base_url，去掉 /v1/messages 后缀
         if (provider.api_base_url) {
           let baseUrl = provider.api_base_url;
