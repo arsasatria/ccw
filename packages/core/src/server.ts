@@ -30,6 +30,8 @@ import { errorHandler } from "./api/middleware";
 import { registerApiRoutes } from "./api/routes";
 import { ProviderService } from "./services/provider";
 import { TransformerService } from "./services/transformer";
+import { router, calculateTokenCount, searchProjectBySession } from "./utils/router";
+import { sessionUsageCache } from "./utils/cache";
 
 // Extend FastifyRequest to include custom properties
 declare module "fastify" {
@@ -125,6 +127,15 @@ class Server {
         fastify.decorate('configService', this.configService);
         fastify.decorate('transformerService', this.transformerService);
         fastify.decorate('providerService', this.providerService);
+        // Add router hook for main namespace
+        fastify.addHook('preHandler', async (req: any, reply: any) => {
+          const url = new URL(`http://127.0.0.1${req.url}`);
+          if (url.pathname.endsWith("/v1/messages")) {
+            await router(req, reply, {
+              configService: this.configService,
+            });
+          }
+        });
         await registerApiRoutes(fastify);
       });
       return
@@ -133,6 +144,7 @@ class Server {
     const configService = new ConfigService({
       initialConfig: {
         providers: options.Providers,
+        Router: options.Router,
       }
     });
     const transformerService = new TransformerService(
@@ -145,15 +157,19 @@ class Server {
       transformerService,
       this.app.log
     );
-    // await this.app.register((fastify) => {
-    //   fastify.decorate('configService', configService);
-    //   fastify.decorate('transformerService', transformerService);
-    //   fastify.decorate('providerService', providerService);
-    // }, { prefix: name });
     await this.app.register(async (fastify) => {
       fastify.decorate('configService', configService);
       fastify.decorate('transformerService', transformerService);
       fastify.decorate('providerService', providerService);
+      // Add router hook for namespace
+      fastify.addHook('preHandler', async (req: any, reply: any) => {
+        const url = new URL(`http://127.0.0.1${req.url}`);
+        if (url.pathname.endsWith("/v1/messages")) {
+          await router(req, reply, {
+            configService,
+          });
+        }
+      });
       await registerApiRoutes(fastify);
     }, { prefix: name });
   }
@@ -173,6 +189,8 @@ class Server {
         }
         done();
       });
+
+      await this.registerNamespace('/')
 
       this.app.addHook(
         "preHandler",
@@ -198,7 +216,6 @@ class Server {
         }
       );
 
-      await this.registerNamespace('/')
 
       const address = await this.app.listen({
         port: parseInt(this.configService.get("PORT") || "3000", 10),
@@ -224,3 +241,10 @@ class Server {
 
 // Export for external use
 export default Server;
+export { sessionUsageCache };
+export { router };
+export { calculateTokenCount };
+export { searchProjectBySession };
+export { ConfigService } from "./services/config";
+export { ProviderService } from "./services/provider";
+export { TransformerService } from "./services/transformer";

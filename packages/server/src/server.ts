@@ -1,10 +1,9 @@
-import Server from "@musistudio/llms";
+import Server, { calculateTokenCount } from "@musistudio/llms";
 import { readConfigFile, writeConfigFile, backupConfigFile } from "./utils";
 import { join } from "path";
 import fastifyStatic from "@fastify/static";
 import { readdirSync, statSync, readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, rmSync } from "fs";
 import { homedir } from "os";
-import { calculateTokenCount } from "./utils/router";
 import {
   getPresetDir,
   readManifestFromDir,

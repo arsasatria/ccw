@@ -1,10 +1,11 @@
 import { get_encoding } from "tiktoken";
 import { sessionUsageCache, Usage } from "./cache";
-import { readFile, access } from "fs/promises";
+import { readFile } from "fs/promises";
 import { opendir, stat } from "fs/promises";
 import { join } from "path";
 import { CLAUDE_PROJECTS_DIR, HOME_DIR } from "@ccw/shared";
 import { LRUCache } from "lru-cache";
+import { ConfigService } from "../services/config";
 
 // Types from @anthropic-ai/sdk
 interface Tool {
@@ -86,17 +87,10 @@ export const calculateTokenCount = (
   return tokenCount;
 };
 
-const readConfigFile = async (filePath: string) => {
-  try {
-    await access(filePath);
-    const content = await readFile(filePath, "utf8");
-    return JSON.parse(content);
-  } catch (error) {
-    return null; // 文件不存在或读取失败时返回null
-  }
-};
-
-const getProjectSpecificRouter = async (req: any) => {
+const getProjectSpecificRouter = async (
+  req: any,
+  configService: ConfigService
+) => {
   // 检查是否有项目特定的配置
   if (req.sessionId) {
     const project = await searchProjectBySession(req.sessionId);
@@ -109,14 +103,18 @@ const getProjectSpecificRouter = async (req: any) => {
       );
 
       // 首先尝试读取sessionConfig文件
-      const sessionConfig = await readConfigFile(sessionConfigPath);
-      if (sessionConfig && sessionConfig.Router) {
-        return sessionConfig.Router;
-      }
-      const projectConfig = await readConfigFile(projectConfigPath);
-      if (projectConfig && projectConfig.Router) {
-        return projectConfig.Router;
-      }
+      try {
+        const sessionConfig = JSON.parse(await readFile(sessionConfigPath, "utf8"));
+        if (sessionConfig && sessionConfig.Router) {
+          return sessionConfig.Router;
+        }
+      } catch {}
+      try {
+        const projectConfig = JSON.parse(await readFile(projectConfigPath, "utf8"));
+        if (projectConfig && projectConfig.Router) {
+          return projectConfig.Router;
+        }
+      } catch {}
     }
   }
   return undefined; // 返回undefined表示使用原始配置
@@ -125,15 +123,16 @@ const getProjectSpecificRouter = async (req: any) => {
 const getUseModel = async (
   req: any,
   tokenCount: number,
-  config: any,
+  configService: ConfigService,
   lastUsage?: Usage | undefined
 ) => {
-  const projectSpecificRouter = await getProjectSpecificRouter(req);
-  const Router = projectSpecificRouter || config.Router;
+  const projectSpecificRouter = await getProjectSpecificRouter(req, configService);
+  const providers = configService.get<any[]>("providers") || [];
+  const Router = projectSpecificRouter || configService.get("Router");
 
   if (req.body.model.includes(",")) {
     const [provider, model] = req.body.model.split(",");
-    const finalProvider = config.Providers.find(
+    const finalProvider = providers.find(
       (p: any) => p.name.toLowerCase() === provider
     );
     const finalModel = finalProvider?.models?.find(
@@ -146,13 +145,13 @@ const getUseModel = async (
   }
 
   // if tokenCount is greater than the configured threshold, use the long context model
-  const longContextThreshold = Router.longContextThreshold || 60000;
+  const longContextThreshold = Router?.longContextThreshold || 60000;
   const lastUsageThreshold =
     lastUsage &&
     lastUsage.input_tokens > longContextThreshold &&
     tokenCount > 20000;
   const tokenCountThreshold = tokenCount > longContextThreshold;
-  if ((lastUsageThreshold || tokenCountThreshold) && Router.longContext) {
+  if ((lastUsageThreshold || tokenCountThreshold) && Router?.longContext) {
     req.log.info(
       `Using long context model due to token count: ${tokenCount}, threshold: ${longContextThreshold}`
     );
@@ -174,32 +173,38 @@ const getUseModel = async (
     }
   }
   // Use the background model for any Claude Haiku variant
+  const globalRouter = configService.get("Router");
   if (
     req.body.model?.includes("claude") &&
     req.body.model?.includes("haiku") &&
-    config.Router.background
+    globalRouter?.background
   ) {
     req.log.info(`Using background model for ${req.body.model}`);
-    return config.Router.background;
+    return globalRouter.background;
   }
   // The priority of websearch must be higher than thinking.
   if (
     Array.isArray(req.body.tools) &&
     req.body.tools.some((tool: any) => tool.type?.startsWith("web_search")) &&
-    Router.webSearch
+    Router?.webSearch
   ) {
     return Router.webSearch;
   }
   // if exits thinking, use the think model
-  if (req.body.thinking && Router.think) {
+  if (req.body.thinking && Router?.think) {
     req.log.info(`Using think model for ${req.body.thinking}`);
     return Router.think;
   }
-  return Router!.default;
+  return Router?.default;
 };
 
-export const router = async (req: any, _res: any, context: any) => {
-  const { config, event } = context;
+export interface RouterContext {
+  configService: ConfigService;
+  event?: any;
+}
+
+export const router = async (req: any, _res: any, context: RouterContext) => {
+  const { configService, event } = context;
   // Parse sessionId from metadata.user_id
   if (req.body.metadata?.user_id) {
     const parts = req.body.metadata.user_id.split("_session_");
@@ -209,12 +214,13 @@ export const router = async (req: any, _res: any, context: any) => {
   }
   const lastMessageUsage = sessionUsageCache.get(req.sessionId);
   const { messages, system = [], tools }: MessageCreateParamsBase = req.body;
+  const rewritePrompt = configService.get("REWRITE_SYSTEM_PROMPT");
   if (
-    config.REWRITE_SYSTEM_PROMPT &&
+    rewritePrompt &&
     system.length > 1 &&
     system[1]?.text?.includes("<env>")
   ) {
-    const prompt = await readFile(config.REWRITE_SYSTEM_PROMPT, "utf-8");
+    const prompt = await readFile(rewritePrompt, "utf-8");
     system[1].text = `${prompt}<env>${system[1].text.split("<env>").pop()}`;
   }
 
@@ -226,11 +232,12 @@ export const router = async (req: any, _res: any, context: any) => {
     );
 
     let model;
-    if (config.CUSTOM_ROUTER_PATH) {
+    const customRouterPath = configService.get("CUSTOM_ROUTER_PATH");
+    if (customRouterPath) {
       try {
-        const customRouter = require(config.CUSTOM_ROUTER_PATH);
+        const customRouter = require(customRouterPath);
         req.tokenCount = tokenCount; // Pass token count to custom router
-        model = await customRouter(req, config, {
+        model = await customRouter(req, configService.getAll(), {
           event,
         });
       } catch (e: any) {
@@ -238,12 +245,13 @@ export const router = async (req: any, _res: any, context: any) => {
       }
     }
     if (!model) {
-      model = await getUseModel(req, tokenCount, config, lastMessageUsage);
+      model = await getUseModel(req, tokenCount, configService, lastMessageUsage);
     }
     req.body.model = model;
   } catch (error: any) {
     req.log.error(`Error in router middleware: ${error.message}`);
-    req.body.model = config.Router!.default;
+    const Router = configService.get("Router");
+    req.body.model = Router?.default;
   }
   return;
 };

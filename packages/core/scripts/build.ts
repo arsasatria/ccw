@@ -10,7 +10,7 @@ const baseConfig: esbuild.BuildOptions = {
   platform: "node",
   target: "node18",
   plugins: [],
-  external: ["fastify", "dotenv", "@fastify/cors", "undici"],
+  external: ["fastify", "dotenv", "@fastify/cors", "undici", "tiktoken", "@ccw/shared", "lru-cache"],
 };
 
 const cjsConfig: esbuild.BuildOptions = {

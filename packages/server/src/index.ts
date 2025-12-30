@@ -4,14 +4,13 @@ import { homedir } from "os";
 import { join } from "path";
 import { initConfig, initDir } from "./utils";
 import { createServer } from "./server";
-import { router } from "./utils/router";
 import { apiKeyAuth } from "./middleware/auth";
-import {CONFIG_FILE, HOME_DIR, listPresets} from "@ccw/shared";
+import { CONFIG_FILE, HOME_DIR, listPresets } from "@ccw/shared";
 import { createStream } from 'rotating-file-stream';
-import { sessionUsageCache } from "./utils/cache";
-import {SSEParserTransform} from "./utils/SSEParser.transform";
-import {SSESerializerTransform} from "./utils/SSESerializer.transform";
-import {rewriteStream} from "./utils/rewriteStream";
+import { sessionUsageCache } from "@musistudio/llms";
+import { SSEParserTransform } from "./utils/SSEParser.transform";
+import { SSESerializerTransform } from "./utils/SSESerializer.transform";
+import { rewriteStream } from "./utils/rewriteStream";
 import JSON5 from "json5";
 import { IAgent, ITool } from "./agents/type";
 import agentsManager from "./agents";
@@ -138,10 +137,9 @@ async function getServer(options: RunOptions = {}) {
     logger: loggerConfig,
   });
 
-  presets.forEach(preset => {
-    console.log(preset.name, preset.config);
-    serverInstance.registerNamespace(preset.name, preset.config);
-  })
+  await Promise.allSettled(
+      presets.map(async preset => await serverInstance.registerNamespace(preset.name, preset.config))
+  )
 
   // Add async preHandler hook for authentication
   serverInstance.addHook("preHandler", async (req: any, reply: any) => {
@@ -155,7 +153,15 @@ async function getServer(options: RunOptions = {}) {
     });
   });
   serverInstance.addHook("preHandler", async (req: any, reply: any) => {
-    if (req.url.startsWith("/v1/messages") && !req.url.startsWith("/v1/messages/count_tokens")) {
+    const url = new URL(`http://127.0.0.1${req.url}`);
+    req.pathname = url.pathname;
+    if (req.pathname.endsWith("/v1/messages") && req.pathname !== "/v1/messages") {
+      req.preset = req.pathname.replace("/v1/messages", "").replace("/", "");
+    }
+  })
+
+  serverInstance.addHook("preHandler", async (req: any, reply: any) => {
+    if (req.pathname.endsWith("/v1/messages")) {
       const useAgents = []
 
       for (const agent of agentsManager.getAllAgents()) {
@@ -185,17 +191,13 @@ async function getServer(options: RunOptions = {}) {
       if (useAgents.length) {
         req.agents = useAgents;
       }
-      await router(req, reply, {
-        config,
-        event
-      });
     }
   });
   serverInstance.addHook("onError", async (request: any, reply: any, error: any) => {
     event.emit('onError', request, reply, error);
   })
   serverInstance.addHook("onSend", (req: any, reply: any, payload: any, done: any) => {
-    if (req.sessionId && req.url.startsWith("/v1/messages") && !req.url.startsWith("/v1/messages/count_tokens")) {
+    if (req.sessionId && req.pathname.endsWith("/v1/messages")) {
       if (payload instanceof ReadableStream) {
         if (req.agents) {
           const abortController = new AbortController();
