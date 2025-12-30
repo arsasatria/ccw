@@ -129,7 +129,7 @@ async function main() {
         const presetName = command;
         envOverrides = {
           ...envOverrides,
-          ANTHROPIC_BASE_URL: `http://127.0.0.1:${port}/${presetName}`,
+          ANTHROPIC_BASE_URL: `http://127.0.0.1:${port}/preset/${presetName}`,
         };
       } else if (provider) {
         // 处理 api_base_url，去掉 /v1/messages 后缀

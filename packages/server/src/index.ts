@@ -138,7 +138,7 @@ async function getServer(options: RunOptions = {}) {
   });
 
   await Promise.allSettled(
-      presets.map(async preset => await serverInstance.registerNamespace(preset.name, preset.config))
+      presets.map(async preset => await serverInstance.registerNamespace(`/preset/${preset.name}`, preset.config))
   )
 
   // Add async preHandler hook for authentication
