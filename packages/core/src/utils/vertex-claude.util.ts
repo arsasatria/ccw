@@ -1,6 +1,6 @@
 import { UnifiedChatRequest, UnifiedMessage, UnifiedTool } from "../types/llm";
 
-// Vertex Claude消息接口
+// Vertex Claude message interface
 interface ClaudeMessage {
   role: "user" | "assistant";
   content: Array<{
@@ -14,7 +14,7 @@ interface ClaudeMessage {
   }>;
 }
 
-// Vertex Claude工具接口
+// Vertex Claude tool interface
 interface ClaudeTool {
   name: string;
   description: string;
@@ -27,7 +27,7 @@ interface ClaudeTool {
   };
 }
 
-// Vertex Claude请求接口
+// Vertex Claude request interface
 interface VertexClaudeRequest {
   anthropic_version: "vertex-2023-10-16";
   messages: ClaudeMessage[];
@@ -40,7 +40,7 @@ interface VertexClaudeRequest {
   tool_choice?: "auto" | "none" | { type: "tool"; name: string };
 }
 
-// Vertex Claude响应接口
+// Vertex Claude response interface
 interface VertexClaudeResponse {
   content: Array<{
     type: "text";
@@ -76,7 +76,7 @@ export function buildRequestBody(
     const content: ClaudeMessage["content"] = [];
 
     if (typeof message.content === "string") {
-      // 保留所有字符串内容，即使是空字符串，因为可能包含重要信息
+      // Keep all string content, even empty strings, as it may contain important information
       content.push({
         type: "text",
         text: message.content,
@@ -84,13 +84,13 @@ export function buildRequestBody(
     } else if (Array.isArray(message.content)) {
       message.content.forEach((item) => {
         if (item.type === "text") {
-          // 保留所有文本内容，即使是空字符串
+          // Keep all text content, even empty strings
           content.push({
             type: "text",
             text: item.text || "",
           });
         } else if (item.type === "image_url") {
-          // 处理图片内容
+          // Handle image content
           content.push({
             type: "image",
             source: {
@@ -103,7 +103,7 @@ export function buildRequestBody(
       });
     }
 
-    // 只跳过完全空的非最后一条消息（没有内容和工具调用）
+    // Only skip completely empty non-last messages (no content and no tool calls)
     if (
       !isLastMessage &&
       content.length === 0 &&
@@ -113,7 +113,7 @@ export function buildRequestBody(
       continue;
     }
 
-    // 对于最后一条 assistant 消息，如果没有内容但有工具调用，则添加空内容
+    // For last assistant message, add empty content if no content but has tool calls
     if (
       isLastMessage &&
       isAssistantMessage &&
@@ -140,7 +140,7 @@ export function buildRequestBody(
     ...(request.temperature && { temperature: request.temperature }),
   };
 
-  // 处理工具定义
+  // Handle tool definitions
   if (request.tools && request.tools.length > 0) {
     requestBody.tools = request.tools.map((tool: UnifiedTool) => ({
       name: tool.function.name,
@@ -149,12 +149,12 @@ export function buildRequestBody(
     }));
   }
 
-  // 处理工具选择
+  // Handle tool choice
   if (request.tool_choice) {
     if (request.tool_choice === "auto" || request.tool_choice === "none") {
       requestBody.tool_choice = request.tool_choice;
     } else if (typeof request.tool_choice === "string") {
-      // 如果 tool_choice 是字符串，假设是工具名称
+      // If tool_choice is a string, assume it's the tool name
       requestBody.tool_choice = {
         type: "tool",
         name: request.tool_choice,
@@ -206,7 +206,7 @@ export function transformRequestOut(
     stream: vertexRequest.stream,
   };
 
-  // 处理工具定义
+  // Handle tool definitions
   if (vertexRequest.tools && vertexRequest.tools.length > 0) {
     result.tools = vertexRequest.tools.map((tool) => ({
       type: "function" as const,
@@ -224,7 +224,7 @@ export function transformRequestOut(
     }));
   }
 
-  // 处理工具选择
+  // Handle tool choice
   if (vertexRequest.tool_choice) {
     if (typeof vertexRequest.tool_choice === "string") {
       result.tool_choice = vertexRequest.tool_choice;
@@ -244,7 +244,7 @@ export async function transformResponseOut(
   if (response.headers.get("Content-Type")?.includes("application/json")) {
     const jsonResponse = (await response.json()) as VertexClaudeResponse;
 
-    // 处理工具调用
+    // Handle tool calls
     let tool_calls = undefined;
     if (jsonResponse.tool_use && jsonResponse.tool_use.length > 0) {
       tool_calls = jsonResponse.tool_use.map((tool) => ({
@@ -257,7 +257,7 @@ export async function transformResponseOut(
       }));
     }
 
-    // 转换为OpenAI格式的响应
+    // Convert to OpenAI format response
     const res = {
       id: jsonResponse.id,
       choices: [
@@ -288,7 +288,7 @@ export async function transformResponseOut(
       headers: response.headers,
     });
   } else if (response.headers.get("Content-Type")?.includes("stream")) {
-    // 处理流式响应
+    // Handle streaming response
     if (!response.body) {
       return response;
     }
@@ -307,12 +307,12 @@ export async function transformResponseOut(
           try {
             const chunk = JSON.parse(chunkStr);
 
-            // 处理 Anthropic 原生格式的流式响应
+            // Handle Anthropic native format streaming response
             if (
               chunk.type === "content_block_delta" &&
               chunk.delta?.type === "text_delta"
             ) {
-              // 这是 Anthropic 原生格式，需要转换为 OpenAI 格式
+              // This is Anthropic native format, need to convert to OpenAI format
               const res = {
                 choices: [
                   {
@@ -345,7 +345,7 @@ export async function transformResponseOut(
               chunk.type === "content_block_delta" &&
               chunk.delta?.type === "input_json_delta"
             ) {
-              // 处理工具调用的参数增量
+              // Handle tool call argument delta
               const res = {
                 choices: [
                   {
@@ -384,7 +384,7 @@ export async function transformResponseOut(
               chunk.type === "content_block_start" &&
               chunk.content_block?.type === "tool_use"
             ) {
-              // 处理工具调用开始
+              // Handle tool call start
               const res = {
                 choices: [
                   {
@@ -423,7 +423,7 @@ export async function transformResponseOut(
                 encoder.encode(`data: ${JSON.stringify(res)}\n\n`)
               );
             } else if (chunk.type === "message_delta") {
-              // 处理消息结束
+              // Handle message end
               const res = {
                 choices: [
                   {
@@ -457,10 +457,10 @@ export async function transformResponseOut(
                 encoder.encode(`data: ${JSON.stringify(res)}\n\n`)
               );
             } else if (chunk.type === "message_stop") {
-              // 发送结束标记
+              // Send end marker
               controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
             } else {
-              // 处理其他格式的响应（保持原有逻辑作为后备）
+              // Handle other format responses (keep original logic as fallback)
               const res = {
                 choices: [
                   {

@@ -30,17 +30,17 @@ export async function executeCodeCommand(
   const config = await readConfigFile();
   const env = await createEnvVariables();
 
-  // 应用环境变量覆盖（从 preset 的 provider 配置中获取）
+  // Apply environment variable overrides (from preset's provider configuration)
   if (envOverrides) {
     Object.assign(env, envOverrides);
   }
 
-  // 构建 settingsFlag
+  // Build settingsFlag
   let settingsFlag: ClaudeSettingsFlag = {
     env: env as ClaudeSettingsFlag['env']
   };
 
-  // 如果配置了 StatusLine，添加 statusLine
+  // Add statusLine if StatusLine is configured
   if (config?.StatusLine?.enabled) {
     settingsFlag.statusLine = {
       type: "command",
@@ -49,12 +49,12 @@ export async function executeCodeCommand(
     }
   }
 
-  // 如果 preset 中有 claudeCodeSettings，合并到 settingsFlag 中
+  // Merge claudeCodeSettings from preset into settingsFlag
   if (presetConfig?.claudeCodeSettings) {
     settingsFlag = {
       ...settingsFlag,
       ...presetConfig.claudeCodeSettings,
-      // 深度合并 env
+      // Deep merge env
       env: {
         ...settingsFlag.env,
         ...presetConfig.claudeCodeSettings.env,

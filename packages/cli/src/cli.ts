@@ -21,7 +21,7 @@ import {handlePresetCommand} from "./utils/preset";
 
 const command = process.argv[2];
 
-// 定义所有已知命令
+// Define all known commands
 const KNOWN_COMMANDS = [
   "start",
   "stop",
@@ -95,34 +95,34 @@ async function waitForService(
 async function main() {
   const isRunning = await isServiceRunning()
 
-  // 如果命令不是已知命令，检查是否是 preset
+  // If command is not a known command, check if it's a preset
   if (command && !KNOWN_COMMANDS.includes(command)) {
     const presetData: any = await readPresetFile(command);
 
     if (presetData) {
-      // 这是一个 preset，执行 code 命令
-      const codeArgs = process.argv.slice(3); // 获取剩余参数
+      // This is a preset, execute code command
+      const codeArgs = process.argv.slice(3); // Get remaining arguments
 
-      // 检查 noServer 配置
+      // Check noServer configuration
       const shouldStartServer = presetData.noServer !== true;
 
-      // 构建环境变量覆盖
+      // Build environment variable overrides
       let envOverrides: Record<string, string> | undefined;
 
-      // 处理 provider 配置（支持新旧两种格式）
+      // Handle provider configuration (supports both old and new formats)
       let provider: any = null;
 
-      // 旧格式：presetData.provider 是 provider 名称
+      // Old format: presetData.provider is the provider name
       if (presetData.provider && typeof presetData.provider === 'string') {
         const config = await readConfigFile();
         provider = config.Providers?.find((p: any) => p.name === presetData.provider);
       }
-      // 新格式：presetData.Providers 是 provider 数组
+      // New format: presetData.Providers is an array of providers
       else if (presetData.Providers && presetData.Providers.length > 0) {
         provider = presetData.Providers[0];
       }
 
-      // 如果 noServer 不为 true，使用本地 server 的 baseurl
+      // If noServer is not true, use local server baseurl
       if (shouldStartServer) {
         const config = await readConfigFile();
         const port = config.PORT || 3456;
@@ -132,7 +132,7 @@ async function main() {
           ANTHROPIC_BASE_URL: `http://127.0.0.1:${port}/preset/${presetName}`,
         };
       } else if (provider) {
-        // 处理 api_base_url，去掉 /v1/messages 后缀
+        // Handle api_base_url, remove /v1/messages suffix
         if (provider.api_base_url) {
           let baseUrl = provider.api_base_url;
           if (baseUrl.endsWith('/v1/messages')) {
@@ -146,7 +146,7 @@ async function main() {
           };
         }
 
-        // 处理 api_key
+        // Handle api_key
         if (provider.api_key) {
           envOverrides = {
             ...envOverrides,
@@ -155,7 +155,7 @@ async function main() {
         }
       }
 
-      // 构建 PresetConfig
+      // Build PresetConfig
       const presetConfig: PresetConfig = {
         noServer: presetData.noServer,
         claudeCodeSettings: presetData.claudeCodeSettings,
@@ -187,7 +187,7 @@ async function main() {
           process.exit(1);
         }
       } else {
-        // 服务已运行或不需要启动 server
+        // Service is already running or no need to start server
         if (shouldStartServer && !isRunning) {
           console.error("Service is not running. Please start it first with `ccr start`");
           process.exit(1);
@@ -196,7 +196,7 @@ async function main() {
       }
       return;
     } else {
-      // 不是 preset 也不是已知命令
+      // Not a preset nor a known command
       console.log(HELP_TEXT);
       process.exit(1);
     }
@@ -232,7 +232,7 @@ async function main() {
       await showStatus();
       break;
     case "statusline":
-      // 从stdin读取JSON输入
+      // Read JSON input from stdin
       let inputData = "";
       process.stdin.setEncoding("utf-8");
       process.stdin.on("readable", () => {

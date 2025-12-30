@@ -1,6 +1,6 @@
 /**
- * 动态配置 CLI 交互处理器
- * 处理各种输入类型的用户交互
+ * Dynamic configuration CLI interaction handler
+ * Handles user interactions for various input types
  */
 
 import {
@@ -22,7 +22,7 @@ import password from '@inquirer/password';
 import checkbox from '@inquirer/checkbox';
 import editor from '@inquirer/editor';
 
-// ANSI 颜色代码
+// ANSI color codes
 export const COLORS = {
   RESET: "\x1B[0m",
   GREEN: "\x1B[32m",
@@ -34,41 +34,41 @@ export const COLORS = {
 };
 
 /**
- * 收集用户输入（支持动态配置）
+ * Collect user input (supports dynamic configuration)
  */
 export async function collectUserInputs(
   schema: RequiredInput[],
   presetConfig: PresetConfigSection,
   existingValues?: UserInputValues
 ): Promise<UserInputValues> {
-  // 按依赖关系排序
+  // Sort by dependencies
   const sortedFields = sortFieldsByDependencies(schema);
 
-  // 初始化值
+  // Initialize values
   const values: UserInputValues = { ...existingValues };
 
-  // 收集所有输入
+  // Collect all inputs
   for (const field of sortedFields) {
-    // 检查是否应该显示此字段
+    // Check if this field should be displayed
     if (!shouldShowField(field, values)) {
-      // 跳过，并清除该字段的值（如果之前存在）
+      // Skip and clear the field value (if it existed before)
       delete values[field.id];
       continue;
     }
 
-    // 如果已有值且不是初始收集，跳过
+    // Skip if value already exists and not initial collection
     if (existingValues && field.id in existingValues) {
       continue;
     }
 
-    // 获取输入值
+    // Get input value
     const value = await promptField(field, presetConfig, values);
 
-    // 验证
+    // Validate
     const validation = validateInput(field, value);
     if (!validation.valid) {
       console.error(`${COLORS.YELLOW}Error:${COLORS.RESET} ${validation.error}`);
-      // 对于必填字段，抛出错误
+      // Throw error for required fields
       if (field.required !== false) {
         throw new Error(validation.error);
       }
@@ -82,7 +82,7 @@ export async function collectUserInputs(
 }
 
 /**
- * 重新收集受影响的字段（当某个字段值变化时）
+ * Recollect affected fields (when a field value changes)
  */
 export async function recollectAffectedFields(
   changedFieldId: string,
@@ -95,24 +95,24 @@ export async function recollectAffectedFields(
 
   const values = { ...currentValues };
 
-  // 对受影响的字段重新收集输入
+  // Recollect input for affected fields
   for (const fieldId of affectedFields) {
     const field = sortedFields.find(f => f.id === fieldId);
     if (!field) {
       continue;
     }
 
-    // 检查是否应该显示
+    // Check if should be displayed
     if (!shouldShowField(field, values)) {
       delete values[field.id];
       continue;
     }
 
-    // 重新收集输入
+    // Recollect input
     const value = await promptField(field, presetConfig, values);
     values[field.id] = value;
 
-    // 级联更新：如果这个字段的变化又影响了其他字段
+    // Cascade update: if this field change affects other fields
     const newAffected = getAffectedFields(field.id, schema);
     for (const newAffectedId of newAffected) {
       if (!affectedFields.has(newAffectedId)) {
@@ -125,7 +125,7 @@ export async function recollectAffectedFields(
 }
 
 /**
- * 提示单个字段
+ * Prompt for a single field
  */
 async function promptField(
   field: RequiredInput,
@@ -187,7 +187,7 @@ async function promptField(
         return field.defaultValue ?? [];
       }
 
-      // @inquirer/prompts 没有多选，使用 checkbox
+      // @inquirer/prompts doesn't have multi-select, use checkbox
       return await checkbox({
         message,
         choices: options.map(opt => ({
@@ -206,7 +206,7 @@ async function promptField(
     }
 
     default:
-      // 默认使用 input
+      // Use input by default
       return await input({
         message,
         default: field.defaultValue,
@@ -215,7 +215,7 @@ async function promptField(
 }
 
 /**
- * 收集敏感信息（兼容旧版）
+ * Collect sensitive information (legacy compatible)
  */
 export async function collectSensitiveInputs(
   schema: RequiredInput[],
@@ -226,7 +226,7 @@ export async function collectSensitiveInputs(
 
   const values = await collectUserInputs(schema, presetConfig, existingValues);
 
-  // 显示摘要
+  // Display summary
   console.log(`${COLORS.GREEN}✓${COLORS.RESET} All required information collected\n`);
 
   return values;

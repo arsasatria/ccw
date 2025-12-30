@@ -94,13 +94,13 @@ async function getServer(options: RunOptions = {}) {
 
   let loggerConfig: any;
 
-  // 如果外部传入了 logger 配置，使用外部的
+  // Use external logger configuration if provided
   if (options.logger !== undefined) {
     loggerConfig = options.logger;
   } else {
-    // 如果没有传入，并且 config.LOG !== false，则启用 logger
+    // Enable logger if not provided and config.LOG !== false
     if (config.LOG !== false) {
-      // 将 config.LOG 设为 true（如果它还未设置）
+      // Set config.LOG to true (if not already set)
       if (config.LOG === undefined) {
         config.LOG = true;
       }
@@ -166,7 +166,7 @@ async function getServer(options: RunOptions = {}) {
 
       for (const agent of agentsManager.getAllAgents()) {
         if (agent.shouldHandle(req, config)) {
-          // 设置agent标识
+          // Set agent identifier
           useAgents.push(agent.name)
 
           // change request body
@@ -209,10 +209,10 @@ async function getServer(options: RunOptions = {}) {
           let currentToolId = ''
           const toolMessages: any[] = []
           const assistantMessages: any[] = []
-          // 存储Anthropic格式的消息体，区分文本和工具类型
+          // Store Anthropic format message body, distinguishing text and tool types
           return done(null, rewriteStream(eventStream, async (data, controller) => {
             try {
-              // 检测工具调用开始
+              // Detect tool call start
               if (data.event === 'content_block_start' && data?.data?.content_block?.name) {
                 const agent = req.agents.find((name: string) => agentsManager.getAgent(name)?.tools.get(data.data.content_block.name))
                 if (agent) {
@@ -224,13 +224,13 @@ async function getServer(options: RunOptions = {}) {
                 }
               }
 
-              // 收集工具参数
+              // Collect tool arguments
               if (currentToolIndex > -1 && data.data.index === currentToolIndex && data.data?.delta?.type === 'input_json_delta') {
                 currentToolArgs += data.data?.delta?.partial_json;
                 return undefined;
               }
 
-              // 工具调用完成，处理agent调用
+              // Tool call completed, handle agent invocation
               if (currentToolIndex > -1 && data.data.index === currentToolIndex && data.data.type === 'content_block_stop') {
                 try {
                   const args = JSON5.parse(currentToolArgs);
@@ -293,7 +293,7 @@ async function getServer(options: RunOptions = {}) {
                       continue
                     }
 
-                    // 检查流是否仍然可写
+                    // Check if stream is still writable
                     if (!controller.desiredSize) {
                       break;
                     }
@@ -301,7 +301,7 @@ async function getServer(options: RunOptions = {}) {
                     controller.enqueue(eventData)
                   }catch (readError: any) {
                     if (readError.name === 'AbortError' || readError.code === 'ERR_STREAM_PREMATURE_CLOSE') {
-                      abortController.abort(); // 中止所有相关操作
+                      abortController.abort(); // Abort all related operations
                       break;
                     }
                     throw readError;
@@ -314,13 +314,13 @@ async function getServer(options: RunOptions = {}) {
             }catch (error: any) {
               console.error('Unexpected error in stream processing:', error);
 
-              // 处理流提前关闭的错误
+              // Handle premature stream closure error
               if (error.code === 'ERR_STREAM_PREMATURE_CLOSE') {
                 abortController.abort();
                 return undefined;
               }
 
-              // 其他错误仍然抛出
+              // Re-throw other errors
               throw error;
             }
           }).pipeThrough(new SSESerializerTransform()))
@@ -405,7 +405,7 @@ export type { RunOptions };
 export type { IAgent, ITool } from "./agents/type";
 export { initDir, initConfig, readConfigFile, writeConfigFile, backupConfigFile } from "./utils";
 
-// 如果是直接运行此文件，则启动服务
+// Start service if this file is run directly
 if (require.main === module) {
   run().catch((error) => {
     console.error('Failed to start server:', error);

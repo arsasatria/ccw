@@ -68,7 +68,7 @@ export function convertToOpenAI(
   request: UnifiedChatRequest
 ): OpenAIChatRequest {
   const messages: OpenAIMessage[] = [];
-  const toolResponsesQueue: Map<string, any> = new Map(); // 用于存储工具响应
+  const toolResponsesQueue: Map<string, any> = new Map(); // For storing tool responses
 
   request.messages.forEach((msg) => {
     if (msg.role === "tool" && msg.tool_call_id) {

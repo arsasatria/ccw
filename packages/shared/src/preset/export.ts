@@ -1,6 +1,6 @@
 /**
- * 预设导出核心功能
- * 注意：这个模块不包含 CLI 交互逻辑，交互逻辑由调用者提供
+ * Preset export core functionality
+ * Note: This module does not contain CLI interaction logic, interaction logic is provided by the caller
  */
 
 import * as fs from 'fs/promises';
@@ -12,7 +12,7 @@ import { PresetFile, PresetMetadata, ManifestFile } from './types';
 import { HOME_DIR } from '../constants';
 
 /**
- * 导出选项
+ * Export options
  */
 export interface ExportOptions {
   output?: string;
@@ -23,7 +23,7 @@ export interface ExportOptions {
 }
 
 /**
- * 导出结果
+ * Export result
  */
 export interface ExportResult {
   outputPath: string;
@@ -34,11 +34,11 @@ export interface ExportResult {
 }
 
 /**
- * 创建 manifest 对象
- * @param presetName 预设名称
- * @param config 配置对象
- * @param sanitizedConfig 脱敏后的配置
- * @param options 导出选项
+ * Create manifest object
+ * @param presetName Preset name
+ * @param config Configuration object
+ * @param sanitizedConfig Sanitized configuration
+ * @param options Export options
  */
 export function createManifest(
   presetName: string,
@@ -63,18 +63,18 @@ export function createManifest(
 }
 
 /**
- * 导出预设配置
- * @param presetName 预设名称
- * @param config 当前配置
- * @param options 导出选项
- * @returns 导出结果
+ * Export preset configuration
+ * @param presetName Preset name
+ * @param config Current configuration
+ * @param options Export options
+ * @returns Export result
  */
 export async function exportPreset(
   presetName: string,
   config: any,
   options: ExportOptions = {}
 ): Promise<ExportResult> {
-  // 1. 收集元数据
+  // 1. Collect metadata
   const metadata: PresetMetadata = {
     name: presetName,
     version: '1.0.0',
@@ -83,28 +83,28 @@ export async function exportPreset(
     keywords: options.tags ? options.tags.split(',').map(t => t.trim()) : undefined,
   };
 
-  // 2. 脱敏配置
+  // 2. Sanitize configuration
   const { sanitizedConfig, requiredInputs, sanitizedCount } = await sanitizeConfig(config);
 
-  // 3. 生成manifest.json（扁平化结构）
+  // 3. Generate manifest.json (flattened structure)
   const manifest: ManifestFile = {
     ...metadata,
     ...sanitizedConfig,
     requiredInputs: options.includeSensitive ? undefined : requiredInputs,
   };
 
-  // 4. 确定输出路径
+  // 4. Determine output path
   const presetsDir = path.join(HOME_DIR, 'presets');
 
-  // 确保预设目录存在
+  // Ensure presets directory exists
   await fs.mkdir(presetsDir, { recursive: true });
 
   const outputPath = options.output || path.join(presetsDir, `${presetName}.ccrsets`);
 
-  // 5. 创建压缩包
+  // 5. Create archive
   const output = fsSync.createWriteStream(outputPath);
   const archive = archiver('zip', {
-    zlib: { level: 9 } // 最高压缩级别
+    zlib: { level: 9 } // Highest compression level
   });
 
   return new Promise<ExportResult>((resolve, reject) => {
@@ -122,13 +122,13 @@ export async function exportPreset(
       reject(err);
     });
 
-    // 连接输出流
+    // Connect output stream
     archive.pipe(output);
 
-    // 添加manifest.json到压缩包
+    // Add manifest.json to archive
     archive.append(JSON.stringify(manifest, null, 2), { name: 'manifest.json' });
 
-    // 完成压缩
+    // Finalize archive
     archive.finalize();
   });
 }

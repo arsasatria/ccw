@@ -1,5 +1,5 @@
 /**rewriteStream
- * 读取源readablestream，返回一个新的readablestream，由processor对源数据进行处理后将返回的新值推送到新的stream，如果没有返回值则不推送
+ * Read source readablestream and return a new readablestream, processor processes source data and pushes returned new value to new stream, no push if no return value
  * @param stream
  * @param processor
  */

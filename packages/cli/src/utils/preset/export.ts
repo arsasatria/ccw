@@ -1,13 +1,13 @@
 /**
- * 预设导出功能 CLI 层
- * 负责处理 CLI 交互，核心逻辑在 shared 包中
+ * Preset export functionality CLI layer
+ * Handles CLI interactions, core logic is in shared package
  */
 
 import { input } from '@inquirer/prompts';
 import { readConfigFile } from '../index';
 import { exportPreset as exportPresetCore, ExportOptions } from '@ccw/shared';
 
-// ANSI 颜色代码
+// ANSI color codes
 const RESET = "\x1B[0m";
 const GREEN = "\x1B[32m";
 const BOLDGREEN = "\x1B[1m\x1B[32m";
@@ -15,9 +15,9 @@ const YELLOW = "\x1B[33m";
 const BOLDCYAN = "\x1B[1m\x1B[36m";
 
 /**
- * 导出预设配置（CLI 版本，带交互）
- * @param presetName 预设名称
- * @param options 导出选项
+ * Export preset configuration (CLI version, with interaction)
+ * @param presetName Preset name
+ * @param options Export options
  */
 export async function exportPresetCli(
   presetName: string,
@@ -28,10 +28,10 @@ export async function exportPresetCli(
     console.log(`${BOLDCYAN}              Preset Export${RESET}`);
     console.log(`${BOLDCYAN}═══════════════════════════════════════════════${RESET}\n`);
 
-    // 1. 读取当前配置
+    // 1. Read current configuration
     const config = await readConfigFile();
 
-    // 2. 如果没有通过命令行提供，交互式询问元数据
+    // 2. Interactively ask for metadata if not provided via command line
     if (!options.description) {
       try {
         options.description = await input({
@@ -39,7 +39,7 @@ export async function exportPresetCli(
           default: '',
         });
       } catch {
-        // 用户取消，使用默认值
+        // User cancelled, use default value
         options.description = '';
       }
     }
@@ -67,10 +67,10 @@ export async function exportPresetCli(
       }
     }
 
-    // 3. 调用核心导出功能
+    // 3. Call core export functionality
     const result = await exportPresetCore(presetName, config, options);
 
-    // 4. 显示摘要
+    // 4. Display summary
     console.log(`\n${BOLDGREEN}✓ Preset exported successfully${RESET}\n`);
     console.log(`${BOLDCYAN}Location:${RESET} ${result.outputPath}\n`);
     console.log(`${BOLDCYAN}Summary:${RESET}`);
@@ -80,7 +80,7 @@ export async function exportPresetCli(
       console.log(`  - Sensitive fields sanitized: ${YELLOW}${result.sanitizedCount}${RESET}`);
     }
 
-    // 显示元数据
+    // Display metadata
     if (result.metadata.description) {
       console.log(`\n${BOLDCYAN}Description:${RESET} ${result.metadata.description}`);
     }
@@ -91,7 +91,7 @@ export async function exportPresetCli(
       console.log(`${BOLDCYAN}Keywords:${RESET} ${result.metadata.keywords.join(', ')}`);
     }
 
-    // 显示分享提示
+    // Display sharing tips
     console.log(`\n${BOLDCYAN}To share this preset:${RESET}`);
     console.log(`  1. Share the file: ${result.outputPath}`);
     console.log(`  2. Upload to GitHub Gist or your repository`);

@@ -1,12 +1,12 @@
 /**
- * 配置合并策略
+ * Configuration merge strategies
  */
 
 import { MergeStrategy, ProviderConfig, RouterConfig, TransformerConfig } from './types';
 
 /**
- * 合并 Provider 配置
- * 如果 provider 已存在则直接覆盖，否则添加
+ * Merge Provider configuration
+ * Overwrite if provider exists, otherwise add
  */
 function mergeProviders(
   existing: ProviderConfig[],
@@ -18,10 +18,10 @@ function mergeProviders(
   for (const provider of incoming) {
     const existingIndex = existingNames.get(provider.name);
     if (existingIndex !== undefined) {
-      // Provider 已存在，直接覆盖
+      // Provider exists, overwrite directly
       result[existingIndex] = provider;
     } else {
-      // 新 Provider，直接添加
+      // New provider, add directly
       result.push(provider);
     }
   }
@@ -30,7 +30,7 @@ function mergeProviders(
 }
 
 /**
- * 合并 Router 配置
+ * Merge Router configuration
  */
 async function mergeRouter(
   existing: RouterConfig,
@@ -48,10 +48,10 @@ async function mergeRouter(
     const existingValue = result[key];
 
     if (existingValue === undefined || existingValue === null) {
-      // 现有配置中没有这个路由规则，直接添加
+      // No such routing rule in existing config, add directly
       result[key] = value;
     } else {
-      // 存在冲突
+      // Conflict exists
       if (strategy === MergeStrategy.ASK && onRouterConflict) {
         const shouldOverwrite = await onRouterConflict(key, existingValue, value);
         if (shouldOverwrite) {
@@ -60,10 +60,10 @@ async function mergeRouter(
       } else if (strategy === MergeStrategy.OVERWRITE) {
         result[key] = value;
       } else if (strategy === MergeStrategy.MERGE) {
-        // 对于 Router，merge 策略等同于 skip，保留现有值
-        // 或者可以询问用户
+        // For Router, merge strategy equals skip, keep existing value
+        // Or can ask user
       }
-      // skip 策略：保留现有值，不做任何操作
+      // skip strategy: keep existing value, do nothing
     }
   }
 
@@ -71,7 +71,7 @@ async function mergeRouter(
 }
 
 /**
- * 合并 Transformer 配置
+ * Merge Transformer configuration
  */
 async function mergeTransformers(
   existing: TransformerConfig[],
@@ -87,33 +87,33 @@ async function mergeTransformers(
     return existing;
   }
 
-  // Transformer 合并逻辑：按路径匹配
+  // Transformer merge logic: match by path
   const result = [...existing];
   const existingPaths = new Set(existing.map(t => t.path));
 
   for (const transformer of incoming) {
     if (!transformer.path) {
-      // 没有 path 的 transformer，直接添加
+      // Transformer without path, add directly
       result.push(transformer);
       continue;
     }
 
     if (existingPaths.has(transformer.path)) {
-      // 已存在相同 path 的 transformer
+      // Transformer with same path already exists
       if (strategy === MergeStrategy.ASK && onTransformerConflict) {
         const action = await onTransformerConflict(transformer.path);
         if (action === 'overwrite') {
           const index = result.findIndex(t => t.path === transformer.path);
           result[index] = transformer;
         }
-        // keep 和 skip 都不做操作
+        // keep and skip do nothing
       } else if (strategy === MergeStrategy.OVERWRITE) {
         const index = result.findIndex(t => t.path === transformer.path);
         result[index] = transformer;
       }
-      // merge 和 skip 策略：保留现有
+      // merge and skip strategies: keep existing
     } else {
-      // 新 transformer，直接添加
+      // New transformer, add directly
       result.push(transformer);
     }
   }
@@ -122,7 +122,7 @@ async function mergeTransformers(
 }
 
 /**
- * 合并其他顶级配置
+ * Merge other top-level configurations
  */
 async function mergeOtherConfig(
   existing: any,
@@ -145,10 +145,10 @@ async function mergeOtherConfig(
     const existingValue = result[key];
 
     if (existingValue === undefined || existingValue === null) {
-      // 现有配置中没有这个字段，直接添加
+      // No such field in existing config, add directly
       result[key] = value;
     } else {
-      // 存在冲突
+      // Conflict exists
       if (strategy === MergeStrategy.ASK && onConfigConflict) {
         const shouldOverwrite = await onConfigConflict(key);
         if (shouldOverwrite) {
@@ -157,7 +157,7 @@ async function mergeOtherConfig(
       } else if (strategy === MergeStrategy.OVERWRITE) {
         result[key] = value;
       }
-      // merge 和 skip 策略：保留现有值
+      // merge and skip strategies: keep existing值
     }
   }
 
@@ -165,7 +165,7 @@ async function mergeOtherConfig(
 }
 
 /**
- * 合并交互回调接口
+ * Merge interaction callback interface
  */
 export interface MergeCallbacks {
   onRouterConflict?: (key: string, existingValue: any, newValue: any) => Promise<boolean>;
@@ -174,12 +174,12 @@ export interface MergeCallbacks {
 }
 
 /**
- * 主配置合并函数
- * @param baseConfig 基础配置（现有配置）
- * @param presetConfig 预设配置
- * @param strategy 合并策略
- * @param callbacks 交互式回调函数
- * @returns 合并后的配置
+ * Main configuration merge function
+ * @param baseConfig Base configuration (existing configuration)
+ * @param presetConfig Preset configuration
+ * @param strategy Merge strategy
+ * @param callbacks Interactive callback functions
+ * @returns Merged configuration
  */
 export async function mergeConfig(
   baseConfig: any,
@@ -189,7 +189,7 @@ export async function mergeConfig(
 ): Promise<any> {
   const result = { ...baseConfig };
 
-  // 合并 Providers
+  // Merge Providers
   if (presetConfig.Providers) {
     result.Providers = mergeProviders(
       result.Providers || [],
@@ -197,7 +197,7 @@ export async function mergeConfig(
     );
   }
 
-  // 合并 Router
+  // Merge Router
   if (presetConfig.Router) {
     result.Router = await mergeRouter(
       result.Router || {},
@@ -207,7 +207,7 @@ export async function mergeConfig(
     );
   }
 
-  // 合并 transformers
+  // Merge transformers
   if (presetConfig.transformers) {
     result.transformers = await mergeTransformers(
       result.transformers || [],
@@ -217,7 +217,7 @@ export async function mergeConfig(
     );
   }
 
-  // 合并其他配置
+  // Merge other configurations
   const otherConfig = await mergeOtherConfig(
     result,
     presetConfig,

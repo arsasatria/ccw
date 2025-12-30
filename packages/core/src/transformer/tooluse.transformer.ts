@@ -68,7 +68,7 @@ Examples:
       const encoder = new TextEncoder();
       let exitToolIndex = -1;
       let exitToolResponse = "";
-      let buffer = ""; // 用于缓冲不完整的数据
+      let buffer = ""; // Buffer for incomplete data
 
       const stream = new ReadableStream({
         async start(controller) {
@@ -188,7 +188,7 @@ Examples:
                   });
                 } catch (error) {
                   console.error("Error processing line:", line, error);
-                  // 如果解析失败，直接传递原始行
+                  // If parsing fails, pass through the original line
                   controller.enqueue(encoder.encode(line + "\n"));
                 }
               }
