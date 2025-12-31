@@ -30,6 +30,7 @@ import { errorHandler } from "./api/middleware";
 import { registerApiRoutes } from "./api/routes";
 import { ProviderService } from "./services/provider";
 import { TransformerService } from "./services/transformer";
+import { TokenizerService } from "./services/tokenizer";
 import { router, calculateTokenCount, searchProjectBySession } from "./utils/router";
 import { sessionUsageCache } from "./utils/cache";
 
@@ -68,6 +69,7 @@ class Server {
   configService: ConfigService;
   providerService!: ProviderService;
   transformerService: TransformerService;
+  tokenizerService: TokenizerService;
 
   constructor(options: ServerOptions = {}) {
     const { initialConfig, ...fastifyOptions } = options;
@@ -80,12 +82,20 @@ class Server {
       this.configService,
       this.app.log
     );
+    this.tokenizerService = new TokenizerService(
+      this.configService,
+      this.app.log
+    );
     this.transformerService.initialize().finally(() => {
       this.providerService = new ProviderService(
         this.configService,
         this.transformerService,
         this.app.log
       );
+    });
+    // Initialize tokenizer service
+    this.tokenizerService.initialize().catch((error) => {
+      this.app.log.error(`Failed to initialize TokenizerService: ${error}`);
     });
   }
 
@@ -127,12 +137,14 @@ class Server {
         fastify.decorate('configService', this.configService);
         fastify.decorate('transformerService', this.transformerService);
         fastify.decorate('providerService', this.providerService);
+        fastify.decorate('tokenizerService', this.tokenizerService);
         // Add router hook for main namespace
         fastify.addHook('preHandler', async (req: any, reply: any) => {
           const url = new URL(`http://127.0.0.1${req.url}`);
           if (url.pathname.endsWith("/v1/messages")) {
             await router(req, reply, {
               configService: this.configService,
+              tokenizerService: this.tokenizerService,
             });
           }
         });
@@ -157,16 +169,23 @@ class Server {
       transformerService,
       this.app.log
     );
+    const tokenizerService = new TokenizerService(
+      configService,
+      this.app.log
+    );
+    await tokenizerService.initialize();
     await this.app.register(async (fastify) => {
       fastify.decorate('configService', configService);
       fastify.decorate('transformerService', transformerService);
       fastify.decorate('providerService', providerService);
+      fastify.decorate('tokenizerService', tokenizerService);
       // Add router hook for namespace
       fastify.addHook('preHandler', async (req: any, reply: any) => {
         const url = new URL(`http://127.0.0.1${req.url}`);
         if (url.pathname.endsWith("/v1/messages")) {
           await router(req, reply, {
             configService,
+            tokenizerService,
           });
         }
       });
@@ -248,5 +267,6 @@ export { searchProjectBySession };
 export { ConfigService } from "./services/config";
 export { ProviderService } from "./services/provider";
 export { TransformerService } from "./services/transformer";
+export { TokenizerService } from "./services/tokenizer";
 export { pluginManager, tokenSpeedPlugin, CCRPlugin, CCRPluginOptions, PluginMetadata } from "./plugins";
 export { SSEParserTransform, SSESerializerTransform, rewriteStream } from "./utils/sse";

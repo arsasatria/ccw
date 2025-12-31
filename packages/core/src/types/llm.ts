@@ -11,6 +11,7 @@ import type {
 import type { ChatCompletionTool } from "openai/resources/chat/completions";
 import type { Tool as AnthropicTool } from "@anthropic-ai/sdk/resources/messages";
 import { Transformer } from "./transformer";
+import type { ProviderTokenizerConfig } from "./tokenizer";
 
 export interface UrlCitation {
   url: string;
@@ -236,4 +237,5 @@ export interface ConfigProvider {
       use?: string[] | Array<any>[];
     };
   };
+  tokenizer?: ProviderTokenizerConfig;
 }

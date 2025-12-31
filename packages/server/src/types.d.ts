@@ -68,4 +68,54 @@ declare module "@musistudio/llms" {
     constructor(configService: any, logger: any);
     initialize(): Promise<void>;
   }
+
+  // Tokenizer types
+  export type TokenizerType = 'tiktoken' | 'huggingface' | 'api';
+  export type ApiRequestFormat = 'standard' | 'openai' | 'anthropic' | 'custom';
+
+  export interface TokenizerConfig {
+    type: TokenizerType;
+    encoding?: string;
+    model?: string;
+    url?: string;
+    apiKey?: string;
+    requestFormat?: ApiRequestFormat;
+    responseField?: string;
+    headers?: Record<string, string>;
+    fallback?: TokenizerType;
+  }
+
+  export interface TokenizeRequest {
+    messages: Array<{
+      role: string;
+      content: string | Array<{
+        type: string;
+        text?: string;
+        input?: any;
+        content?: string | any;
+      }>;
+    }>;
+    system?: string | Array<{
+      type: string;
+      text?: string | string[];
+    }>;
+    tools?: Array<{
+      name: string;
+      description?: string;
+      input_schema: object;
+    }>;
+  }
+
+  export interface TokenizerResult {
+    tokenCount: number;
+    tokenizerUsed: string;
+    cached: boolean;
+  }
+
+  export class TokenizerService {
+    countTokens(request: TokenizeRequest, config?: TokenizerConfig): Promise<TokenizerResult>;
+    getTokenizerConfigForModel(providerName: string, modelName: string): TokenizerConfig | undefined;
+    clearCache(): void;
+    dispose(): void;
+  }
 }

@@ -6,6 +6,7 @@ import { join } from "path";
 import { CLAUDE_PROJECTS_DIR, HOME_DIR } from "@ccw/shared";
 import { LRUCache } from "lru-cache";
 import { ConfigService } from "../services/config";
+import { TokenizerService } from "../services/tokenizer";
 
 // Types from @anthropic-ai/sdk
 interface Tool {
@@ -200,6 +201,7 @@ const getUseModel = async (
 
 export interface RouterContext {
   configService: ConfigService;
+  tokenizerService?: TokenizerService;
   event?: any;
 }
 
@@ -225,11 +227,37 @@ export const router = async (req: any, _res: any, context: RouterContext) => {
   }
 
   try {
-    const tokenCount = calculateTokenCount(
-      messages as MessageParam[],
-      system,
-      tools as Tool[]
+    // Try to get tokenizer config for the current model
+    const [providerName, modelName] = req.body.model.split(",");
+    const tokenizerConfig = context.tokenizerService?.getTokenizerConfigForModel(
+      providerName,
+      modelName
     );
+
+    // Use TokenizerService if available, otherwise fall back to legacy method
+    let tokenCount: number;
+
+    if (context.tokenizerService) {
+      const result = await context.tokenizerService.countTokens(
+        {
+          messages: messages as MessageParam[],
+          system,
+          tools: tools as Tool[],
+        },
+        tokenizerConfig
+      );
+      tokenCount = result.tokenCount;
+      req.log.debug(
+        `Token count: ${tokenCount} (tokenizer: ${result.tokenizerUsed}, cached: ${result.cached})`
+      );
+    } else {
+      // Legacy fallback
+      tokenCount = calculateTokenCount(
+        messages as MessageParam[],
+        system,
+        tools as Tool[]
+      );
+    }
 
     let model;
     const customRouterPath = configService.get("CUSTOM_ROUTER_PATH");

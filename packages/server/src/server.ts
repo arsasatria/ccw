@@ -1,4 +1,4 @@
-import Server, { calculateTokenCount } from "@musistudio/llms";
+import Server, { calculateTokenCount, TokenizerService } from "@musistudio/llms";
 import { readConfigFile, writeConfigFile, backupConfigFile } from "./utils";
 import { join } from "path";
 import fastifyStatic from "@fastify/static";
@@ -34,7 +34,48 @@ export const createServer = async (config: any): Promise<any> => {
   });
 
   app.post("/v1/messages/count_tokens", async (req: any, reply: any) => {
-    const {messages, tools, system} = req.body;
+    const {messages, tools, system, model} = req.body;
+    const tokenizerService = (app as any)._server!.tokenizerService as TokenizerService;
+
+    // If model is specified in "providerName,modelName" format, use the configured tokenizer
+    if (model && model.includes(",") && tokenizerService) {
+      try {
+        const [provider, modelName] = model.split(",");
+        req.log?.info(`Looking up tokenizer for provider: ${provider}, model: ${modelName}`);
+
+        const tokenizerConfig = tokenizerService.getTokenizerConfigForModel(provider, modelName);
+
+        if (!tokenizerConfig) {
+          req.log?.warn(`No tokenizer config found for ${provider},${modelName}, using default tiktoken`);
+        } else {
+          req.log?.info(`Using tokenizer config: ${JSON.stringify(tokenizerConfig)}`);
+        }
+
+        const result = await tokenizerService.countTokens(
+          { messages, system, tools },
+          tokenizerConfig
+        );
+
+        return {
+          "input_tokens": result.tokenCount,
+          "tokenizer": result.tokenizerUsed,
+        };
+      } catch (error: any) {
+        req.log?.error(`Error using configured tokenizer: ${error.message}`);
+        req.log?.error(error.stack);
+        // Fall back to default calculation
+      }
+    } else {
+      if (!model) {
+        req.log?.info(`No model specified, using default tiktoken`);
+      } else if (!model.includes(",")) {
+        req.log?.info(`Model "${model}" does not contain comma, using default tiktoken`);
+      } else if (!tokenizerService) {
+        req.log?.warn(`TokenizerService not available, using default tiktoken`);
+      }
+    }
+
+    // Default to tiktoken calculation
     const tokenCount = calculateTokenCount(messages, system, tools);
     return { "input_tokens": tokenCount }
   });
