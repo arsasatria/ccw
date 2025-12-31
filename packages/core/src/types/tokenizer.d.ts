@@ -112,6 +112,9 @@ export interface ITokenizer {
   /** Count tokens for a given request */
   countTokens(request: TokenizeRequest): Promise<number>;
 
+  /** Encode text to tokens (for simple text tokenization) */
+  encodeText?(text: string): number[];
+
   /** Check if tokenizer is initialized */
   isInitialized(): boolean;
 

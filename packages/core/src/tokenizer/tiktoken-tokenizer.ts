@@ -99,6 +99,17 @@ export class TiktokenTokenizer implements ITokenizer {
     return this.encoding !== undefined;
   }
 
+  /**
+   * Encode text to tokens (for simple text tokenization)
+   */
+  encodeText(text: string): number[] {
+    const encoding = this.encoding;
+    if (!encoding) {
+      throw new Error("Encoding not initialized");
+    }
+    return Array.from(encoding.encode(text));
+  }
+
   dispose(): void {
     if (this.encoding) {
       this.encoding.free();

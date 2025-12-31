@@ -3,6 +3,7 @@ import readline from "node:readline";
 import JSON5 from "json5";
 import path from "node:path";
 import { createHash } from "node:crypto";
+import os from "node:os";
 import {
   CONFIG_FILE,
   HOME_DIR, PID_FILE,
@@ -12,7 +13,7 @@ import {
   readPresetFile,
 } from "@ccw/shared";
 import { getServer } from "@ccw/server";
-import { writeFileSync, existsSync, readFileSync } from "fs";
+import { writeFileSync, existsSync, readFileSync, mkdirSync } from "fs";
 import { checkForUpdates, performUpdate } from "./update";
 import { version } from "../../package.json";
 import { spawn } from "child_process";
@@ -254,25 +255,35 @@ export const restartService = async () => {
 
 
 /**
- * 获取设置文件的临时路径
- * 对内容进行 hash，如果临时目录中已存在该 hash 的文件则直接返回，否则创建新文件
- * @param content 设置内容字符串
- * @returns 临时文件的完整路径
+ * Get a temporary path for the settings file
+ * Hash the content and return the file path if it already exists in temp directory,
+ * otherwise create a new file with the content
+ * @param content Settings content string
+ * @returns Full path to the temporary file
  */
-export const getSettingsPath = (content: string): string => {
-  // 对内容进行 hash（使用 SHA256 算法）
+export const getSettingsPath = async (content: string): Promise<string> => {
+  // Hash the content using SHA256 algorithm
   const hash = createHash('sha256').update(content, 'utf-8').digest('hex');
 
+  // Create ccw directory in system temp folder
+  const tempDir = path.join(os.tmpdir(), 'ccw');
   const fileName = `ccr-settings-${hash}.json`;
-  const tempFilePath = path.join(HOME_DIR, fileName);
+  const tempFilePath = path.join(tempDir, fileName);
 
-  // 检查文件是否已存在
-  if (existsSync(tempFilePath)) {
-    return tempFilePath;
+  // Ensure the directory exists
+  try {
+    await fs.access(tempDir);
+  } catch {
+    await fs.mkdir(tempDir, { recursive: true });
   }
 
-  // 文件不存在，创建并写入内容
-  writeFileSync(tempFilePath, content, 'utf-8');
-
-  return tempFilePath;
+  // Check if the file already exists
+  try {
+    await fs.access(tempFilePath);
+    return tempFilePath;
+  } catch {
+    // File doesn't exist, create and write content
+    await fs.writeFile(tempFilePath, content, 'utf-8');
+    return tempFilePath;
+  }
 }

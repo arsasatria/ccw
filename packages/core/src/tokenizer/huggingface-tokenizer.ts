@@ -164,6 +164,16 @@ export class HuggingFaceTokenizer implements ITokenizer {
     return this.tokenizer !== null;
   }
 
+  /**
+   * Encode text to tokens (for simple text tokenization)
+   */
+  encodeText(text: string): number[] {
+    if (!this.tokenizer) {
+      throw new Error("Tokenizer not initialized");
+    }
+    return this.tokenizer.encode(text).ids;
+  }
+
   dispose(): void {
     this.tokenizer = null;
   }

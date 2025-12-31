@@ -1,8 +1,8 @@
 import fp from 'fastify-plugin';
 import { CCRPlugin, CCRPluginOptions } from './types';
 import { SSEParserTransform } from '../utils/sse';
-import { Tiktoken } from 'tiktoken';
 import { OutputHandlerConfig, OutputOptions, outputManager } from './output';
+import { ITokenizer, TokenizerConfig } from '../types/tokenizer';
 
 /**
  * Token statistics interface
@@ -44,6 +44,9 @@ interface TokenSpeedOptions extends CCRPluginOptions {
 
 // Store request-level statistics
 const requestStats = new Map<string, TokenStats>();
+
+// Cache tokenizers by provider and model to avoid repeated initialization
+const tokenizerCache = new Map<string, ITokenizer>();
 
 // Cross-request statistics
 const globalStats = {
@@ -94,14 +97,52 @@ export const tokenSpeedPlugin: CCRPlugin = {
       outputManager.setDefaultOptions(opts.outputOptions);
     }
 
-    // Initialize tiktoken encoder
-    let encoding: Tiktoken | null = null;
-    try {
-      const { get_encoding } = await import('tiktoken');
-      encoding = get_encoding('cl100k_base');
-    } catch (error) {
-      fastify.log?.warn('Failed to load tiktoken, falling back to estimation');
-    }
+    /**
+     * Get or create tokenizer for a specific provider and model
+     */
+    const getTokenizerForRequest = async (request: any): Promise<ITokenizer | null> => {
+      const tokenizerService = (fastify as any).tokenizerService;
+      if (!tokenizerService) {
+        fastify.log?.warn('TokenizerService not available');
+        return null;
+      }
+
+      // Extract provider and model from request
+      // Format: "provider,model" or just "model"
+      if (!request.provider || !request.model) {
+        return null;
+      }
+      const providerName = request.provider;
+      const modelName = request.model;
+
+      // Create cache key
+      const cacheKey = `${providerName}:${modelName}`;
+
+      // Check cache first
+      if (tokenizerCache.has(cacheKey)) {
+        return tokenizerCache.get(cacheKey)!;
+      }
+
+      // Get tokenizer config for this model
+      const tokenizerConfig = tokenizerService.getTokenizerConfigForModel(providerName, modelName);
+
+      if (!tokenizerConfig) {
+        // No specific config, use fallback
+        fastify.log?.debug(`No tokenizer config for ${providerName}:${modelName}, using fallback`);
+        return null;
+      }
+
+      try {
+        // Create and cache tokenizer
+        const tokenizer = await tokenizerService.getTokenizer(tokenizerConfig);
+        tokenizerCache.set(cacheKey, tokenizer);
+        fastify.log?.info(`Created tokenizer for ${providerName}:${modelName} - ${tokenizer.name}`);
+        return tokenizer;
+      } catch (error: any) {
+        fastify.log?.warn(`Failed to create tokenizer for ${providerName}:${modelName}: ${error.message}`);
+        return null;
+      }
+    };
 
     // Add onSend hook to intercept streaming responses
     fastify.addHook('onSend', async (request, reply, payload) => {
@@ -122,6 +163,10 @@ export const tokenSpeedPlugin: CCRPlugin = {
         tokensPerSecond: 0,
         contentBlocks: []
       });
+
+      // Get tokenizer for this specific request
+      const tokenizer = await getTokenizerForRequest(request);
+
       // Tee the stream: one for stats, one for the client
       const [originalStream, statsStream] = payload.tee();
 
@@ -156,8 +201,8 @@ export const tokenSpeedPlugin: CCRPlugin = {
             // Detect content_block_delta event (incremental tokens)
             if (data.event === 'content_block_delta' && data.data?.delta?.type === 'text_delta') {
               const text = data.data.delta.text;
-              const tokenCount = encoding
-                ? encoding.encode(text).length
+              const tokenCount = tokenizer
+                ? (tokenizer.encodeText ? tokenizer.encodeText(text).length : estimateTokens(text))
                 : estimateTokens(text);
 
               stats.tokenCount += tokenCount;

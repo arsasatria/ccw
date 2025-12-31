@@ -38,6 +38,7 @@ import { sessionUsageCache } from "./utils/cache";
 declare module "fastify" {
   interface FastifyRequest {
     provider?: string;
+    model?: string;
   }
   interface FastifyInstance {
     _server?: Server;
@@ -226,6 +227,7 @@ class Server {
               const [provider, ...model] = body.model.split(",");
               body.model = model.join(",");
               req.provider = provider;
+              req.model = model;
               return;
             } catch (err) {
               req.log.error({error: err}, "Error in modelProviderMiddleware:");

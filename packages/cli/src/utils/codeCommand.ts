@@ -62,21 +62,20 @@ export async function executeCodeCommand(
     };
   }
 
-  args.push('--settings', getSettingsPath(`${JSON.stringify(settingsFlag)}`));
-  console.log(args)
-
   // Non-interactive mode for automation environments
   if (config.NON_INTERACTIVE_MODE) {
-    env.CI = "true";
-    env.FORCE_COLOR = "0";
-    env.NODE_NO_READLINE = "1";
-    env.TERM = "dumb";
+    settingsFlag.env = {
+      ...settingsFlag.env,
+      CI: "true",
+      FORCE_COLOR: "0",
+      NODE_NO_READLINE: "1",
+      TERM: "dumb"
+    }
   }
 
-  // Set ANTHROPIC_SMALL_FAST_MODEL if it exists in config
-  if (config?.ANTHROPIC_SMALL_FAST_MODEL) {
-    env.ANTHROPIC_SMALL_FAST_MODEL = config.ANTHROPIC_SMALL_FAST_MODEL;
-  }
+  const settingsFile = await getSettingsPath(`${JSON.stringify(settingsFlag)}`)
+
+  args.push('--settings', settingsFile);
 
   // Increment reference count when command starts
   incrementReferenceCount();
