@@ -8,6 +8,15 @@ declare module "@musistudio/llms" {
     logger?: any;
   }
 
+  /**
+   * Plugin configuration from config file
+   */
+  export interface PluginConfig {
+    name: string;
+    enabled?: boolean;
+    options?: Record<string, any>;
+  }
+
   export interface Server {
     app: FastifyInstance;
     logger: FastifyBaseLogger;

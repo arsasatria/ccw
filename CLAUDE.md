@@ -245,6 +245,8 @@ ui (standalone frontend application)
    - cli/server/shared: esbuild
    - ui: Vite + TypeScript
 5. **@musistudio/llms**: This is an external dependency package providing the core server framework and transformer functionality, type definitions in `packages/server/src/types.d.ts`
+6. **Code comments**: All comments in code MUST be written in English
+7. **Documentation**: When implementing new features, add documentation to the docs project instead of creating standalone md files
 
 ## Configuration Example Locations
 

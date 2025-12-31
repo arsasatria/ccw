@@ -4,9 +4,11 @@
   "description": "A universal LLM API transformation server",
   "main": "dist/cjs/server.cjs",
   "module": "dist/esm/server.mjs",
+  "types": "dist/plugins.d.ts",
   "type": "module",
   "exports": {
     ".": {
+      "types": "./dist/plugins.d.ts",
       "import": "./dist/esm/server.mjs",
       "require": "./dist/cjs/server.cjs"
     }
@@ -36,6 +38,7 @@
     "@google/genai": "^1.7.0",
     "dotenv": "^16.5.0",
     "fastify": "^5.4.0",
+    "fastify-plugin": "^5.1.0",
     "google-auth-library": "^10.1.0",
     "json5": "^2.2.3",
     "jsonrepair": "^3.13.0",

@@ -15,6 +15,7 @@ import JSON5 from "json5";
 import { IAgent, ITool } from "./agents/type";
 import agentsManager from "./agents";
 import { EventEmitter } from "node:events";
+import { pluginManager, tokenSpeedPlugin } from "@musistudio/llms";
 
 const event = new EventEmitter()
 
@@ -41,6 +42,44 @@ async function initializeClaudeConfig() {
 interface RunOptions {
   port?: number;
   logger?: any;
+}
+
+/**
+ * Plugin configuration from config file
+ */
+interface PluginConfig {
+  name: string;
+  enabled?: boolean;
+  options?: Record<string, any>;
+}
+
+/**
+ * Register plugins from configuration
+ * @param serverInstance Server instance
+ * @param config Application configuration
+ */
+async function registerPluginsFromConfig(serverInstance: any, config: any): Promise<void> {
+  // Get plugins configuration from config file
+  const pluginsConfig: PluginConfig[] = config.plugins || config.Plugins || [];
+
+  for (const pluginConfig of pluginsConfig) {
+      const { name, enabled = false, options = {} } = pluginConfig;
+
+      switch (name) {
+        case 'token-speed':
+          pluginManager.registerPlugin(tokenSpeedPlugin, {
+            enabled,
+            ...options
+          });
+          break;
+
+        default:
+          console.warn(`Unknown plugin: ${name}`);
+          break;
+      }
+    }
+  // Enable all registered plugins
+  await pluginManager.enablePlugins(serverInstance);
 }
 
 async function getServer(options: RunOptions = {}) {
@@ -140,6 +179,9 @@ async function getServer(options: RunOptions = {}) {
   await Promise.allSettled(
       presets.map(async preset => await serverInstance.registerNamespace(`/preset/${preset.name}`, preset.config))
   )
+
+  // Register and configure plugins from config
+  await registerPluginsFromConfig(serverInstance, config);
 
   // Add async preHandler hook for authentication
   serverInstance.addHook("preHandler", async (req: any, reply: any) => {
@@ -404,6 +446,7 @@ export { getServer };
 export type { RunOptions };
 export type { IAgent, ITool } from "./agents/type";
 export { initDir, initConfig, readConfigFile, writeConfigFile, backupConfigFile } from "./utils";
+export { pluginManager, tokenSpeedPlugin } from "@musistudio/llms";
 
 // Start service if this file is run directly
 if (require.main === module) {
