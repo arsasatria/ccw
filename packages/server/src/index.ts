@@ -69,6 +69,12 @@ async function registerPluginsFromConfig(serverInstance: any, config: any): Prom
         case 'token-speed':
           pluginManager.registerPlugin(tokenSpeedPlugin, {
             enabled,
+            outputHandlers: [
+              {
+                type: 'temp-file',
+                enabled: true
+              }
+            ],
             ...options
           });
           break;

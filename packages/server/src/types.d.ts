@@ -118,4 +118,46 @@ declare module "@musistudio/llms" {
     clearCache(): void;
     dispose(): void;
   }
+
+  // Token speed statistics types
+  export interface TokenStats {
+    requestId: string;
+    startTime: number;
+    firstTokenTime?: number;
+    lastTokenTime: number;
+    tokenCount: number;
+    tokensPerSecond: number;
+    timeToFirstToken?: number;
+    contentBlocks: {
+      index: number;
+      tokenCount: number;
+      speed: number;
+    }[];
+  }
+
+  export function getTokenSpeedStats(): {
+    current: TokenStats | null;
+    global: {
+      totalRequests: number;
+      totalTokens: number;
+      totalTime: number;
+      avgTokensPerSecond: number;
+      minTokensPerSecond: number;
+      maxTokensPerSecond: number;
+      avgTimeToFirstToken: number;
+      allSpeeds: number[];
+    };
+    lastUpdate: number;
+  };
+
+  export function getGlobalTokenSpeedStats(): {
+    totalRequests: number;
+    totalTokens: number;
+    totalTime: number;
+    avgTokensPerSecond: number;
+    minTokensPerSecond: number;
+    maxTokensPerSecond: number;
+    avgTimeToFirstToken: number;
+    allSpeeds: number[];
+  };
 }

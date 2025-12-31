@@ -51,6 +51,7 @@ const MODULE_TYPES = [
   { label: "gitBranch", value: "gitBranch" },
   { label: "model", value: "model" },
   { label: "usage", value: "usage" },
+  { label: "speed", value: "speed" },
   { label: "script", value: "script" },
 ];
 
@@ -934,6 +935,14 @@ export function StatusLineConfigDialog({
                           icon: "📊",
                           text: "{{inputTokens}} → {{outputTokens}}",
                           color: "bright_magenta",
+                        };
+                        break;
+                      case "speed":
+                        newModule = {
+                          type: "speed",
+                          icon: "⚡",
+                          text: "{{tokenSpeed}}",
+                          color: "bright_green",
                         };
                         break;
                       case "script":

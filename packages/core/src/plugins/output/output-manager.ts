@@ -1,6 +1,7 @@
 import { OutputHandler, OutputOptions, OutputHandlerConfig } from './types';
 import { ConsoleOutputHandler } from './console-handler';
 import { WebhookOutputHandler } from './webhook-handler';
+import { TempFileOutputHandler } from './temp-file-handler';
 
 /**
  * Output manager
@@ -50,6 +51,9 @@ class OutputManager {
 
       case 'webhook':
         return new WebhookOutputHandler(config.config as any);
+
+      case 'temp-file':
+        return new TempFileOutputHandler(config.config as any);
 
       // Reserved for other output handler types
       // case 'websocket':

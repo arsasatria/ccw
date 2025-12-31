@@ -136,13 +136,38 @@ export interface WebSocketOutputConfig {
 }
 
 /**
+ * Temp file output handler configuration
+ */
+export interface TempFileOutputConfig {
+  /**
+   * Subdirectory under system temp directory (default: 'ccw')
+   */
+  subdirectory?: string;
+
+  /**
+   * File extension (default: 'json')
+   */
+  extension?: string;
+
+  /**
+   * Whether to include timestamp in filename (default: true)
+   */
+  includeTimestamp?: boolean;
+
+  /**
+   * Custom prefix for temp files (default: 'session')
+   */
+  prefix?: string;
+}
+
+/**
  * Output handler registration configuration
  */
 export interface OutputHandlerConfig {
   /**
    * Output handler type
    */
-  type: 'console' | 'webhook' | 'websocket';
+  type: 'console' | 'webhook' | 'websocket' | 'temp-file';
 
   /**
    * Whether enabled
@@ -152,5 +177,5 @@ export interface OutputHandlerConfig {
   /**
    * Configuration options
    */
-  config?: ConsoleOutputConfig | WebhookOutputConfig | WebSocketOutputConfig;
+  config?: ConsoleOutputConfig | WebhookOutputConfig | WebSocketOutputConfig | TempFileOutputConfig;
 }

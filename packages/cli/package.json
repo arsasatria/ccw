@@ -17,20 +17,18 @@
   ],
   "author": "musistudio",
   "license": "MIT",
-  "dependencies": {
+  "devDependencies": {
     "@ccw/server": "workspace:*",
     "@ccw/shared": "workspace:*",
     "@inquirer/prompts": "^5.0.0",
-    "adm-zip": "^0.5.16",
-    "archiver": "^7.0.1",
-    "find-process": "^2.0.0",
-    "minimist": "^1.2.8",
-    "openurl": "^1.1.1"
-  },
-  "devDependencies": {
     "@types/archiver": "^7.0.0",
     "@types/node": "^24.0.15",
+    "adm-zip": "^0.5.16",
+    "archiver": "^7.0.1",
     "esbuild": "^0.25.1",
+    "find-process": "^2.0.0",
+    "minimist": "^1.2.8",
+    "openurl": "^1.1.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.2"
   }

@@ -9,26 +9,27 @@ import { ITokenizer, TokenizerConfig } from '../types/tokenizer';
  */
 interface TokenStats {
   requestId: string;
+  sessionId?: string;
   startTime: number;
   firstTokenTime?: number;
   lastTokenTime: number;
   tokenCount: number;
   tokensPerSecond: number;
   timeToFirstToken?: number;
-  contentBlocks: {
-    index: number;
-    tokenCount: number;
-    speed: number;
-  }[];
+  stream: boolean; // Whether this is a streaming request
+  tokenTimestamps: number[]; // Store timestamps of each token for per-second calculation
 }
 
 /**
  * Plugin options
  */
 interface TokenSpeedOptions extends CCRPluginOptions {
-  logInterval?: number; // Log every N tokens
-  enableCrossRequestStats?: boolean; // Enable cross-request statistics
-  statsWindow?: number; // Statistics window size (last N requests)
+  /**
+   * Reporter type(s) to use for output
+   * Can be a single type or an array of types: 'console' | 'temp-file' | 'webhook'
+   * Default: ['console', 'temp-file']
+   */
+  reporter?: string | string[];
 
   /**
    * Output handler configurations
@@ -48,18 +49,6 @@ const requestStats = new Map<string, TokenStats>();
 // Cache tokenizers by provider and model to avoid repeated initialization
 const tokenizerCache = new Map<string, ITokenizer>();
 
-// Cross-request statistics
-const globalStats = {
-  totalRequests: 0,
-  totalTokens: 0,
-  totalTime: 0,
-  avgTokensPerSecond: 0,
-  minTokensPerSecond: Infinity,
-  maxTokensPerSecond: 0,
-  avgTimeToFirstToken: 0,
-  allSpeeds: [] as number[] // Used for calculating percentiles
-};
-
 /**
  * Token speed measurement plugin
  */
@@ -71,25 +60,50 @@ export const tokenSpeedPlugin: CCRPlugin = {
   // Use fp() to break encapsulation and apply hooks globally
   register: fp(async (fastify, options: TokenSpeedOptions) => {
     const opts = {
-      logInterval: 10,
-      enableCrossRequestStats: true,
-      statsWindow: 100,
+      reporter: ['console', 'temp-file'],
       ...options
     };
 
-    // Initialize output handlers
+    // Normalize reporter to array
+    const reporters = Array.isArray(opts.reporter) ? opts.reporter : [opts.reporter];
+
+    // Initialize output handlers based on reporters if not explicitly configured
     if (opts.outputHandlers && opts.outputHandlers.length > 0) {
       outputManager.registerHandlers(opts.outputHandlers);
     } else {
-      // Default to console output if no handlers configured
-      outputManager.registerHandlers([{
-        type: 'console',
-        enabled: true,
-        config: {
-          colors: true,
-          level: 'log'
+      // Auto-register handlers based on reporter types
+      const handlersToRegister: OutputHandlerConfig[] = [];
+
+      for (const reporter of reporters) {
+        if (reporter === 'console') {
+          handlersToRegister.push({
+            type: 'console',
+            enabled: true,
+            config: {
+              colors: true,
+              level: 'log'
+            }
+          });
+        } else if (reporter === 'temp-file') {
+          handlersToRegister.push({
+            type: 'temp-file',
+            enabled: true,
+            config: {
+              subdirectory: 'ccw',
+              extension: 'json',
+              includeTimestamp: true,
+              prefix: 'session'
+            }
+          });
+        } else if (reporter === 'webhook') {
+          // Webhook requires explicit config, skip auto-registration
+          console.warn(`[TokenSpeedPlugin] Webhook reporter requires explicit configuration in outputHandlers`);
         }
-      }]);
+      }
+
+      if (handlersToRegister.length > 0) {
+        outputManager.registerHandlers(handlersToRegister);
+      }
     }
 
     // Set default output options
@@ -144,181 +158,242 @@ export const tokenSpeedPlugin: CCRPlugin = {
       }
     };
 
-    // Add onSend hook to intercept streaming responses
-    fastify.addHook('onSend', async (request, reply, payload) => {
-      // Only handle streaming responses
-      if (!(payload instanceof ReadableStream)) {
-        return payload;
-      }
+    // Add onRequest hook to capture actual request start time (before processing)
+    fastify.addHook('onRequest', async (request) => {
+      (request as any).requestStartTime = performance.now();
+    });
 
+    // Add onSend hook to intercept both streaming and non-streaming responses
+    fastify.addHook('onSend', async (request, _reply, payload) => {
       const requestId = (request as any).id || Date.now().toString();
-      const startTime = Date.now();
+      const startTime = (request as any).requestStartTime || performance.now();
 
-      // Initialize statistics
-      requestStats.set(requestId, {
-        requestId,
-        startTime,
-        lastTokenTime: startTime,
-        tokenCount: 0,
-        tokensPerSecond: 0,
-        contentBlocks: []
-      });
+      // Extract session ID from request body metadata
+      let sessionId: string | undefined;
+      try {
+        const userId = (request.body as any)?.metadata?.user_id;
+        if (userId && typeof userId === 'string') {
+          const match = userId.match(/_session_([a-f0-9-]+)/i);
+          sessionId = match ? match[1] : undefined;
+        }
+      } catch (error) {
+        // Ignore errors extracting session ID
+      }
 
       // Get tokenizer for this specific request
       const tokenizer = await getTokenizerForRequest(request);
 
-      // Tee the stream: one for stats, one for the client
-      const [originalStream, statsStream] = payload.tee();
+      // Handle streaming responses
+      if (payload instanceof ReadableStream) {
+        // Mark this request as streaming
+        requestStats.set(requestId, {
+          requestId,
+          sessionId,
+          startTime,
+          lastTokenTime: startTime,
+          tokenCount: 0,
+          tokensPerSecond: 0,
+          tokenTimestamps: [],
+          stream: true
+        });
 
-      // Process stats in background
-      const processStats = async () => {
-        let currentBlockIndex = -1;
-        let blockStartTime = 0;
-        let blockTokenCount = 0;
+        // Tee the stream: one for stats, one for the client
+        const [originalStream, statsStream] = payload.tee();
 
-        try {
-          // Decode byte stream to text, then parse SSE events
-          const eventStream = statsStream
-            .pipeThrough(new TextDecoderStream())
-            .pipeThrough(new SSEParserTransform());
-          const reader = eventStream.getReader();
+        // Process stats in background
+        const processStats = async () => {
+          let outputTimer: NodeJS.Timeout | null = null;
 
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-
-            const data = value;
+          // Output stats function - calculate current speed using sliding window
+          const doOutput = async (isFinal: boolean) => {
             const stats = requestStats.get(requestId);
-            if (!stats) continue;
+            if (!stats) return;
 
-            // Detect content_block_start event
-            if (data.event === 'content_block_start' && data.data?.content_block?.type === 'text') {
-              currentBlockIndex = data.data.index;
-              blockStartTime = Date.now();
-              blockTokenCount = 0;
-            }
+            const now = performance.now();
 
-            // Detect content_block_delta event (incremental tokens)
-            if (data.event === 'content_block_delta' && data.data?.delta?.type === 'text_delta') {
-              const text = data.data.delta.text;
-              const tokenCount = tokenizer
-                ? (tokenizer.encodeText ? tokenizer.encodeText(text).length : estimateTokens(text))
-                : estimateTokens(text);
-
-              stats.tokenCount += tokenCount;
-              stats.lastTokenTime = Date.now();
-
-              // Record first token time
-              if (!stats.firstTokenTime) {
-                stats.firstTokenTime = stats.lastTokenTime;
-                stats.timeToFirstToken = stats.firstTokenTime - stats.startTime;
-              }
-
-              // Calculate current block token count
-              if (currentBlockIndex >= 0) {
-                blockTokenCount += tokenCount;
-              }
-
-              // Calculate speed
-              const elapsed = (stats.lastTokenTime - stats.startTime) / 1000;
-              stats.tokensPerSecond = stats.tokenCount / elapsed;
-
-              // Log periodically
-              if (stats.tokenCount % opts.logInterval === 0) {
-                await outputStats(stats, opts.outputOptions);
+            if (!isFinal) {
+              // For streaming output, use sliding window: count tokens in last 1 second
+              const oneSecondAgo = now - 1000;
+              stats.tokenTimestamps = stats.tokenTimestamps.filter(ts => ts > oneSecondAgo);
+              stats.tokensPerSecond = stats.tokenTimestamps.length;
+            } else {
+              // For final output, use average speed over entire request
+              const duration = (stats.lastTokenTime - stats.startTime) / 1000; // seconds
+              if (duration > 0) {
+                stats.tokensPerSecond = Math.round(stats.tokenCount / duration);
               }
             }
 
-            // Detect content_block_stop event
-            if (data.event === 'content_block_stop' && currentBlockIndex >= 0) {
-              const blockElapsed = (Date.now() - blockStartTime) / 1000;
-              const blockSpeed = blockElapsed > 0 ? blockTokenCount / blockElapsed : 0;
+            await outputStats(stats, reporters, opts.outputOptions, isFinal).catch(err => {
+              fastify.log?.warn(`Failed to output streaming stats: ${err.message}`);
+            });
+          };
 
-              stats.contentBlocks.push({
-                index: currentBlockIndex,
-                tokenCount: blockTokenCount,
-                speed: blockSpeed
-              });
+          try {
+            // Decode byte stream to text, then parse SSE events
+            const eventStream = statsStream
+              .pipeThrough(new TextDecoderStream())
+              .pipeThrough(new SSEParserTransform());
+            const reader = eventStream.getReader();
 
-              currentBlockIndex = -1;
+            // Start timer immediately - output every 1 second
+            outputTimer = setInterval(async () => {
+              const stats = requestStats.get(requestId);
+              if (stats) {
+                await doOutput(false);
+              }
+            }, 1000);
+
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              const data = value;
+              const stats = requestStats.get(requestId);
+              if (!stats) continue;
+
+              const now = performance.now();
+
+              // Record first token time when we receive any content-related event
+              // This includes: content_block_start, content_block_delta, text_block
+              if (!stats.firstTokenTime && (
+                data.event === 'content_block_start' ||
+                data.event === 'content_block_delta' ||
+                data.event === 'text_block' ||
+                data.event === 'content_block'
+              )) {
+                stats.firstTokenTime = now;
+                stats.timeToFirstToken = Math.round(now - stats.startTime);
+              }
+
+              // Detect content_block_delta event (incremental tokens)
+              // Support multiple delta types: text_delta, input_json_delta, thinking_delta
+              if (data.event === 'content_block_delta' && data.data?.delta) {
+                const deltaType = data.data.delta.type;
+                let text = '';
+
+                // Extract text based on delta type
+                if (deltaType === 'text_delta') {
+                  text = data.data.delta.text || '';
+                } else if (deltaType === 'input_json_delta') {
+                  text = data.data.delta.partial_json || '';
+                } else if (deltaType === 'thinking_delta') {
+                  text = data.data.delta.thinking || '';
+                }
+
+                // Calculate tokens if we have text content
+                if (text) {
+                  const tokenCount = tokenizer
+                    ? (tokenizer.encodeText ? tokenizer.encodeText(text).length : estimateTokens(text))
+                    : estimateTokens(text);
+
+                  stats.tokenCount += tokenCount;
+                  stats.lastTokenTime = now;
+
+                  // Record timestamps for each token (for sliding window calculation)
+                  for (let i = 0; i < tokenCount; i++) {
+                    stats.tokenTimestamps.push(now);
+                  }
+                }
+              }
+
+              // Output final statistics when message ends
+              if (data.event === 'message_stop') {
+                // Clear timer
+                if (outputTimer) {
+                  clearInterval(outputTimer);
+                  outputTimer = null;
+                }
+
+                await doOutput(true);
+
+                requestStats.delete(requestId);
+              }
             }
-
-            // Output final statistics when message ends
-            if (data.event === 'message_stop') {
-              // Update global statistics
-              if (opts.enableCrossRequestStats) {
-                updateGlobalStats(stats, opts.statsWindow);
-              }
-
-              await outputStats(stats, opts.outputOptions, true);
-
-              if (opts.enableCrossRequestStats) {
-                await outputGlobalStats(opts.outputOptions);
-              }
-
-              requestStats.delete(requestId);
+          } catch (error: any) {
+            // Clean up timer on error
+            if (outputTimer) {
+              clearInterval(outputTimer);
+            }
+            if (error.name !== 'AbortError' && error.code !== 'ERR_STREAM_PREMATURE_CLOSE') {
+              fastify.log?.warn(`Error processing token stats: ${error.message}`);
             }
           }
-        } catch (error: any) {
-          console.error(error);
-          if (error.name !== 'AbortError' && error.code !== 'ERR_STREAM_PREMATURE_CLOSE') {
-            fastify.log?.warn(`Error processing token stats: ${error.message}`);
+        };
+
+        // Start background processing without blocking
+        processStats().catch((error) => {
+          console.log(error);
+          fastify.log?.warn(`Background stats processing failed: ${error.message}`);
+        });
+
+        // Return original stream to client
+        return originalStream;
+      }
+
+      // Handle non-streaming responses
+      // Try to extract token count from the response payload
+      const endTime = performance.now();
+      let tokenCount = 0;
+
+      // Payload should be a string or object for non-streaming responses
+      if (payload && typeof payload === 'string') {
+        try {
+          const response = JSON.parse(payload);
+
+          // Prefer usage.output_tokens if available (most accurate)
+          if (response.usage?.output_tokens) {
+            tokenCount = response.usage.output_tokens;
+          } else {
+            // Fallback: calculate from content
+            const content = response.content || response.message?.content || '';
+
+            if (tokenizer) {
+              if (Array.isArray(content)) {
+                tokenCount = content.reduce((sum: number, block: any) => {
+                  if (block.type === 'text') {
+                    const text = block.text || '';
+                    return sum + (tokenizer.encodeText ? tokenizer.encodeText(text).length : estimateTokens(text));
+                  }
+                  return sum;
+                }, 0);
+              } else if (typeof content === 'string') {
+                tokenCount = tokenizer.encodeText ? tokenizer.encodeText(content).length : estimateTokens(content);
+              }
+            } else {
+              const text = Array.isArray(content) ? content.map((c: any) => c.text).join('') : content;
+              tokenCount = estimateTokens(text);
+            }
           }
+        } catch (error) {
+          // Could not parse or extract tokens
         }
-      };
+      }
 
-      // Start background processing without blocking
-      processStats().catch((error) => {
-        console.log(error);
-        fastify.log?.warn(`Background stats processing failed: ${error.message}`);
-      });
+      // Only output stats if we found tokens
+      if (tokenCount > 0) {
+        const duration = (endTime - startTime) / 1000; // seconds
 
-      // Return original stream to client
-      return originalStream;
+        const stats: TokenStats = {
+          requestId,
+          sessionId,
+          startTime,
+          lastTokenTime: endTime,
+          tokenCount,
+          tokensPerSecond: duration > 0 ? Math.round(tokenCount / duration) : 0,
+          timeToFirstToken: Math.round(endTime - startTime),
+          stream: false,
+          tokenTimestamps: []
+        };
+
+        await outputStats(stats, reporters, opts.outputOptions, true);
+      }
+
+      // Return payload as-is
+      return payload;
     });
   }),
 };
-
-/**
- * Update global statistics
- */
-function updateGlobalStats(stats: TokenStats, windowSize: number) {
-  globalStats.totalRequests++;
-  globalStats.totalTokens += stats.tokenCount;
-  globalStats.totalTime += (stats.lastTokenTime - stats.startTime) / 1000;
-
-  if (stats.tokensPerSecond < globalStats.minTokensPerSecond) {
-    globalStats.minTokensPerSecond = stats.tokensPerSecond;
-  }
-  if (stats.tokensPerSecond > globalStats.maxTokensPerSecond) {
-    globalStats.maxTokensPerSecond = stats.tokensPerSecond;
-  }
-
-  if (stats.timeToFirstToken) {
-    globalStats.avgTimeToFirstToken =
-      (globalStats.avgTimeToFirstToken * (globalStats.totalRequests - 1) + stats.timeToFirstToken) /
-      globalStats.totalRequests;
-  }
-
-  globalStats.allSpeeds.push(stats.tokensPerSecond);
-
-  // Maintain window size
-  if (globalStats.allSpeeds.length > windowSize) {
-    globalStats.allSpeeds.shift();
-  }
-
-  globalStats.avgTokensPerSecond = globalStats.totalTokens / globalStats.totalTime;
-}
-
-/**
- * Calculate percentile
- */
-function calculatePercentile(data: number[], percentile: number): number {
-  if (data.length === 0) return 0;
-  const sorted = [...data].sort((a, b) => a - b);
-  const index = Math.ceil((percentile / 100) * sorted.length) - 1;
-  return sorted[index];
-}
 
 /**
  * Estimate token count (fallback method)
@@ -333,63 +408,39 @@ function estimateTokens(text: string): number {
 /**
  * Output single request statistics
  */
-async function outputStats(stats: TokenStats, options?: OutputOptions, isFinal = false) {
+async function outputStats(
+  stats: TokenStats,
+  reporters: string[],
+  options?: OutputOptions,
+  isFinal = false
+) {
   const prefix = isFinal ? '[Token Speed Final]' : '[Token Speed]';
-
-  // Calculate average speed of each block
-  const avgBlockSpeed = stats.contentBlocks.length > 0
-    ? stats.contentBlocks.reduce((sum, b) => sum + b.speed, 0) / stats.contentBlocks.length
-    : 0;
 
   const logData = {
     requestId: stats.requestId.substring(0, 8),
+    sessionId: stats.sessionId,
+    stream: stats.stream,
     tokenCount: stats.tokenCount,
-    tokensPerSecond: stats.tokensPerSecond.toFixed(2),
+    tokensPerSecond: stats.tokensPerSecond,
     timeToFirstToken: stats.timeToFirstToken ? `${stats.timeToFirstToken}ms` : 'N/A',
     duration: `${((stats.lastTokenTime - stats.startTime) / 1000).toFixed(2)}s`,
-    contentBlocks: stats.contentBlocks.length,
-    avgBlockSpeed: avgBlockSpeed.toFixed(2),
-    ...(isFinal && stats.contentBlocks.length > 1 ? {
-      blocks: stats.contentBlocks.map(b => ({
-        index: b.index,
-        tokenCount: b.tokenCount,
-        speed: b.speed.toFixed(2)
-      }))
-    } : {})
+    timestamp: Date.now()
   };
 
-  // Output through output manager
-  await outputManager.output(logData, {
+  const outputOptions = {
     prefix,
+    metadata: {
+      sessionId: stats.sessionId
+    },
     ...options
-  });
-}
-
-/**
- * Output global statistics
- */
-async function outputGlobalStats(options?: OutputOptions) {
-  const p50 = calculatePercentile(globalStats.allSpeeds, 50);
-  const p95 = calculatePercentile(globalStats.allSpeeds, 95);
-  const p99 = calculatePercentile(globalStats.allSpeeds, 99);
-
-  const logData = {
-    totalRequests: globalStats.totalRequests,
-    totalTokens: globalStats.totalTokens,
-    avgTokensPerSecond: globalStats.avgTokensPerSecond.toFixed(2),
-    minSpeed: globalStats.minTokensPerSecond === Infinity ? 0 : globalStats.minTokensPerSecond.toFixed(2),
-    maxSpeed: globalStats.maxTokensPerSecond.toFixed(2),
-    avgTimeToFirstToken: `${globalStats.avgTimeToFirstToken.toFixed(0)}ms`,
-    percentiles: {
-      p50: p50.toFixed(2),
-      p95: p95.toFixed(2),
-      p99: p99.toFixed(2)
-    }
   };
 
-  // Output through output manager
-  await outputManager.output(logData, {
-    prefix: '[Token Speed Global Stats]',
-    ...options
-  });
+  // Output to each specified reporter type
+  for (const reporter of reporters) {
+    try {
+      await outputManager.outputToType(reporter, logData, outputOptions);
+    } catch (error) {
+      console.error(`[TokenSpeedPlugin] Failed to output to ${reporter}:`, error);
+    }
+  }
 }

@@ -4,6 +4,7 @@ export * from './types';
 // Output handler implementations
 export { ConsoleOutputHandler } from './console-handler';
 export { WebhookOutputHandler } from './webhook-handler';
+export { TempFileOutputHandler } from './temp-file-handler';
 
 // Output manager
 export { outputManager, output, outputTo } from './output-manager';
@@ -32,6 +33,20 @@ export function registerWebhookOutput(config: import('./types').WebhookOutputCon
   const handler = new WebhookOutputHandler(config);
   const { outputManager } = require('./output-manager');
   const name = 'webhook_' + Date.now();
+  outputManager.registerHandler(name, handler);
+  return outputManager;
+}
+
+/**
+ * Convenience function: Create and register a Temp File output handler
+ * @param config Temp file output handler configuration
+ * @returns Output manager instance
+ */
+export function registerTempFileOutput(config?: import('./types').TempFileOutputConfig) {
+  const { TempFileOutputHandler } = require('./temp-file-handler');
+  const handler = new TempFileOutputHandler(config);
+  const { outputManager } = require('./output-manager');
+  const name = 'temp-file_' + Date.now();
   outputManager.registerHandler(name, handler);
   return outputManager;
 }

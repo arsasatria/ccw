@@ -4,7 +4,8 @@ export const apiKeyAuth =
   (config: any) =>
   async (req: FastifyRequest, reply: FastifyReply, done: () => void) => {
     // Public endpoints that don't require authentication
-    if (["/", "/health"].includes(req.url) || req.url.startsWith("/ui")) {
+    const publicPaths = ["/", "/health"];
+    if (publicPaths.includes(req.url) || req.url.startsWith("/ui")) {
       return done();
     }
 
