@@ -1,8 +1,5 @@
-import { get_encoding, Tiktoken } from "tiktoken";
-import {
-  ITokenizer,
-  TokenizeRequest,
-} from "../types/tokenizer";
+import { get_encoding, Tiktoken, TiktokenEncoding } from "tiktoken";
+import type { ITokenizer, TokenizeRequest } from "../types/tokenizer";
 
 /**
  * Tiktoken-based tokenizer implementation
@@ -12,10 +9,8 @@ export class TiktokenTokenizer implements ITokenizer {
   readonly type = "tiktoken";
   readonly name: string;
   private encoding?: Tiktoken;
-  private encodingName: string;
 
-  constructor(encodingName: string = "cl100k_base") {
-    this.encodingName = encodingName;
+  constructor(encodingName: TiktokenEncoding = "cl100k_base") {
     this.name = `tiktoken-${encodingName}`;
     try {
       this.encoding = get_encoding(encodingName);
@@ -32,7 +27,8 @@ export class TiktokenTokenizer implements ITokenizer {
   }
 
   async countTokens(request: TokenizeRequest): Promise<number> {
-    if (!this.encoding) {
+    const encoding = this.encoding;
+    if (!encoding) {
       throw new Error("Encoding not initialized");
     }
 
@@ -43,13 +39,13 @@ export class TiktokenTokenizer implements ITokenizer {
     if (Array.isArray(messages)) {
       messages.forEach((message) => {
         if (typeof message.content === "string") {
-          tokenCount += this.encoding!.encode(message.content).length;
+          tokenCount += encoding.encode(message.content).length;
         } else if (Array.isArray(message.content)) {
           message.content.forEach((contentPart: any) => {
             if (contentPart.type === "text") {
-              tokenCount += this.encoding!.encode(contentPart.text).length;
+              tokenCount += encoding.encode(contentPart.text).length;
             } else if (contentPart.type === "tool_use") {
-              tokenCount += this.encoding!.encode(
+              tokenCount += encoding.encode(
                 JSON.stringify(contentPart.input)
               ).length;
             } else if (contentPart.type === "tool_result") {
@@ -57,7 +53,7 @@ export class TiktokenTokenizer implements ITokenizer {
                 typeof contentPart.content === "string"
                   ? contentPart.content
                   : JSON.stringify(contentPart.content);
-              tokenCount += this.encoding!.encode(content).length;
+              tokenCount += encoding.encode(content).length;
             }
           });
         }
@@ -66,15 +62,15 @@ export class TiktokenTokenizer implements ITokenizer {
 
     // Count system
     if (typeof system === "string") {
-      tokenCount += this.encoding.encode(system).length;
+      tokenCount += encoding.encode(system).length;
     } else if (Array.isArray(system)) {
       system.forEach((item: any) => {
         if (item.type !== "text") return;
         if (typeof item.text === "string") {
-          tokenCount += this.encoding.encode(item.text).length;
+          tokenCount += encoding.encode(item.text).length;
         } else if (Array.isArray(item.text)) {
           item.text.forEach((textPart: any) => {
-            tokenCount += this.encoding.encode(textPart || "").length;
+            tokenCount += encoding.encode(textPart || "").length;
           });
         }
       });
@@ -84,12 +80,12 @@ export class TiktokenTokenizer implements ITokenizer {
     if (tools) {
       tools.forEach((tool: any) => {
         if (tool.description) {
-          tokenCount += this.encoding.encode(
+          tokenCount += encoding.encode(
             tool.name + tool.description
           ).length;
         }
         if (tool.input_schema) {
-          tokenCount += this.encoding.encode(
+          tokenCount += encoding.encode(
             JSON.stringify(tool.input_schema)
           ).length;
         }
