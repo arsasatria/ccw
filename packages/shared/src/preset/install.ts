@@ -7,7 +7,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import JSON5 from 'json5';
 import AdmZip from 'adm-zip';
-import { PresetFile, MergeStrategy, RequiredInput, ManifestFile, PresetInfo, PresetMetadata } from './types';
+import { PresetFile, ManifestFile, PresetInfo, PresetMetadata } from './types';
 import { HOME_DIR, PRESETS_DIR } from '../constants';
 import { loadConfigFromManifest } from './schema';
 
@@ -236,48 +236,27 @@ export async function downloadPresetToTemp(url: string): Promise<string> {
   const tempDir = getTempDir();
   await fs.mkdir(tempDir, { recursive: true });
 
-  const tempFile = path.join(tempDir, `preset-${Date.now()}.ccrsets`);
+  const tempFile = path.join(tempDir, `preset-${Date.now()}.zip`);
   await fs.writeFile(tempFile, Buffer.from(buffer));
 
   return tempFile;
 }
 
 /**
- * Load preset from local ZIP file
- * @param zipFile ZIP file path
- * @returns PresetFile
- */
-export async function loadPresetFromZip(zipFile: string): Promise<PresetFile> {
-  const zip = new AdmZip(zipFile);
-  const entry = zip.getEntry('manifest.json');
-  if (!entry) {
-    throw new Error('Invalid preset file: manifest.json not found');
-  }
-  const manifest = JSON5.parse(entry.getData().toString('utf-8')) as ManifestFile;
-  return manifestToPresetFile(manifest);
-}
-
-/**
  * Load preset file
- * @param source Preset source (file path, URL, or preset name)
+ * @param source Preset source (preset name or directory path)
  */
 export async function loadPreset(source: string): Promise<PresetFile> {
-  // Check if it's a URL
-  if (source.startsWith('http://') || source.startsWith('https://')) {
-    const tempFile = await downloadPresetToTemp(source);
-    const preset = await loadPresetFromZip(tempFile);
-    // Delete temp file
-    await fs.unlink(tempFile).catch(() => {});
-    return preset;
-  }
-
   // Check if it's absolute or relative path (contains / or \)
   if (source.includes('/') || source.includes('\\')) {
-    // File path
-    return await loadPresetFromZip(source);
+    // Directory path - read manifest from directory
+    const manifestPath = path.join(source, 'manifest.json');
+    const content = await fs.readFile(manifestPath, 'utf-8');
+    const manifest = JSON5.parse(content) as ManifestFile;
+    return manifestToPresetFile(manifest);
   }
 
-  // Otherwise treat as preset name (read from extracted directory)
+  // Otherwise treat as preset name (read from presets directory)
   const presetDir = getPresetDir(source);
   const manifest = await readManifestFromDir(presetDir);
   return manifestToPresetFile(manifest);
@@ -368,33 +347,6 @@ export async function saveManifest(presetName: string, manifest: ManifestFile): 
   const presetDir = getPresetDir(presetName);
   const manifestPath = path.join(presetDir, 'manifest.json');
   await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
-}
-
-/**
- * Find preset file
- * @param source Preset source
- * @returns File path or null
- */
-export async function findPresetFile(source: string): Promise<string | null> {
-  // Current directory file
-  const currentDirFile = path.join(process.cwd(), `${source}.ccrsets`);
-
-  // presets directory file
-  const presetsDirFile = path.join(HOME_DIR, 'presets', `${source}.ccrsets`);
-
-  // Check current directory
-  try {
-    await fs.access(currentDirFile);
-    return currentDirFile;
-  } catch {
-    // Check presets directory
-    try {
-      await fs.access(presetsDirFile);
-      return presetsDirFile;
-    } catch {
-      return null;
-    }
-  }
 }
 
 /**

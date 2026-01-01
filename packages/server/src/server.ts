@@ -8,14 +8,14 @@ import {
   getPresetDir,
   readManifestFromDir,
   manifestToPresetFile,
-  extractPreset,
   saveManifest,
   isPresetInstalled,
-  downloadPresetToTemp,
-  getTempDir,
+  extractPreset,
   HOME_DIR,
   extractMetadata,
   loadConfigFromManifest,
+  downloadPresetToTemp,
+  getTempDir,
   type PresetFile,
   type ManifestFile,
   type PresetMetadata,
@@ -285,103 +285,6 @@ export const createServer = async (config: any): Promise<any> => {
     } catch (error: any) {
       console.error("Failed to get preset:", error);
       reply.status(500).send({ error: error.message || "Failed to get preset" });
-    }
-  });
-
-  // Upload and install preset (supports file upload)
-  app.post("/api/presets/install", async (req: any, reply: any) => {
-    try {
-      const { source, name, url } = req.body;
-
-      // If URL is provided, download from URL
-      if (url) {
-        const tempFile = await downloadPresetToTemp(url);
-        const preset = await loadPresetFromZip(tempFile);
-
-        // Determine preset name
-        const presetName = name || preset.metadata?.name || `preset-${Date.now()}`;
-
-        // Check if already installed
-        if (await isPresetInstalled(presetName)) {
-          reply.status(409).send({ error: "Preset already installed" });
-          return;
-        }
-
-        // Extract to target directory
-        const targetDir = getPresetDir(presetName);
-        await extractPreset(tempFile, targetDir);
-
-        // Clean up temp file
-        unlinkSync(tempFile);
-
-        return {
-          success: true,
-          presetName,
-          preset: {
-            ...preset.metadata,
-            installed: true,
-          }
-        };
-      }
-
-      // If no URL, need to handle file upload (using multipart/form-data)
-      // This part requires FormData upload on client side
-      reply.status(400).send({ error: "Please provide a URL or upload a file" });
-    } catch (error: any) {
-      console.error("Failed to install preset:", error);
-      reply.status(500).send({ error: error.message || "Failed to install preset" });
-    }
-  });
-
-  // Upload preset file (multipart/form-data)
-  app.post("/api/presets/upload", async (req: any, reply: any) => {
-    try {
-      const data = await req.file();
-      if (!data) {
-        reply.status(400).send({ error: "No file uploaded" });
-        return;
-      }
-
-      const tempDir = getTempDir();
-      mkdirSync(tempDir, { recursive: true });
-
-      const tempFile = join(tempDir, `preset-${Date.now()}.ccrsets`);
-
-      // Save uploaded file to temp location
-      const buffer = await data.toBuffer();
-      writeFileSync(tempFile, buffer);
-
-      // Load preset
-      const preset = await loadPresetFromZip(tempFile);
-
-      // Determine preset name
-      const presetName = data.fields.name?.value || preset.metadata?.name || `preset-${Date.now()}`;
-
-      // Check if already installed
-      if (await isPresetInstalled(presetName)) {
-        unlinkSync(tempFile);
-        reply.status(409).send({ error: "Preset already installed" });
-        return;
-      }
-
-      // Extract to target directory
-      const targetDir = getPresetDir(presetName);
-      await extractPreset(tempFile, targetDir);
-
-      // Clean up temp file
-      unlinkSync(tempFile);
-
-      return {
-        success: true,
-        presetName,
-        preset: {
-          ...preset.metadata,
-          installed: true,
-        }
-      };
-    } catch (error: any) {
-      console.error("Failed to upload preset:", error);
-      reply.status(500).send({ error: error.message || "Failed to upload preset" });
     }
   });
 

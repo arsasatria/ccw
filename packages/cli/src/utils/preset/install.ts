@@ -13,8 +13,6 @@ import {
   readManifestFromDir,
   manifestToPresetFile,
   saveManifest,
-  extractPreset,
-  findPresetFile,
   isPresetInstalled,
   ManifestFile,
   PresetFile,
@@ -151,53 +149,39 @@ export async function installPresetCli(
   try {
     // Determine preset name
     let presetName = options.name;
-    let sourceZip: string | undefined;
+    let sourceDir: string | undefined;
     let isReconfigure = false; // Whether to reconfigure installed preset
 
-    // Determine source type and get ZIP file path
+    // Determine source type and get directory path
     if (source.startsWith('http://') || source.startsWith('https://')) {
-      // URL: download to temp file
-      if (!presetName) {
-        const urlParts = source.split('/');
-        const filename = urlParts[urlParts.length - 1];
-        presetName = filename.replace('.ccrsets', '');
-      }
-      // downloadPresetToTemp imported from shared package will return temp file
-      // but we'll auto-cleanup in loadPreset, so no need to handle here
-      // Re-download to temp file for extractPreset usage
-      // Since loadPreset already downloaded and deleted, special handling needed here
-      throw new Error('URL installation not fully implemented yet');
+      // URL installation not supported
+      throw new Error('URL installation is not supported. Please download the preset directory and install from local path.');
     } else if (source.includes('/') || source.includes('\\')) {
-      // File path
+      // Directory path
       if (!presetName) {
-        const filename = path.basename(source);
-        presetName = filename.replace('.ccrsets', '');
+        presetName = path.basename(source);
       }
-      // Verify file exists
+      // Verify directory exists
       try {
-        await fs.access(source);
+        const stats = await fs.stat(source);
+        if (!stats.isDirectory()) {
+          throw new Error(`Source is not a directory: ${source}`);
+        }
       } catch {
-        throw new Error(`Preset file not found: ${source}`);
+        throw new Error(`Preset directory not found: ${source}`);
       }
-      sourceZip = source;
+      sourceDir = source;
     } else {
       // Preset name (without path)
       presetName = source;
 
-      // Search files by priority: current directory -> presets directory
-      const presetFile = await findPresetFile(source);
-
-      if (presetFile) {
-        sourceZip = presetFile;
+      // Check if already installed (directory exists)
+      if (await isPresetInstalled(source)) {
+        // Already installed, reconfigure
+        isReconfigure = true;
       } else {
-        // Check if already installed (directory exists)
-        if (await isPresetInstalled(source)) {
-          // Already installed, reconfigure
-          isReconfigure = true;
-        } else {
-          // Neither exists, error
-          throw new Error(`Preset '${source}' not found in current directory or presets directory.`);
-        }
+        // Not found, error
+        throw new Error(`Preset '${source}' not found. Please provide a valid preset directory path.`);
       }
     }
 
@@ -212,17 +196,16 @@ export async function installPresetCli(
       // Apply preset (will ask for sensitive info)
       await applyPresetCli(presetName, preset);
     } else {
-      // New installation: extract to target directory
-      if (!sourceZip) {
-        throw new Error('Source ZIP file is required for installation');
+      // New installation: read from source directory
+      if (!sourceDir) {
+        throw new Error('Source directory is required for installation');
       }
-      const targetDir = getPresetDir(presetName);
-      console.log(`${BOLDCYAN}Extracting preset to:${RESET} ${targetDir}`);
-      await extractPreset(sourceZip, targetDir);
-      console.log(`${GREEN}✓${RESET} Extracted successfully\n`);
 
-      // Read manifest from extracted directory
-      const manifest = await readManifestFromDir(targetDir);
+      console.log(`${BOLDCYAN}Reading preset from:${RESET} ${sourceDir}`);
+      console.log(`${GREEN}✓${RESET} Read successfully\n`);
+
+      // Read manifest from source directory
+      const manifest = await readManifestFromDir(sourceDir);
       const preset = manifestToPresetFile(manifest);
 
       // Apply preset (ask user info, etc.)

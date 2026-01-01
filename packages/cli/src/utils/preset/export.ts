@@ -72,7 +72,7 @@ export async function exportPresetCli(
 
     // 4. Display summary
     console.log(`\n${BOLDGREEN}✓ Preset exported successfully${RESET}\n`);
-    console.log(`${BOLDCYAN}Location:${RESET} ${result.outputPath}\n`);
+    console.log(`${BOLDCYAN}Location:${RESET} ${result.presetDir}\n`);
     console.log(`${BOLDCYAN}Summary:${RESET}`);
     console.log(`  - Providers: ${result.sanitizedConfig.Providers?.length || 0}`);
     console.log(`  - Router rules: ${Object.keys(result.sanitizedConfig.Router || {}).length}`);
@@ -93,9 +93,9 @@ export async function exportPresetCli(
 
     // Display sharing tips
     console.log(`\n${BOLDCYAN}To share this preset:${RESET}`);
-    console.log(`  1. Share the file: ${result.outputPath}`);
+    console.log(`  1. Share the directory: ${result.presetDir}`);
     console.log(`  2. Upload to GitHub Gist or your repository`);
-    console.log(`  3. Others can install with: ${GREEN}ccr preset install <file>${RESET}\n`);
+    console.log(`  3. Others can install with: ${GREEN}ccr preset install <directory>${RESET}\n`);
 
   } catch (error: any) {
     console.error(`\n${YELLOW}Error exporting preset:${RESET} ${error.message}`);

@@ -274,19 +274,15 @@ export function Presets() {
       }
 
       // 确定预设名称
-      const presetName = installName || (
-        installMethod === 'file'
-          ? installFile!.name.replace('.ccrsets', '')
-          : installUrl!.split('/').pop()!.replace('.ccrsets', '')
-      );
+      const presetName = installName || '';
 
-      // Step 1: Install preset (extract to directory)
+      // Step 1: Install preset from GitHub repository
       let installResult;
       if (installMethod === 'url' && installUrl) {
-        installResult = await api.installPresetFromUrl(installUrl, presetName);
-      } else if (installMethod === 'file' && installFile) {
-        installResult = await api.uploadPresetFile(installFile, presetName);
+        // Install from GitHub repository
+        installResult = await api.installPresetFromGitHub(installUrl, presetName);
       } else {
+        setToast({ message: t('presets.please_provide_url'), type: 'warning' });
         return;
       }
 
@@ -488,15 +484,7 @@ export function Presets() {
           <div className="space-y-4 py-4">
             <div className="flex gap-2">
               <Button
-                variant={installMethod === 'file' ? 'default' : 'outline'}
-                onClick={() => setInstallMethod('file')}
-                className="flex-1"
-              >
-                <Upload className="mr-2 h-4 w-4" />
-                {t('presets.upload_file')}
-              </Button>
-              <Button
-                variant={installMethod === 'url' ? 'default' : 'outline'}
+                variant="default"
                 onClick={() => setInstallMethod('url')}
                 className="flex-1"
               >
@@ -505,28 +493,17 @@ export function Presets() {
               </Button>
             </div>
 
-            {installMethod === 'file' ? (
-              <div className="space-y-2">
-                <Label htmlFor="preset-file">{t('presets.preset_file')}</Label>
-                <Input
-                  id="preset-file"
-                  type="file"
-                  accept=".ccrsets"
-                  onChange={(e) => setInstallFile(e.target.files?.[0] || null)}
-                />
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label htmlFor="preset-url">{t('presets.preset_url')}</Label>
-                <Input
-                  id="preset-url"
-                  type="url"
-                  placeholder={t('presets.preset_url_placeholder')}
-                  value={installUrl}
-                  onChange={(e) => setInstallUrl(e.target.value)}
-                />
-              </div>
-            )}
+            <div className="space-y-2">
+              <Label htmlFor="preset-url">{t('presets.github_repository')}</Label>
+              <Input
+                id="preset-url"
+                type="url"
+                placeholder={t('presets.preset_url_placeholder')}
+                value={installUrl}
+                onChange={(e) => setInstallUrl(e.target.value)}
+              />
+              <p className="text-xs text-gray-500">{t('presets.github_url_hint')}</p>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="preset-name">{t('presets.preset_name')}</Label>

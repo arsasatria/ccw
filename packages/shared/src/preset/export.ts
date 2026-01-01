@@ -4,18 +4,15 @@
  */
 
 import * as fs from 'fs/promises';
-import * as fsSync from 'fs';
 import * as path from 'path';
-import archiver from 'archiver';
 import { sanitizeConfig } from './sensitiveFields';
-import { PresetFile, PresetMetadata, ManifestFile } from './types';
+import { PresetMetadata, ManifestFile } from './types';
 import { HOME_DIR } from '../constants';
 
 /**
  * Export options
  */
 export interface ExportOptions {
-  output?: string;
   includeSensitive?: boolean;
   description?: string;
   author?: string;
@@ -26,7 +23,7 @@ export interface ExportOptions {
  * Export result
  */
 export interface ExportResult {
-  outputPath: string;
+  presetDir: string;
   sanitizedConfig: any;
   metadata: PresetMetadata;
   requiredInputs: any[];
@@ -93,42 +90,31 @@ export async function exportPreset(
     requiredInputs: options.includeSensitive ? undefined : requiredInputs,
   };
 
-  // 4. Determine output path
-  const presetsDir = path.join(HOME_DIR, 'presets');
+  // 4. Create preset directory
+  const presetDir = path.join(HOME_DIR, 'presets', presetName);
 
-  // Ensure presets directory exists
-  await fs.mkdir(presetsDir, { recursive: true });
+  // Check if preset directory already exists
+  try {
+    await fs.access(presetDir);
+    throw new Error(`Preset directory already exists: ${presetName}`);
+  } catch (error: any) {
+    if (error.code !== 'ENOENT') {
+      throw error;
+    }
+  }
 
-  const outputPath = options.output || path.join(presetsDir, `${presetName}.ccrsets`);
+  // Create preset directory
+  await fs.mkdir(presetDir, { recursive: true });
 
-  // 5. Create archive
-  const output = fsSync.createWriteStream(outputPath);
-  const archive = archiver('zip', {
-    zlib: { level: 9 } // Highest compression level
-  });
+  // 5. Write manifest.json to preset directory
+  const manifestPath = path.join(presetDir, 'manifest.json');
+  await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
 
-  return new Promise<ExportResult>((resolve, reject) => {
-    output.on('close', () => {
-      resolve({
-        outputPath,
-        sanitizedConfig,
-        metadata,
-        requiredInputs,
-        sanitizedCount,
-      });
-    });
-
-    archive.on('error', (err: Error) => {
-      reject(err);
-    });
-
-    // Connect output stream
-    archive.pipe(output);
-
-    // Add manifest.json to archive
-    archive.append(JSON.stringify(manifest, null, 2), { name: 'manifest.json' });
-
-    // Finalize archive
-    archive.finalize();
-  });
+  return {
+    presetDir,
+    sanitizedConfig,
+    metadata,
+    requiredInputs,
+    sanitizedCount,
+  };
 }

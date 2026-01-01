@@ -169,13 +169,13 @@ Each preset contains:
 
 Located in `packages/shared/src/preset/`:
 
-- **export.ts**: Export current configuration as a preset (.ccrsets file)
-  - `exportPreset(presetName, config, options)`: Creates ZIP archive with manifest.json
+- **export.ts**: Export current configuration as a preset directory
+  - `exportPreset(presetName, config, options)`: Creates preset directory with manifest.json
   - Automatically sanitizes sensitive data (api_key fields become `{{field}}` placeholders)
 
 - **install.ts**: Install and manage presets
   - `installPreset(preset, config, options)`: Install preset to config
-  - `loadPreset(source)`: Load preset from file, URL, or directory
+  - `loadPreset(source)`: Load preset from directory
   - `listPresets()`: List all installed presets
   - `isPresetInstalled(presetName)`: Check if preset is installed
   - `validatePreset(preset)`: Validate preset structure
@@ -189,7 +189,7 @@ Located in `packages/shared/src/preset/`:
 
 ### Preset File Format
 
-**manifest.json** (in ZIP archive or extracted directory):
+**manifest.json** (in preset directory):
 ```json
 {
   "name": "my-preset",

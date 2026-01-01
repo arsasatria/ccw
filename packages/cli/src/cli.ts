@@ -58,7 +58,7 @@ Commands:
   -h, help      Show help information
 
 Presets:
-  Any preset-name defined in ~/.ccw/presets/*.ccrsets
+  Any preset directory in ~/.ccw/presets/
 
 Examples:
   ccr start
@@ -66,7 +66,7 @@ Examples:
   ccr my-preset "Write a Hello World"    # Use preset configuration
   ccr model
   ccr preset export my-config            # Export current config as preset
-  ccr preset install my-config.ccrsets   # Install a preset
+  ccr preset install /path/to/preset     # Install a preset from directory
   ccr preset list                        # List all presets
   eval "$(ccr activate)"  # Set environment variables globally
   ccr ui

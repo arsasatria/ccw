@@ -264,9 +264,8 @@ ccr preset export my-preset
 # Export with metadata
 ccr preset export my-preset --description "My OpenAI config" --author "Your Name" --tags "openai,production"
 
-# Install a preset from file, URL, or registry
-ccr preset install my-preset.ccrsets
-ccr preset install https://example.com/preset.ccrsets
+# Install a preset from local directory
+ccr preset install /path/to/preset
 
 # List all installed presets
 ccr preset list
@@ -279,8 +278,8 @@ ccr preset delete my-preset
 ```
 
 **Preset Features:**
-- **Export**: Save your current configuration as a `.ccrsets` file (ZIP archive with manifest.json)
-- **Install**: Install presets from local files, URLs, or the preset registry
+- **Export**: Save your current configuration as a preset directory (with manifest.json)
+- **Install**: Install presets from local directories
 - **Sensitive Data Handling**: API keys and other sensitive data are automatically sanitized during export (marked as `{{field}}` placeholders)
 - **Dynamic Configuration**: Presets can include input schemas for collecting required information during installation
 - **Version Control**: Each preset includes version metadata for tracking updates

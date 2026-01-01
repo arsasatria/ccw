@@ -239,9 +239,8 @@ ccr preset export my-preset
 # 使用元数据导出
 ccr preset export my-preset --description "我的 OpenAI 配置" --author "您的名字" --tags "openai,生产环境"
 
-# 从文件、URL 或注册表安装预设
-ccr preset install my-preset.ccrsets
-ccr preset install https://example.com/preset.ccrsets
+# 从本地目录安装预设
+ccr preset install /path/to/preset
 
 # 列出所有已安装的预设
 ccr preset list
@@ -254,8 +253,8 @@ ccr preset delete my-preset
 ```
 
 **预设功能：**
-- **导出**：将当前配置保存为 `.ccrsets` 文件（包含 manifest.json 的 ZIP 存档）
-- **安装**：从本地文件、URL 或预设注册表安装预设
+- **导出**：将当前配置保存为预设目录（包含 manifest.json）
+- **安装**：从本地目录安装预设
 - **敏感数据处理**：导出期间自动清理 API 密钥和其他敏感数据（标记为 `{{field}}` 占位符）
 - **动态配置**：预设可以包含输入架构，用于在安装期间收集所需信息
 - **版本控制**：每个预设包含版本元数据，用于跟踪更新
