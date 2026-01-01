@@ -18,13 +18,15 @@ export interface PresetConfig {
   };
   provider?: string;
   router?: Record<string, any>;
+  StatusLine?: any;  // Preset's StatusLine configuration
   [key: string]: any;
 }
 
 export async function executeCodeCommand(
   args: string[] = [],
   presetConfig?: PresetConfig | null,
-  envOverrides?: Record<string, string>
+  envOverrides?: Record<string, string>,
+  presetName?: string  // Preset name for statusline command
 ) {
   // Set environment variables using shared function
   const config = await readConfigFile();
@@ -40,11 +42,19 @@ export async function executeCodeCommand(
     env: env as ClaudeSettingsFlag['env']
   };
 
-  // Add statusLine if StatusLine is configured
-  if (config?.StatusLine?.enabled) {
+  // Add statusLine configuration
+  // Priority: preset.StatusLine > global config.StatusLine
+  const statusLineConfig = presetConfig?.StatusLine || config?.StatusLine;
+
+  if (statusLineConfig?.enabled) {
+    // If using preset, pass preset name to statusline command
+    const statuslineCommand = presetName
+      ? `ccr statusline ${presetName}`
+      : "ccr statusline";
+
     settingsFlag.statusLine = {
       type: "command",
-      command: "ccr statusline",
+      command: statuslineCommand,
       padding: 0,
     }
   }

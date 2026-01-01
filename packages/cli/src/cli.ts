@@ -12,7 +12,7 @@ import { activateCommand } from "./utils/activateCommand";
 import { readConfigFile } from "./utils";
 import { version } from "../package.json";
 import { spawn, exec } from "child_process";
-import {PID_FILE, readPresetFile, REFERENCE_COUNT_FILE} from "@ccw/shared";
+import {getPresetDir, loadConfigFromManifest, PID_FILE, readPresetFile, REFERENCE_COUNT_FILE} from "@ccw/shared";
 import fs, { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { parseStatusLineData, StatusLineInput } from "./utils/statusline";
@@ -81,7 +81,7 @@ async function waitForService(
 
   const startTime = Date.now();
   while (Date.now() - startTime < timeout) {
-    const isRunning = await isServiceRunning()
+    const isRunning = isServiceRunning()
     if (isRunning) {
       // Wait for an additional short period to ensure service is fully ready
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -93,43 +93,46 @@ async function waitForService(
 }
 
 async function main() {
-  const isRunning = await isServiceRunning()
+  const isRunning = isServiceRunning()
 
   // If command is not a known command, check if it's a preset
   if (command && !KNOWN_COMMANDS.includes(command)) {
-    const presetData: any = await readPresetFile(command);
+    const manifest = await readPresetFile(command);
 
-    if (presetData) {
-      // This is a preset, execute code command
+    if (manifest) {
+      // This is a preset, load its configuration
+      const presetDir = getPresetDir(command);
+      const config = loadConfigFromManifest(manifest, presetDir);
+
+      // Execute code command
       const codeArgs = process.argv.slice(3); // Get remaining arguments
 
       // Check noServer configuration
-      const shouldStartServer = presetData.noServer !== true;
+      const shouldStartServer = config.noServer !== true;
 
       // Build environment variable overrides
-      let envOverrides: Record<string, string> | undefined;
+      let envOverrides: Record<string, string> = {};
 
       // Handle provider configuration (supports both old and new formats)
       let provider: any = null;
 
-      // Old format: presetData.provider is the provider name
-      if (presetData.provider && typeof presetData.provider === 'string') {
-        const config = await readConfigFile();
-        provider = config.Providers?.find((p: any) => p.name === presetData.provider);
+      // Old format: config.provider is the provider name
+      if (config.provider && typeof config.provider === 'string') {
+        const globalConfig = await readConfigFile();
+        provider = globalConfig.Providers?.find((p: any) => p.name === config.provider);
       }
-      // New format: presetData.Providers is an array of providers
-      else if (presetData.Providers && presetData.Providers.length > 0) {
-        provider = presetData.Providers[0];
+      // New format: config.Providers is an array of providers
+      else if (config.Providers && config.Providers.length > 0) {
+        provider = config.Providers[0];
       }
 
       // If noServer is not true, use local server baseurl
       if (shouldStartServer) {
-        const config = await readConfigFile();
-        const port = config.PORT || 3456;
-        const presetName = command;
+        const globalConfig = await readConfigFile();
+        const port = globalConfig.PORT || 3456;
         envOverrides = {
           ...envOverrides,
-          ANTHROPIC_BASE_URL: `http://127.0.0.1:${port}/preset/${presetName}`,
+          ANTHROPIC_BASE_URL: `http://127.0.0.1:${port}/preset/${command}`,
         };
       } else if (provider) {
         // Handle api_base_url, remove /v1/messages suffix
@@ -157,10 +160,9 @@ async function main() {
 
       // Build PresetConfig
       const presetConfig: PresetConfig = {
-        noServer: presetData.noServer,
-        claudeCodeSettings: presetData.claudeCodeSettings,
-        provider: presetData.provider,
-        router: presetData.router,
+        noServer: config.noServer,
+        claudeCodeSettings: config.claudeCodeSettings,
+        StatusLine: config.StatusLine
       };
 
       if (shouldStartServer && !isRunning) {
@@ -179,7 +181,7 @@ async function main() {
         startProcess.unref();
 
         if (await waitForService()) {
-          executeCodeCommand(codeArgs, presetConfig, envOverrides);
+          executeCodeCommand(codeArgs, presetConfig, envOverrides, command);
         } else {
           console.error(
             "Service startup timeout, please manually run `ccr start` to start the service"
@@ -192,7 +194,7 @@ async function main() {
           console.error("Service is not running. Please start it first with `ccr start`");
           process.exit(1);
         }
-        executeCodeCommand(codeArgs, presetConfig, envOverrides);
+        executeCodeCommand(codeArgs, presetConfig, envOverrides, command);
       }
       return;
     } else {
@@ -245,7 +247,9 @@ async function main() {
       process.stdin.on("end", async () => {
         try {
           const input: StatusLineInput = JSON.parse(inputData);
-          const statusLine = await parseStatusLineData(input);
+          // Check if preset name is provided as argument
+          const presetName = process.argv[3];
+          const statusLine = await parseStatusLineData(input, presetName);
           console.log(statusLine);
         } catch (error) {
           console.error("Error parsing status line data:", error);

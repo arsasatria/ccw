@@ -279,7 +279,7 @@ export const createServer = async (config: any): Promise<any> => {
       // Return preset info, config uses the applied userValues configuration
       return {
         ...presetFile,
-        config: loadConfigFromManifest(manifest),
+        config: loadConfigFromManifest(manifest, presetDir),
         userValues: manifest.userValues || {},
       };
     } catch (error: any) {

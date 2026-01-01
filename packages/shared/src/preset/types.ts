@@ -42,7 +42,7 @@ export interface DynamicOptions {
   // Automatically extract name and related configuration from preset's Providers
 
   // Used when type is 'models'
-  providerField?: string;        // Point to provider selector field path (e.g. "{{selectedProvider}}")
+  providerField?: string;        // Point to provider selector field path (e.g. "#{selectedProvider}")
 
   // Used when type is 'custom' (reserved)
   source?: string;               // Custom data source
@@ -152,8 +152,8 @@ export interface PresetConfigSection {
 
 // Template configuration (for dynamically generating configuration based on user input)
 export interface TemplateConfig {
-  // Template configuration using {{variable}} syntax
-  // Example: { "Providers": [{ "name": "{{providerName}}", "api_key": "{{apiKey}}" }] }
+  // Template configuration using #{variable} syntax (different from statusline's {{variable}} format)
+  // Example: { "Providers": [{ "name": "#{providerName}", "api_key": "#{apiKey}" }] }
   [key: string]: any;
 }
 
@@ -163,7 +163,7 @@ export interface ConfigMapping {
   target: string;
 
   // Value source (references user input id, or uses fixed value)
-  value: string | any;  // If string and starts with {{, treated as variable reference
+  value: string | any;  // If string and starts with #, treated as variable reference (e.g. #{fieldId})
 
   // Condition (optional, apply this mapping only when condition is met)
   when?: Condition | Condition[];

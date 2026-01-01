@@ -450,7 +450,7 @@ export async function listPresets(): Promise<PresetInfo[]> {
           version: manifest.version,
           description: manifest.description,
           author: manifest.author,
-          config: loadConfigFromManifest(manifest),
+          config: loadConfigFromManifest(manifest, presetDir),
         });
       } catch {
         // Ignore invalid preset directories (no manifest.json or read failed)

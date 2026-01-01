@@ -2,7 +2,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { execSync } from "child_process";
 import { tmpdir } from "node:os";
-import { CONFIG_FILE, HOME_DIR } from "@ccw/shared";
+import { CONFIG_FILE, HOME_DIR, readPresetFile, getPresetDir, loadConfigFromManifest } from "@ccw/shared";
 import JSON5 from "json5";
 
 export interface StatusLineModuleConfig {
@@ -11,7 +11,8 @@ export interface StatusLineModuleConfig {
     text: string;
     color?: string;
     background?: string;
-    scriptPath?: string; // Path to the Node.js script file to execute for script-type modules
+    scriptPath?: string;
+    options?: Record<string, any>;
 }
 
 export interface StatusLineThemeConfig {
@@ -162,7 +163,7 @@ function replaceVariables(text: string, variables: Record<string, string>): stri
 }
 
 // Execute script and get output
-async function executeScript(scriptPath: string, variables: Record<string, string>): Promise<string> {
+async function executeScript(scriptPath: string, variables: Record<string, string>, options?: Record<string, any>): Promise<string> {
     try {
         // Check if file exists
         await fs.access(scriptPath);
@@ -172,7 +173,7 @@ async function executeScript(scriptPath: string, variables: Record<string, strin
 
         // If export is a function, call it with variables
         if (typeof scriptModule === 'function') {
-            const result = scriptModule(variables);
+            const result = scriptModule(variables, options);
             // If returns a Promise, wait for it to complete
             if (result instanceof Promise) {
                 return await result;
@@ -532,6 +533,37 @@ async function getProjectThemeConfig(): Promise<{ theme: StatusLineThemeConfig |
     return { theme: null, style: 'default' };
 }
 
+// Read theme configuration from preset
+async function getPresetThemeConfig(presetName: string): Promise<{ theme: StatusLineThemeConfig | null, style: string }> {
+    try {
+        // Read preset manifest
+        const manifest = await readPresetFile(presetName);
+        if (!manifest) {
+            return { theme: null, style: 'default' };
+        }
+
+        // Load preset configuration (applies userValues if present)
+        const presetDir = getPresetDir(presetName);
+        const config = loadConfigFromManifest(manifest, presetDir);
+
+        // Check if there's StatusLine configuration in preset
+        if (config.StatusLine) {
+            // Get current style, default to 'default'
+            const currentStyle = config.StatusLine.currentStyle || 'default';
+
+            // Check if there's configuration for the corresponding style
+            if (config.StatusLine[currentStyle] && config.StatusLine[currentStyle].modules) {
+                return { theme: config.StatusLine[currentStyle], style: currentStyle };
+            }
+        }
+    } catch (error) {
+        // Return null if reading fails
+        // console.error("Failed to read preset theme config:", error);
+    }
+
+    return { theme: null, style: 'default' };
+}
+
 // Check if simple theme should be used (fallback scheme)
 // When environment variable USE_SIMPLE_ICONS is set, or when a terminal that might not support Nerd Fonts is detected
 function shouldUseSimpleTheme(): boolean {
@@ -585,36 +617,7 @@ function canDisplayNerdFonts(): boolean {
     return process.env.USE_SIMPLE_ICONS !== 'true';
 }
 
-// Check if specific Unicode characters can be displayed correctly
-// This is a simple heuristic check
-function canDisplayUnicodeCharacter(char: string): boolean {
-    // For Nerd Font icons, we assume UTF-8 terminals can display them
-    // But accurate detection is difficult, so we rely on environment variables and terminal type detection
-    try {
-        // Check if terminal supports UTF-8
-        const lang = process.env.LANG || process.env.LC_ALL || process.env.LC_CTYPE || '';
-        if (lang.includes('UTF-8') || lang.includes('utf8') || lang.includes('UTF8')) {
-            return true;
-        }
-
-        // Check LC_* environment variables
-        const lcVars = ['LC_ALL', 'LC_CTYPE', 'LANG'];
-        for (const lcVar of lcVars) {
-            const value = process.env[lcVar];
-            if (value && (value.includes('UTF-8') || value.includes('utf8'))) {
-                return true;
-            }
-        }
-    } catch (e) {
-        // If check fails, default to true
-        return true;
-    }
-
-    // By default, assume it can be displayed
-    return true;
-}
-
-export async function parseStatusLineData(input: StatusLineInput): Promise<string> {
+export async function parseStatusLineData(input: StatusLineInput, presetName?: string): Promise<string> {
     try {
         // Check if simple theme should be used
         const useSimpleTheme = shouldUseSimpleTheme();
@@ -625,8 +628,24 @@ export async function parseStatusLineData(input: StatusLineInput): Promise<strin
         // Determine which theme to use: use simple theme if user forces it or Nerd Fonts cannot be displayed
         const effectiveTheme = useSimpleTheme || !canDisplayNerd ? SIMPLE_THEME : DEFAULT_THEME;
 
-        // Get theme configuration from home directory, or use the determined default configuration
-        const { theme: projectTheme, style: currentStyle } = await getProjectThemeConfig();
+        // Get theme configuration: preset config > home directory config > default theme
+        let projectTheme: StatusLineThemeConfig | null = null;
+        let currentStyle = 'default';
+
+        if (presetName) {
+            // Try to get theme configuration from preset first
+            const presetConfig = await getPresetThemeConfig(presetName);
+            projectTheme = presetConfig.theme;
+            currentStyle = presetConfig.style;
+        }
+
+        // If preset theme not found or no preset specified, try home directory config
+        if (!projectTheme) {
+            const homeConfig = await getProjectThemeConfig();
+            projectTheme = homeConfig.theme;
+            currentStyle = homeConfig.style;
+        }
+
         const theme = projectTheme || effectiveTheme;
 
         // Get current working directory and Git branch
@@ -784,34 +803,6 @@ export async function parseStatusLineData(input: StatusLineInput): Promise<strin
     }
 }
 
-// Read theme configuration from user home directory (specified style)
-async function getProjectThemeConfigForStyle(style: string): Promise<StatusLineThemeConfig | null> {
-    try {
-        // Only use fixed configuration file in home directory
-        const configPath = CONFIG_FILE;
-
-        // Check if configuration file exists
-        try {
-            await fs.access(configPath);
-        } catch {
-            return null;
-        }
-
-        const configContent = await fs.readFile(configPath, "utf-8");
-        const config = JSON5.parse(configContent);
-
-        // Check if there's StatusLine configuration
-        if (config.StatusLine && config.StatusLine[style] && config.StatusLine[style].modules) {
-            return config.StatusLine[style];
-        }
-    } catch (error) {
-        // Return null if reading fails
-        // console.error("Failed to read theme config:", error);
-    }
-
-    return null;
-}
-
 // Render default style status line
 async function renderDefaultStyle(
     theme: StatusLineThemeConfig,
@@ -831,7 +822,7 @@ async function renderDefaultStyle(
         // If script type, execute script to get text
         let text = "";
         if (module.type === "script" && module.scriptPath) {
-            text = await executeScript(module.scriptPath, variables);
+            text = await executeScript(module.scriptPath, variables, module.options);
         } else {
             text = replaceVariables(module.text, variables);
         }

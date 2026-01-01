@@ -3,6 +3,7 @@
  * Responsible for parsing and validating configuration schema, handling conditional logic and variable replacement
  */
 
+import path from 'path';
 import {
   RequiredInput,
   InputType,
@@ -180,8 +181,8 @@ export function getDynamicOptions(
         return [];
       }
 
-      // Parse provider reference (e.g. {{selectedProvider}})
-      const providerId = String(providerField).replace(/^{{(.+)}}$/, '$1');
+      // Parse provider reference (e.g. #{selectedProvider})
+      const providerId = String(providerField).replace(/^#{(.+)}$/, '$1');
       const selectedProvider = values[providerId];
 
       if (!selectedProvider || !presetConfig.Providers) {
@@ -242,7 +243,7 @@ export function resolveOptions(
 
 /**
  * Template variable replacement
- * Supports {{variable}} syntax
+ * Supports #{variable} syntax (different from statusline's {{variable}} format)
  */
 export function replaceTemplateVariables(
   template: any,
@@ -254,7 +255,7 @@ export function replaceTemplateVariables(
 
   // Handle strings
   if (typeof template === 'string') {
-    return template.replace(/\{\{(\w+)\}\}/g, (_, key) => {
+    return template.replace(/#{(\w+)}/g, (_, key) => {
       return values[key] !== undefined ? String(values[key]) : '';
     });
   }
@@ -295,9 +296,9 @@ export function applyConfigMappings(
 
     // Resolve value
     let value: any;
-    if (typeof mapping.value === 'string' && mapping.value.startsWith('{{')) {
+    if (typeof mapping.value === 'string' && mapping.value.startsWith('#')) {
       // Variable reference
-      const varName = mapping.value.replace(/^{{(.+)}}$/, '$1');
+      const varName = mapping.value.replace(/^#{(.+)}$/, '$1');
       value = values[varName];
     } else {
       // Fixed value
@@ -338,7 +339,7 @@ export function applyUserInputs(
   const schemaFields = getSchemaFields(presetFile.schema);
 
   // 1. First apply template (if exists)
-  // template completely defines configuration structure, using {{variable}} placeholders
+  // template completely defines configuration structure, using #{variable} placeholders
   if (presetFile.template) {
     config = replaceTemplateVariables(presetFile.template, values) as any;
   } else {
@@ -347,7 +348,7 @@ export function applyUserInputs(
     // These fields will be updated or replaced in subsequent configMappings
     config = presetFile.config ? { ...presetFile.config } : {};
 
-    // Replace placeholders in config (e.g. {{apiKey}} -> actual value)
+    // Replace placeholders in config (e.g. #{apiKey} -> actual value)
     config = replaceTemplateVariables(config, values) as any;
 
     // Finally, remove schema id fields (they should not appear in final configuration)
@@ -557,7 +558,7 @@ export function buildDependencyGraph(
     if (field.options) {
       const options = field.options as any;
       if (options.type === 'models' && options.providerField) {
-        const providerId = String(options.providerField).replace(/^{{(.+)}}$/, '$1');
+        const providerId = String(options.providerField).replace(/^#{(.+)}$/, '$1');
         deps.add(providerId);
       }
     }
@@ -589,13 +590,77 @@ export function getAffectedFields(
 }
 
 /**
+ * Process StatusLine configuration, convert relative scriptPath to absolute path
+ * @param statusLineConfig StatusLine configuration
+ * @param presetDir Preset directory path
+ */
+function processStatusLineConfig(statusLineConfig: any, presetDir?: string): any {
+  if (!statusLineConfig || typeof statusLineConfig !== 'object') {
+    return statusLineConfig;
+  }
+
+  const result = { ...statusLineConfig };
+
+  // Process each theme's modules
+  for (const themeKey of Object.keys(result)) {
+    const theme = result[themeKey];
+    if (theme && typeof theme === 'object' && theme.modules) {
+      const modules = Array.isArray(theme.modules) ? theme.modules : [];
+      const processedModules = modules.map((module: any) => {
+        // If module has scriptPath and presetDir is provided, convert to absolute path
+        if (module.scriptPath && presetDir && !module.scriptPath.startsWith('/')) {
+          return {
+            ...module,
+            scriptPath: path.join(presetDir, module.scriptPath)
+          };
+        }
+        return module;
+      });
+      result[themeKey] = {
+        ...theme,
+        modules: processedModules
+      };
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Process transformers configuration, convert relative path to absolute path
+ * @param transformersConfig Transformers configuration array
+ * @param presetDir Preset directory path
+ */
+function processTransformersConfig(transformersConfig: any[], presetDir?: string): any[] {
+  if (!transformersConfig || !Array.isArray(transformersConfig)) {
+    return transformersConfig;
+  }
+
+  if (!presetDir) {
+    return transformersConfig;
+  }
+
+  return transformersConfig.map((transformer: any) => {
+    // If transformer has path and it's a relative path, convert to absolute path
+    if (transformer.path && !transformer.path.startsWith('/')) {
+      return {
+        ...transformer,
+        path: path.join(presetDir, transformer.path)
+      };
+    }
+    return transformer;
+  });
+}
+
+/**
  * Load configuration from Manifest and apply userValues
  * Used when reading installed presets, applying user configuration values at runtime
  *
  * @param manifest Manifest object (contains original configuration and userValues)
+ * @param presetDir Optional preset directory path (for resolving relative paths like scriptPath)
  * @returns Applied configuration object
  */
-export function loadConfigFromManifest(manifest: ManifestFile): PresetConfigSection {
+export function loadConfigFromManifest(manifest: ManifestFile, presetDir?: string): PresetConfigSection {
   // Convert manifest to PresetFile format
   const presetFile: PresetFile = {
     metadata: {
@@ -631,11 +696,25 @@ export function loadConfigFromManifest(manifest: ManifestFile): PresetConfigSect
     }
   }
 
+  let config: PresetConfigSection;
+
   // If userValues exist, apply them
   if (manifest.userValues && Object.keys(manifest.userValues).length > 0) {
-    return applyUserInputs(presetFile, manifest.userValues);
+    config = applyUserInputs(presetFile, manifest.userValues);
+  } else {
+    // If no userValues, use original configuration directly
+    config = presetFile.config;
   }
 
-  // If no userValues, return original configuration directly
-  return presetFile.config;
+  // Process StatusLine configuration (convert relative scriptPath to absolute path)
+  if (config.StatusLine) {
+    config.StatusLine = processStatusLineConfig(config.StatusLine, presetDir);
+  }
+
+  // Process transformers configuration (convert relative path to absolute path)
+  if (config.transformers) {
+    config.transformers = processTransformersConfig(config.transformers, presetDir);
+  }
+
+  return config;
 }
