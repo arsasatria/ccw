@@ -26,27 +26,49 @@ npm install -g @arsasatria/ccw
 
 ## Basic Usage
 
-### Start Service
+### Configuration
+
+Before using Claude Code Router, you need to configure your providers. You can either:
+
+1. **Edit configuration file directly**: Edit `~/.ccw/config.json` manually
+2. **Use Web UI**: Run `ccr ui` to open the web interface and configure visually
+
+After making configuration changes, restart the service:
 
 ```bash
-ccr start
+ccr restart
 ```
 
-### View Status
+Or restart directly through the Web UI.
+
+### Start Claude Code
+
+Once configured, you can start Claude Code with:
 
 ```bash
-ccr status
+ccr code
 ```
 
-### Stop Service
+This will launch Claude Code and route your requests through the configured provider.
+
+### Service Management
 
 ```bash
-ccr stop
+ccr start    # Start the router service
+ccr status   # View service status
+ccr stop     # Stop the router service
+ccr restart  # Restart the router service
+```
+
+### Web UI
+
+```bash
+ccr ui       # Open Web management interface
 ```
 
 ## Configuration File
 
-`ccr` uses the same configuration file as Server: `~/.ccw/config.json`
+`ccr` uses the configuration file at `~/.ccw/config.json`
 
 Configure once, and both CLI and Server will use it.
 

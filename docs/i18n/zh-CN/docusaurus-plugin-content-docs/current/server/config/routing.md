@@ -82,6 +82,115 @@ sidebar_position: 3
 }
 ```
 
+## 故障转移（Fallback）
+
+当请求失败时，可以配置备用模型列表。系统会按顺序尝试每个模型，直到请求成功：
+
+### 基本配置
+
+```json
+{
+  "Router": {
+    "default": "deepseek,deepseek-chat",
+    "background": "ollama,qwen2.5-coder:latest",
+    "think": "deepseek,deepseek-reasoner",
+    "longContext": "openrouter,google/gemini-2.5-pro-preview",
+    "longContextThreshold": 60000,
+    "webSearch": "gemini,gemini-2.5-flash"
+  },
+  "fallback": {
+    "default": [
+      "aihubmix,Z/glm-4.5",
+      "openrouter,anthropic/claude-sonnet-4"
+    ],
+    "background": [
+      "ollama,qwen2.5-coder:latest"
+    ],
+    "think": [
+      "openrouter,anthropic/claude-3.7-sonnet:thinking"
+    ],
+    "longContext": [
+      "modelscope,Qwen/Qwen3-Coder-480B-A35B-Instruct"
+    ],
+    "webSearch": [
+      "openrouter,anthropic/claude-sonnet-4"
+    ]
+  }
+}
+```
+
+### 工作原理
+
+1. **触发条件**：当某个路由场景的模型请求失败时（HTTP 错误响应）
+2. **自动切换**：系统自动检查该场景的 fallback 配置
+3. **顺序尝试**：按照列表顺序依次尝试每个备用模型
+4. **成功返回**：一旦某个模型成功响应，立即返回结果
+5. **全部失败**：如果所有备用模型都失败，返回原始错误
+
+### 配置说明
+
+- **格式**：每个备用模型格式为 `provider,model`
+- **验证**：备用模型必须在 `Providers` 配置中存在
+- **灵活性**：可以为不同场景配置不同的备用列表
+- **可选性**：如果某个场景不需要备用，可以不配置或使用空数组
+
+### 使用场景
+
+#### 场景一：主模型配额不足
+
+```json
+{
+  "Router": {
+    "default": "openrouter,anthropic/claude-sonnet-4"
+  },
+  "fallback": {
+    "default": [
+      "deepseek,deepseek-chat",
+      "aihubmix,Z/glm-4.5"
+    ]
+  }
+}
+```
+
+当主模型配额用完时，自动切换到备用模型。
+
+#### 场景二：服务稳定性保障
+
+```json
+{
+  "Router": {
+    "background": "volcengine,deepseek-v3-250324"
+  },
+  "fallback": {
+    "background": [
+      "modelscope,Qwen/Qwen3-Coder-480B-A35B-Instruct",
+      "dashscope,qwen3-coder-plus"
+    ]
+  }
+}
+```
+
+当主服务商出现故障时，自动切换到其他服务商。
+
+### 日志监控
+
+系统会记录详细的 fallback 过程：
+
+```
+[warn] Request failed for default, trying 2 fallback models
+[info] Trying fallback model: aihubmix,Z/glm-4.5
+[warn] Fallback model aihubmix,Z/glm-4.5 failed: API rate limit exceeded
+[info] Trying fallback model: openrouter,anthropic/claude-sonnet-4
+[info] Fallback model openrouter,anthropic/claude-sonnet-4 succeeded
+```
+
+### 注意事项
+
+1. **成本考虑**：备用模型可能产生不同的费用，请合理配置
+2. **性能差异**：不同模型的响应速度和质量可能有差异
+3. **配额管理**：确保备用模型有足够的配额
+4. **测试验证**：定期测试备用模型的可用性
+
 ## 项目级路由
 
 在 `~/.claude/projects/<project-id>/ccw.json` 中为每个项目配置路由：

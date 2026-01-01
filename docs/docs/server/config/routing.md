@@ -81,6 +81,115 @@ Route image-related tasks:
 }
 ```
 
+## Fallback
+
+When a request fails, you can configure a list of backup models. The system will try each model in sequence until one succeeds:
+
+### Basic Configuration
+
+```json
+{
+  "Router": {
+    "default": "deepseek,deepseek-chat",
+    "background": "ollama,qwen2.5-coder:latest",
+    "think": "deepseek,deepseek-reasoner",
+    "longContext": "openrouter,google/gemini-2.5-pro-preview",
+    "longContextThreshold": 60000,
+    "webSearch": "gemini,gemini-2.5-flash"
+  },
+  "fallback": {
+    "default": [
+      "aihubmix,Z/glm-4.5",
+      "openrouter,anthropic/claude-sonnet-4"
+    ],
+    "background": [
+      "ollama,qwen2.5-coder:latest"
+    ],
+    "think": [
+      "openrouter,anthropic/claude-3.7-sonnet:thinking"
+    ],
+    "longContext": [
+      "modelscope,Qwen/Qwen3-Coder-480B-A35B-Instruct"
+    ],
+    "webSearch": [
+      "openrouter,anthropic/claude-sonnet-4"
+    ]
+  }
+}
+```
+
+### How It Works
+
+1. **Trigger**: When a model request fails for a routing scenario (HTTP error response)
+2. **Auto-switch**: The system automatically checks the fallback configuration for that scenario
+3. **Sequential retry**: Tries each backup model in order
+4. **Success**: Once a model responds successfully, returns immediately
+5. **All failed**: If all backup models fail, returns the original error
+
+### Configuration Details
+
+- **Format**: Each backup model format is `provider,model`
+- **Validation**: Backup models must exist in the `Providers` configuration
+- **Flexibility**: Different scenarios can have different fallback lists
+- **Optional**: If a scenario doesn't need fallback, omit it or use an empty array
+
+### Use Cases
+
+#### Scenario 1: Primary Model Quota Exhausted
+
+```json
+{
+  "Router": {
+    "default": "openrouter,anthropic/claude-sonnet-4"
+  },
+  "fallback": {
+    "default": [
+      "deepseek,deepseek-chat",
+      "aihubmix,Z/glm-4.5"
+    ]
+  }
+}
+```
+
+Automatically switches to backup models when the primary model quota is exhausted.
+
+#### Scenario 2: Service Reliability
+
+```json
+{
+  "Router": {
+    "background": "volcengine,deepseek-v3-250324"
+  },
+  "fallback": {
+    "background": [
+      "modelscope,Qwen/Qwen3-Coder-480B-A35B-Instruct",
+      "dashscope,qwen3-coder-plus"
+    ]
+  }
+}
+```
+
+Automatically switches to other providers when the primary service fails.
+
+### Log Monitoring
+
+The system logs detailed fallback process:
+
+```
+[warn] Request failed for default, trying 2 fallback models
+[info] Trying fallback model: aihubmix,Z/glm-4.5
+[warn] Fallback model aihubmix,Z/glm-4.5 failed: API rate limit exceeded
+[info] Trying fallback model: openrouter,anthropic/claude-sonnet-4
+[info] Fallback model openrouter,anthropic/claude-sonnet-4 succeeded
+```
+
+### Important Notes
+
+1. **Cost consideration**: Backup models may incur different costs, configure appropriately
+2. **Performance differences**: Different models may have varying response speeds and quality
+3. **Quota management**: Ensure backup models have sufficient quotas
+4. **Testing**: Regularly test the availability of backup models
+
 ## Project-Level Routing
 
 Configure routing per project in `~/.claude/projects/<project-id>/ccw.json`:

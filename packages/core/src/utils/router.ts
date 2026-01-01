@@ -126,7 +126,7 @@ const getUseModel = async (
   tokenCount: number,
   configService: ConfigService,
   lastUsage?: Usage | undefined
-) => {
+): Promise<{ model: string; scenarioType: RouterScenarioType }> => {
   const projectSpecificRouter = await getProjectSpecificRouter(req, configService);
   const providers = configService.get<any[]>("providers") || [];
   const Router = projectSpecificRouter || configService.get("Router");
@@ -140,9 +140,9 @@ const getUseModel = async (
       (m: any) => m.toLowerCase() === model
     );
     if (finalProvider && finalModel) {
-      return `${finalProvider.name},${finalModel}`;
+      return { model: `${finalProvider.name},${finalModel}`, scenarioType: 'default' };
     }
-    return req.body.model;
+    return { model: req.body.model, scenarioType: 'default' };
   }
 
   // if tokenCount is greater than the configured threshold, use the long context model
@@ -156,7 +156,7 @@ const getUseModel = async (
     req.log.info(
       `Using long context model due to token count: ${tokenCount}, threshold: ${longContextThreshold}`
     );
-    return Router.longContext;
+    return { model: Router.longContext, scenarioType: 'longContext' };
   }
   if (
     req.body?.system?.length > 1 &&
@@ -170,7 +170,7 @@ const getUseModel = async (
         `<CCW-SUBAGENT-MODEL>${model[1]}</CCW-SUBAGENT-MODEL>`,
         ""
       );
-      return model[1];
+      return { model: model[1], scenarioType: 'default' };
     }
   }
   // Use the background model for any Claude Haiku variant
@@ -181,7 +181,7 @@ const getUseModel = async (
     globalRouter?.background
   ) {
     req.log.info(`Using background model for ${req.body.model}`);
-    return globalRouter.background;
+    return { model: globalRouter.background, scenarioType: 'background' };
   }
   // The priority of websearch must be higher than thinking.
   if (
@@ -189,20 +189,30 @@ const getUseModel = async (
     req.body.tools.some((tool: any) => tool.type?.startsWith("web_search")) &&
     Router?.webSearch
   ) {
-    return Router.webSearch;
+    return { model: Router.webSearch, scenarioType: 'webSearch' };
   }
   // if exits thinking, use the think model
   if (req.body.thinking && Router?.think) {
     req.log.info(`Using think model for ${req.body.thinking}`);
-    return Router.think;
+    return { model: Router.think, scenarioType: 'think' };
   }
-  return Router?.default;
+  return { model: Router?.default, scenarioType: 'default' };
 };
 
 export interface RouterContext {
   configService: ConfigService;
   tokenizerService?: TokenizerService;
   event?: any;
+}
+
+export type RouterScenarioType = 'default' | 'background' | 'think' | 'longContext' | 'webSearch';
+
+export interface RouterFallbackConfig {
+  default?: string[];
+  background?: string[];
+  think?: string[];
+  longContext?: string[];
+  webSearch?: string[];
 }
 
 export const router = async (req: any, _res: any, context: RouterContext) => {
@@ -247,9 +257,6 @@ export const router = async (req: any, _res: any, context: RouterContext) => {
         tokenizerConfig
       );
       tokenCount = result.tokenCount;
-      req.log.debug(
-        `Token count: ${tokenCount} (tokenizer: ${result.tokenizerUsed}, cached: ${result.cached})`
-      );
     } else {
       // Legacy fallback
       tokenCount = calculateTokenCount(
@@ -273,13 +280,19 @@ export const router = async (req: any, _res: any, context: RouterContext) => {
       }
     }
     if (!model) {
-      model = await getUseModel(req, tokenCount, configService, lastMessageUsage);
+      const result = await getUseModel(req, tokenCount, configService, lastMessageUsage);
+      model = result.model;
+      req.scenarioType = result.scenarioType;
+    } else {
+      // Custom router doesn't provide scenario type, default to 'default'
+      req.scenarioType = 'default';
     }
     req.body.model = model;
   } catch (error: any) {
     req.log.error(`Error in router middleware: ${error.message}`);
     const Router = configService.get("Router");
     req.body.model = Router?.default;
+    req.scenarioType = 'default';
   }
   return;
 };

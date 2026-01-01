@@ -39,6 +39,7 @@ declare module "fastify" {
   interface FastifyRequest {
     provider?: string;
     model?: string;
+    scenarioType?: string;
   }
   interface FastifyInstance {
     _server?: Server;
@@ -266,6 +267,7 @@ export { sessionUsageCache };
 export { router };
 export { calculateTokenCount };
 export { searchProjectBySession };
+export type { RouterScenarioType, RouterFallbackConfig } from "./utils/router";
 export { ConfigService } from "./services/config";
 export { ProviderService } from "./services/provider";
 export { TransformerService } from "./services/transformer";

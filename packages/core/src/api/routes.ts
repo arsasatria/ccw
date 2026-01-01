@@ -50,44 +50,147 @@ async function handleTransformerEndpoint(
     );
   }
 
-  // Process request transformer chain
-  const { requestBody, config, bypass } = await processRequestTransformers(
-    body,
-    provider,
-    transformer,
-    req.headers,
-    {
-      req,
-    }
-  );
+  try {
+    // Process request transformer chain
+    const { requestBody, config, bypass } = await processRequestTransformers(
+      body,
+      provider,
+      transformer,
+      req.headers,
+      {
+        req,
+      }
+    );
 
-  // Send request to LLM provider
-  const response = await sendRequestToProvider(
-    requestBody,
-    config,
-    provider,
-    fastify,
-    bypass,
-    transformer,
-    {
-      req,
-    }
-  );
+    // Send request to LLM provider
+    const response = await sendRequestToProvider(
+      requestBody,
+      config,
+      provider,
+      fastify,
+      bypass,
+      transformer,
+      {
+        req,
+      }
+    );
 
-  // Process response transformer chain
-  const finalResponse = await processResponseTransformers(
-    requestBody,
-    response,
-    provider,
-    transformer,
-    bypass,
-    {
-      req,
-    }
-  );
+    // Process response transformer chain
+    const finalResponse = await processResponseTransformers(
+      requestBody,
+      response,
+      provider,
+      transformer,
+      bypass,
+      {
+        req,
+      }
+    );
 
-  // Format and return response
-  return formatResponse(finalResponse, reply, body);
+    // Format and return response
+    return formatResponse(finalResponse, reply, body);
+  } catch (error: any) {
+    // Handle fallback if error occurs
+    if (error.code === 'provider_response_error') {
+      const fallbackResult = await handleFallback(req, reply, fastify, transformer, error);
+      if (fallbackResult) {
+        return fallbackResult;
+      }
+    }
+    throw error;
+  }
+}
+
+/**
+ * Handle fallback logic when request fails
+ * Tries each fallback model in sequence until one succeeds
+ */
+async function handleFallback(
+  req: FastifyRequest,
+  reply: FastifyReply,
+  fastify: FastifyInstance,
+  transformer: any,
+  error: any
+): Promise<any> {
+  const scenarioType = (req as any).scenarioType || 'default';
+  const fallbackConfig = fastify.configService.get<any>('fallback');
+
+  if (!fallbackConfig || !fallbackConfig[scenarioType]) {
+    return null;
+  }
+
+  const fallbackList = fallbackConfig[scenarioType] as string[];
+  if (!Array.isArray(fallbackList) || fallbackList.length === 0) {
+    return null;
+  }
+
+  req.log.warn(`Request failed for ${(req as any).scenarioType}, trying ${fallbackList.length} fallback models`);
+
+  // Try each fallback model in sequence
+  for (const fallbackModel of fallbackList) {
+    try {
+      req.log.info(`Trying fallback model: ${fallbackModel}`);
+
+      // Update request with fallback model
+      const newBody = { ...(req.body as any) };
+      const [fallbackProvider, ...fallbackModelName] = fallbackModel.split(',');
+      newBody.model = fallbackModelName.join(',');
+
+      // Create new request object with updated provider and body
+      const newReq = {
+        ...req,
+        provider: fallbackProvider,
+        body: newBody,
+      };
+
+      const provider = fastify.providerService.getProvider(fallbackProvider);
+      if (!provider) {
+        req.log.warn(`Fallback provider '${fallbackProvider}' not found, skipping`);
+        continue;
+      }
+
+      // Process request transformer chain
+      const { requestBody, config, bypass } = await processRequestTransformers(
+        newBody,
+        provider,
+        transformer,
+        req.headers,
+        { req: newReq }
+      );
+
+      // Send request to LLM provider
+      const response = await sendRequestToProvider(
+        requestBody,
+        config,
+        provider,
+        fastify,
+        bypass,
+        transformer,
+        { req: newReq }
+      );
+
+      // Process response transformer chain
+      const finalResponse = await processResponseTransformers(
+        requestBody,
+        response,
+        provider,
+        transformer,
+        bypass,
+        { req: newReq }
+      );
+
+      req.log.info(`Fallback model ${fallbackModel} succeeded`);
+
+      // Format and return response
+      return formatResponse(finalResponse, reply, newBody);
+    } catch (fallbackError: any) {
+      req.log.warn(`Fallback model ${fallbackModel} failed: ${fallbackError.message}`);
+      continue;
+    }
+  }
+
+  req.log.error(`All fallback models failed for yichu ${scenarioType}`);
+  return null;
 }
 
 /**

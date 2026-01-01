@@ -27,15 +27,15 @@
     "message": "服务器 API 接口文档",
     "description": "The generated-index page description for category 'API Reference' in sidebar 'tutorialSidebar'"
   },
-  "sidebar.tutorialSidebar.category.Configuration": {
+  "sidebar.tutorialSidebar.category.server-configuration-category": {
     "message": "配置",
     "description": "The label for category 'Configuration' in sidebar 'tutorialSidebar'"
   },
-  "sidebar.tutorialSidebar.category.Configuration.link.generated-index.title": {
+  "sidebar.tutorialSidebar.category.server-configuration-category.link.generated-index.title": {
     "message": "服务器配置",
     "description": "The generated-index page title for category 'Configuration' in sidebar 'tutorialSidebar'"
   },
-  "sidebar.tutorialSidebar.category.Configuration.link.generated-index.description": {
+  "sidebar.tutorialSidebar.category.server-configuration-category.link.generated-index.description": {
     "message": "服务器配置说明",
     "description": "The generated-index page description for category 'Configuration' in sidebar 'tutorialSidebar'"
   },
@@ -74,5 +74,17 @@
   "sidebar.tutorialSidebar.category.Commands.link.generated-index.description": {
     "message": "完整的命令参考",
     "description": "The generated-index page description for category 'Commands' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.cli-configuration-category": {
+    "message": "配置",
+    "description": "The label for category 'Configuration' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.cli-configuration-category.link.generated-index.title": {
+    "message": "CLI 配置",
+    "description": "The generated-index page title for category 'Configuration' in sidebar 'tutorialSidebar'"
+  },
+  "sidebar.tutorialSidebar.category.cli-configuration-category.link.generated-index.description": {
+    "message": "CLI 配置指南",
+    "description": "The generated-index page description for category 'Configuration' in sidebar 'tutorialSidebar'"
   }
 }

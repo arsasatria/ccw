@@ -4,6 +4,54 @@ const sidebars: SidebarsConfig = {
   tutorialSidebar: [
     {
       type: 'category',
+      label: 'CLI',
+      link: {
+        type: 'generated-index',
+        title: 'Claude Code Router CLI',
+        description: 'Command-line tool usage guide',
+        slug: 'category/cli',
+      },
+      items: [
+        'cli/intro',
+        'cli/installation',
+        'cli/quick-start',
+        {
+          type: 'category',
+          label: 'Commands',
+          link: {
+            type: 'generated-index',
+            title: 'CLI Commands',
+            description: 'Complete command reference',
+            slug: 'category/cli-commands',
+          },
+          items: [
+            'cli/commands/start',
+            'cli/commands/model',
+            'cli/commands/status',
+            'cli/commands/statusline',
+            'cli/commands/preset',
+            'cli/commands/other',
+          ],
+        },
+        {
+          type: 'category',
+          label: 'Configuration',
+          key: 'cli-configuration-category',
+          link: {
+            type: 'generated-index',
+            title: 'CLI Configuration',
+            description: 'CLI configuration guide',
+            slug: 'category/cli-config',
+          },
+          items: [
+            'cli/config/basic',
+            'cli/config/project-level',
+          ],
+        },
+      ],
+    },
+    {
+      type: 'category',
       label: 'Server',
       link: {
         type: 'generated-index',
@@ -59,54 +107,6 @@ const sidebars: SidebarsConfig = {
           items: [
             'server/advanced/custom-router',
             'server/advanced/presets',
-          ],
-        },
-      ],
-    },
-    {
-      type: 'category',
-      label: 'CLI',
-      link: {
-        type: 'generated-index',
-        title: 'Claude Code Router CLI',
-        description: 'Command-line tool usage guide',
-        slug: 'category/cli',
-      },
-      items: [
-        'cli/intro',
-        'cli/installation',
-        'cli/quick-start',
-        {
-          type: 'category',
-          label: 'Commands',
-          link: {
-            type: 'generated-index',
-            title: 'CLI Commands',
-            description: 'Complete command reference',
-            slug: 'category/cli-commands',
-          },
-          items: [
-            'cli/commands/start',
-            'cli/commands/model',
-            'cli/commands/status',
-            'cli/commands/statusline',
-            'cli/commands/preset',
-            'cli/commands/other',
-          ],
-        },
-        {
-          type: 'category',
-          label: 'Configuration',
-          key: 'cli-configuration-category',
-          link: {
-            type: 'generated-index',
-            title: 'CLI Configuration',
-            description: 'CLI configuration guide',
-            slug: 'category/cli-config',
-          },
-          items: [
-            'cli/config/basic',
-            'cli/config/project-level',
           ],
         },
       ],

@@ -6,15 +6,29 @@ title: Basic Configuration
 
 CLI uses the same configuration file as Server: `~/.ccw/config.json`
 
-## Configuration File Location
+## Configuration Methods
+
+You can configure Claude Code Router in three ways:
+
+### Option 1: Edit Configuration File Directly
+
+Edit `~/.ccw/config.json` with your favorite editor:
 
 ```bash
-~/.ccw/config.json
+nano ~/.ccw/config.json
 ```
 
-## Quick Configuration
+### Option 2: Use Web UI
 
-Use interactive command to configure:
+Open the web interface and configure visually:
+
+```bash
+ccr ui
+```
+
+### Option 3: Interactive Configuration
+
+Use the interactive command-line configuration:
 
 ```bash
 ccr model
@@ -26,16 +40,23 @@ This will guide you through:
 3. Select model
 4. Set routing rules
 
-## Manual Configuration
+## Restart After Configuration Changes
 
-### Edit Configuration File
+After modifying the configuration file or making changes through the Web UI, you must restart the service:
 
 ```bash
-# Open configuration file
-nano ~/.ccw/config.json
+ccr restart
 ```
 
-### Minimal Configuration Example
+Or restart directly through the Web UI.
+
+## Configuration File Location
+
+```bash
+~/.ccw/config.json
+```
+
+## Minimal Configuration Example
 
 ```json5
 {
@@ -129,13 +150,15 @@ Configuration is automatically backed up on each update:
 ~/.ccw/config.backup.{timestamp}.json
 ```
 
-## Reload Configuration
+## Apply Configuration Changes
 
-Restart service after modifying configuration:
+After modifying the configuration file or making changes through the Web UI, restart the service:
 
 ```bash
 ccr restart
 ```
+
+Or restart directly through the Web UI by clicking the "Save and Restart" button.
 
 ## View Current Configuration
 
