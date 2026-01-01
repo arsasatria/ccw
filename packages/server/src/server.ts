@@ -16,6 +16,8 @@ import {
   loadConfigFromManifest,
   downloadPresetToTemp,
   getTempDir,
+  findMarketPresetByName,
+  getMarketPresets,
   type PresetFile,
   type ManifestFile,
   type PresetMetadata,
@@ -349,14 +351,8 @@ export const createServer = async (config: any): Promise<any> => {
   // Get preset market list
   app.get("/api/presets/market", async (req: any, reply: any) => {
     try {
-      const marketUrl = "https://pub-0dc3e1677e894f07bbea11b17a29e032.r2.dev/presets.json";
-
-      const response = await fetch(marketUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch market presets: ${response.status} ${response.statusText}`);
-      }
-
-      const marketPresets = await response.json();
+      // Use market presets function
+      const marketPresets = await getMarketPresets();
       return { presets: marketPresets };
     } catch (error: any) {
       console.error("Failed to get market presets:", error);
@@ -364,24 +360,37 @@ export const createServer = async (config: any): Promise<any> => {
     }
   });
 
-  // Install preset from GitHub repository
+  // Install preset from GitHub repository by preset name
   app.post("/api/presets/install/github", async (req: any, reply: any) => {
     try {
-      const { repo, name } = req.body;
+      const { presetName } = req.body;
 
-      if (!repo) {
-        reply.status(400).send({ error: "Repository URL is required" });
+      if (!presetName) {
+        reply.status(400).send({ error: "Preset name is required" });
+        return;
+      }
+
+      // Check if preset is in the marketplace
+      const marketPreset = await findMarketPresetByName(presetName);
+      if (!marketPreset) {
+        reply.status(400).send({
+          error: "Preset not found in marketplace",
+          message: `Preset '${presetName}' is not available in the official marketplace. Please check the available presets.`
+        });
+        return;
+      }
+
+      // Get repository from market preset
+      if (!marketPreset.repo) {
+        reply.status(400).send({
+          error: "Invalid preset data",
+          message: `Preset '${presetName}' does not have repository information`
+        });
         return;
       }
 
       // Parse GitHub repository URL
-      // Supported formats:
-      // - owner/repo (short format, from market)
-      // - github.com/owner/repo
-      // - https://github.com/owner/repo
-      // - https://github.com/owner/repo.git
-      // - git@github.com:owner/repo.git
-      const githubRepoMatch = repo.match(/(?:github\.com[:/]|^)([^/]+)\/([^/\s#]+?)(?:\.git)?$/);
+      const githubRepoMatch = marketPreset.repo.match(/(?:github\.com[:/]|^)([^/]+)\/([^/\s#]+?)(?:\.git)?$/);
       if (!githubRepoMatch) {
         reply.status(400).send({ error: "Invalid GitHub repository URL" });
         return;
@@ -389,33 +398,59 @@ export const createServer = async (config: any): Promise<any> => {
 
       const [, owner, repoName] = githubRepoMatch;
 
+      // Use preset name from market
+      const installedPresetName = marketPreset.name || presetName;
+
+      // Check if already installed BEFORE downloading
+      if (await isPresetInstalled(installedPresetName)) {
+        reply.status(409).send({
+          error: "Preset already installed",
+          message: `Preset '${installedPresetName}' is already installed. To update or reconfigure, please delete it first using the delete button.`,
+          presetName: installedPresetName
+        });
+        return;
+      }
+
       // Download GitHub repository ZIP file
       const downloadUrl = `https://github.com/${owner}/${repoName}/archive/refs/heads/main.zip`;
       const tempFile = await downloadPresetToTemp(downloadUrl);
 
-      // Load preset
+      // Load preset to validate structure
       const preset = await loadPresetFromZip(tempFile);
 
-      // Determine preset name
-      const presetName = name || preset.metadata?.name || repoName;
-
-      // Check if already installed
-      if (await isPresetInstalled(presetName)) {
+      // Double-check if already installed (in case of race condition)
+      if (await isPresetInstalled(installedPresetName)) {
         unlinkSync(tempFile);
-        reply.status(409).send({ error: "Preset already installed" });
+        reply.status(409).send({
+          error: "Preset already installed",
+          message: `Preset '${installedPresetName}' was installed while downloading. Please try again.`,
+          presetName: installedPresetName
+        });
         return;
       }
 
       // Extract to target directory
-      const targetDir = getPresetDir(presetName);
+      const targetDir = getPresetDir(installedPresetName);
       await extractPreset(tempFile, targetDir);
+
+      // Read manifest and add repo information
+      const manifest = await readManifestFromDir(targetDir);
+
+      // Add repo information to manifest from market data
+      manifest.repository = marketPreset.repo;
+      if (marketPreset.url) {
+        manifest.source = marketPreset.url;
+      }
+
+      // Save updated manifest
+      await saveManifest(installedPresetName, manifest);
 
       // Clean up temp file
       unlinkSync(tempFile);
 
       return {
         success: true,
-        presetName,
+        presetName: installedPresetName,
         preset: {
           ...preset.metadata,
           installed: true,

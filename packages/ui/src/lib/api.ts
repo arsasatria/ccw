@@ -99,7 +99,17 @@ class ApiClient {
       }
 
       if (!response.ok) {
-        throw new Error(`API request failed: ${response.status} ${response.statusText}`);
+        // Try to get detailed error message from response body
+        let errorMessage = `API request failed: ${response.status} ${response.statusText}`;
+        try {
+          const errorData = await response.json();
+          if (errorData.error || errorData.message) {
+            errorMessage = errorData.message || errorData.error || errorMessage;
+          }
+        } catch {
+          // If parsing fails, use default error message
+        }
+        throw new Error(errorMessage);
       }
 
       if (response.status === 204) {

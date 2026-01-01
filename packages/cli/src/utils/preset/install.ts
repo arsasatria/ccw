@@ -56,7 +56,7 @@ export async function applyPresetCli(
     if (!validation.valid) {
       console.log(`\n${YELLOW}Validation errors:${RESET}`);
       for (const error of validation.errors) {
-        console.log(`  ${YELLOW}✗${RESET} ${error}`);
+        console.log(`${YELLOW}✗${RESET} ${error}`);
       }
       throw new Error('Invalid preset file');
     }
@@ -78,13 +78,39 @@ export async function applyPresetCli(
       userInputs = await collectUserInputs(preset.schema, preset.config);
     }
 
-    // Build manifest, keep original config, store user values in userValues
+    // Read existing manifest to preserve fields like repository, source, etc.
+    const presetDir = getPresetDir(presetName);
+    let existingManifest: ManifestFile | null = null;
+    
+    try {
+      existingManifest = await readManifestFromDir(presetDir);
+    } catch {
+      // Manifest doesn't exist yet, this is a new installation
+    }
+
+    // Build manifest, preserve existing fields
     const manifest: ManifestFile = {
       name: presetName,
       version: preset.metadata?.version || '1.0.0',
       ...(preset.metadata || {}),
       ...preset.config,  // Keep original config (may contain placeholders)
     };
+
+    // Preserve fields from existing manifest (repository, source, etc.)
+    if (existingManifest) {
+      if (existingManifest.repository) {
+        manifest.repository = existingManifest.repository;
+      }
+      if (existingManifest.source) {
+        manifest.source = existingManifest.source;
+      }
+      if (existingManifest.sourceType) {
+        manifest.sourceType = existingManifest.sourceType;
+      }
+      if (existingManifest.checksum) {
+        manifest.checksum = existingManifest.checksum;
+      }
+    }
 
     // Save schema (if exists)
     if (preset.schema) {
@@ -106,8 +132,6 @@ export async function applyPresetCli(
 
     // Save to manifest.json in extracted directory
     await saveManifest(presetName, manifest);
-
-    const presetDir = getPresetDir(presetName);
 
     // Display summary
     console.log(`\n${BOLDGREEN}✓ Preset configured successfully!${RESET}\n`);
@@ -171,6 +195,11 @@ export async function installPresetCli(
         throw new Error(`Preset directory not found: ${source}`);
       }
       sourceDir = source;
+
+      // Check if preset with this name already exists BEFORE installing
+      if (await isPresetInstalled(presetName)) {
+        throw new Error(`Preset '${presetName}' is already installed. To reconfigure, use: ccr preset install ${presetName}\nTo delete and reinstall, use: ccr preset delete ${presetName}`);
+      }
     } else {
       // Preset name (without path)
       presetName = source;

@@ -214,6 +214,7 @@ export interface PresetIndexEntry {
   stars?: number;                 // Star count
   tags?: string[];                // Tags
   url: string;                    // Download address
+  repo?: string;                  // Repository (e.g., 'owner/repo')
   checksum?: string;              // SHA256 checksum
   ccwVersion?: string;            // Compatible version
 }

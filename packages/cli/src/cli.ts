@@ -17,6 +17,7 @@ import fs, { existsSync, readFileSync } from "fs";
 import { join } from "path";
 import { parseStatusLineData, StatusLineInput } from "./utils/statusline";
 import {handlePresetCommand} from "./utils/preset";
+import { handleInstallCommand } from "./utils/installCommand";
 
 
 const command = process.argv[2];
@@ -31,6 +32,7 @@ const KNOWN_COMMANDS = [
   "code",
   "model",
   "preset",
+  "install",
   "activate",
   "env",
   "ui",
@@ -52,6 +54,7 @@ Commands:
   code          Execute claude command
   model         Interactive model selection and configuration
   preset        Manage presets (export, install, list, delete)
+  install       Install preset from GitHub marketplace
   activate      Output environment variables for shell integration
   ui            Open the web UI in browser
   -v, version   Show version information
@@ -68,6 +71,7 @@ Examples:
   ccr preset export my-config            # Export current config as preset
   ccr preset install /path/to/preset     # Install a preset from directory
   ccr preset list                        # List all presets
+  ccr install my-preset                  # Install preset from marketplace
   eval "$(ccr activate)"  # Set environment variables globally
   ccr ui
 `;
@@ -263,6 +267,10 @@ async function main() {
       break;
     case "preset":
       await handlePresetCommand(process.argv.slice(3));
+      break;
+    case "install":
+      const presetName = process.argv[3];
+      await handleInstallCommand(presetName);
       break;
     case "activate":
     case "env":

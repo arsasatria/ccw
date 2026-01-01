@@ -14,7 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Upload, Link, Trash2, Info, Download, CheckCircle2, AlertCircle, Loader2, ArrowLeft, Store, Search, Package } from "lucide-react";
+import { Upload, Link, Trash2, Info, Download, Check, CheckCircle2, AlertCircle, Loader2, ArrowLeft, Store, Search, Package } from "lucide-react";
 import { Toast } from "@/components/ui/toast";
 import { DynamicConfigForm } from "./preset/DynamicConfigForm";
 
@@ -193,7 +193,13 @@ export function Presets() {
       }
     } catch (error: any) {
       console.error('Failed to install preset:', error);
-      setToast({ message: t('presets.preset_install_failed', { error: error.message }), type: 'error' });
+      // Check if it's an "already installed" error
+      const errorMessage = error.message || '';
+      if (errorMessage.includes('already installed') || errorMessage.includes('已安装')) {
+        setToast({ message: t('presets.preset_already_installed'), type: 'warning' });
+      } else {
+        setToast({ message: t('presets.preset_install_failed', { error: errorMessage }), type: 'error' });
+      }
     } finally {
       setInstallingFromMarket(null);
     }
@@ -345,7 +351,13 @@ export function Presets() {
       }
     } catch (error: any) {
       console.error('Failed to install preset:', error);
-      setToast({ message: t('presets.preset_install_failed', { error: error.message }), type: 'error' });
+      // Check if it's an "already installed" error
+      const errorMessage = error.message || '';
+      if (errorMessage.includes('already installed') || errorMessage.includes('已安装')) {
+        setToast({ message: t('presets.preset_already_installed'), type: 'warning' });
+      } else {
+        setToast({ message: t('presets.preset_install_failed', { error: errorMessage }), type: 'error' });
+      }
     } finally {
       setIsInstalling(false);
     }
@@ -636,56 +648,76 @@ export function Presets() {
               </div>
             ) : (
               <div className="space-y-3">
-                {filteredMarketPresets.map((preset) => (
-                  <div
-                    key={preset.id}
-                    className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
-                  >
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <h3 className="font-semibold text-lg">{preset.name}</h3>
-                        </div>
-                        {preset.description && (
-                          <p className="text-sm text-gray-600 mb-2">{preset.description}</p>
-                        )}
-                        <div className="flex items-center gap-4 text-sm text-gray-500">
-                          {preset.author && (
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-medium">{t('presets.by', { author: preset.author })}</span>
-                              <a
-                                href={`https://github.com/${preset.repo}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-gray-600 hover:text-gray-900 transition-colors"
-                                title={t('presets.github_repository')}
-                              >
-                                <i className="ri-github-fill text-xl"></i>
-                              </a>
-                            </div>
+                {filteredMarketPresets.map((preset) => {
+                  // Check if this preset is already installed by repo
+                  const isInstalled = presets.some(p => {
+                    // Extract repo from repository field (handle both formats)
+                    let installedRepo = '';
+                    if (p.repository) {
+                      // Remove GitHub URL prefix if present
+                      installedRepo = p.repository.replace(/^https:\/\/github\.com\//, '').replace(/\.git$/, '');
+                    }
+                    // Match by repo (preferred), or name as fallback
+                    return installedRepo === preset.repo || p.name === preset.name;
+                  });
+
+                  return (
+                    <div
+                      key={preset.id}
+                      className="p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h3 className="font-semibold text-lg">{preset.name}</h3>
+                          </div>
+                          {preset.description && (
+                            <p className="text-sm text-gray-600 mb-2">{preset.description}</p>
                           )}
+                          <div className="flex items-center gap-4 text-sm text-gray-500">
+                            {preset.author && (
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-medium">{t('presets.by', { author: preset.author })}</span>
+                                <a
+                                  href={`https://github.com/${preset.repo}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-gray-600 hover:text-gray-900 transition-colors"
+                                  title={t('presets.github_repository')}
+                                >
+                                  <i className="ri-github-fill text-xl"></i>
+                                </a>
+                              </div>
+                            )}
+                          </div>
                         </div>
+                        <Button
+                          onClick={() => handleInstallFromMarket(preset)}
+                          disabled={installingFromMarket === preset.id || isInstalled}
+                          variant={isInstalled ? "secondary" : "default"}
+                          className="shrink-0"
+                        >
+                          {installingFromMarket === preset.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              {t('presets.installing')}
+                            </>
+                          ) : isInstalled ? (
+                            <>
+                              <Check className="mr-2 h-4 w-4" />
+                              {t('presets.installed_label')}
+                            </>
+                          ) : (
+                            <>
+                              <Download className="mr-2 h-4 w-4" />
+                              {t('presets.install')}
+                            </>
+                          )}
+                        </Button>
                       </div>
-                      <Button
-                        onClick={() => handleInstallFromMarket(preset)}
-                        disabled={installingFromMarket === preset.id}
-                        className="shrink-0"
-                      >
-                        {installingFromMarket === preset.id ? (
-                          <>
-                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                            {t('presets.installing')}
-                          </>
-                        ) : (
-                          <>
-                            <Download className="mr-2 h-4 w-4" />
-                            {t('presets.install')}
-                          </>
-                        )}
-                      </Button>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
