@@ -33,6 +33,7 @@ const sidebars: SidebarsConfig = {
         {
           type: 'category',
           label: 'Configuration',
+          key: 'server-configuration-category',
           link: {
             type: 'generated-index',
             title: 'Server Configuration',
@@ -57,7 +58,6 @@ const sidebars: SidebarsConfig = {
           },
           items: [
             'server/advanced/custom-router',
-            'server/advanced/agents',
             'server/advanced/presets',
           ],
         },
@@ -89,12 +89,15 @@ const sidebars: SidebarsConfig = {
             'cli/commands/start',
             'cli/commands/model',
             'cli/commands/status',
+            'cli/commands/statusline',
+            'cli/commands/preset',
             'cli/commands/other',
           ],
         },
         {
           type: 'category',
           label: 'Configuration',
+          key: 'cli-configuration-category',
           link: {
             type: 'generated-index',
             title: 'CLI Configuration',

@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Claude Code Router is a tool that routes Claude Code requests to different LLM providers. It uses a Monorepo architecture with four main packages:
 
-- **cli** (`@arsasatria/ccw-cli`): Command-line tool providing the `ccr` command
-- **server** (`@arsasatria/ccw-server`): Core server handling API routing and transformations
-- **shared** (`@arsasatria/ccw-shared`): Shared constants, utilities, and preset management
-- **ui** (`@arsasatria/ccw-ui`): Web management interface (React + Vite)
+- **cli** (`@arsasatria/ccw`): Command-line tool providing the `ccr` command
+- **server** (`@ccw/server`): Core server handling API routing and transformations
+- **shared** (`@ccw/shared`): Shared constants, utilities, and preset management
+- **ui** (`@ccw/ui`): Web management interface (React + Vite)
 
 ## Build Commands
 

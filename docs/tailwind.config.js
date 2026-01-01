@@ -21,6 +21,26 @@ module.exports = {
           900: '#643528',
         },
       },
+      typography: ({ theme }) => ({
+        DEFAULT: {
+          css: {
+            '--tw-prose-body': theme('colors.neutral.800'),
+            '--tw-prose-headings': theme('colors.neutral.900'),
+            '--tw-prose-links': theme('colors.primary.600'),
+            '--tw-prose-bold': theme('colors.neutral.900'),
+            '--tw-prose-counters': theme('colors.primary.600'),
+            '--tw-prose-bullets': theme('colors.primary.600'),
+            '--tw-prose-hr': theme('colors.neutral.300'),
+            '--tw-prose-quotes': theme('colors.neutral.900'),
+            '--tw-prose-quote-borders': theme('colors.primary.600'),
+            '--tw-prose-code': theme('colors.primary.600'),
+            '--tw-prose-pre-code': theme('colors.neutral.200'),
+            '--tw-prose-pre-bg': theme('colors.neutral.800'),
+            '--tw-prose-th-borders': theme('colors.neutral.300'),
+            '--tw-prose-td-borders': theme('colors.neutral.200'),
+          },
+        },
+      }),
       animation: {
         'fade-in-up': 'fadeInUp 0.6s ease-out',
         'fade-in': 'fadeIn 0.6s ease-out',
@@ -42,5 +62,7 @@ module.exports = {
       },
     },
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/typography'),
+  ],
 }

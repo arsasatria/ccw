@@ -27,6 +27,72 @@
   --animation-duration-fast: 0.15s;
 }
 
+/* Apply Tailwind Typography to Docusaurus markdown content */
+@layer components {
+  /* Apply prose styles to article content (main markdown container in Docusaurus) */
+  article {
+    @apply prose prose-neutral max-w-none;
+    @apply prose-headings:font-bold prose-headings:text-neutral-900;
+    @apply prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4;
+    @apply prose-h2:text-2xl prose-h2:mt-6 prose-h2:mb-3;
+    @apply prose-h3:text-xl prose-h3:mt-5 prose-h3:mb-2;
+    @apply prose-h4:text-lg prose-h4:mt-4 prose-h4:mb-2;
+    @apply prose-p:text-base prose-p:leading-7 prose-p:mb-4;
+    @apply prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline;
+    @apply prose-strong:text-neutral-900 prose-strong:font-semibold;
+    @apply prose-code:text-primary-600 prose-code:px-1 prose-code:py-0.5 prose-code:bg-neutral-100 prose-code:rounded;
+    @apply prose-pre:bg-neutral-900 prose-pre:text-neutral-100;
+    @apply prose-blockquote:border-l-4 prose-blockquote:border-primary-600 prose-blockquote:pl-4 prose-blockquote:italic;
+    @apply prose-ul:list-disc prose-ul:pl-6;
+    @apply prose-ol:list-decimal prose-ol:pl-6;
+  }
+
+  /* Handle nested markdown containers */
+  .markdown,
+  .theme-doc-markdown {
+    @apply prose prose-neutral;
+    @apply prose-headings:font-bold prose-headings:text-neutral-900;
+    @apply prose-h1:text-3xl prose-h1:mt-8 prose-h1:mb-4;
+    @apply prose-h2:text-2xl prose-h2:mt-6 prose-h2:mb-3;
+    @apply prose-h3:text-xl prose-h3:mt-5 prose-h3:mb-2;
+    @apply prose-h4:text-lg prose-h4:mt-4 prose-h4:mb-2;
+    @apply prose-p:text-base prose-p:leading-7 prose-p:mb-4;
+    @apply prose-a:text-primary-600 prose-a:no-underline hover:prose-a:underline;
+    @apply prose-strong:text-neutral-900 prose-strong:font-semibold;
+    @apply prose-code:text-primary-600 prose-code:px-1 prose-code:py-0.5 prose-code:bg-neutral-100 prose-code:rounded;
+    @apply prose-pre:bg-neutral-900 prose-pre:text-neutral-100;
+    @apply prose-blockquote:border-l-4 prose-blockquote:border-primary-600 prose-blockquote:pl-4 prose-blockquote:italic;
+    @apply prose-ul:list-disc prose-ul:pl-6;
+    @apply prose-ol:list-decimal prose-ol:pl-6;
+  }
+}
+
+/* Override Docusaurus default max-width - must be outside @layer to take precedence */
+.markdown,
+.theme-doc-markdown {
+  max-width: 56rem !important;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
+@media (min-width: 640px) {
+  .markdown,
+  .theme-doc-markdown {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .markdown,
+  .theme-doc-markdown {
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
 /* Custom styles */
 .hero {
   padding: 4rem 0;
@@ -217,6 +283,53 @@ a {
   align-items: center;
   gap: 0.25rem;
   white-space: nowrap;
+}
+
+/* Prevent "Edit this page" button from wrapping */
+.theme-edit-this-page {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+}
+
+/* Breadcrumbs alignment */
+.breadcrumbs {
+  margin-top: 0;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.breadcrumbs__item {
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+
+.breadcrumbs__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  line-height: 1;
+}
+
+.breadcrumbs__link svg {
+  display: inline-flex;
+  align-items: center;
+}
+
+.breadcrumbs__link span {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Breadcrumb separator alignment */
+.breadcrumbs__item::after,
+.breadcrumbs__item--separator {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 0.5rem;
 }
 
 /* Responsive improvements */

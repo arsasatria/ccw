@@ -15,19 +15,19 @@ Install Claude Code Router globally using your preferred package manager.
 ## Install via npm
 
 ```bash
-npm install -g @arsasatria/ccw-cli
+npm install -g @arsasatria/ccw
 ```
 
 ## Install via pnpm
 
 ```bash
-pnpm add -g @arsasatria/ccw-cli
+pnpm add -g @arsasatria/ccw
 ```
 
 ## Install via Yarn
 
 ```bash
-yarn global add @arsasatria/ccw-cli
+yarn global add @arsasatria/ccw
 ```
 
 ## Verify Installation
