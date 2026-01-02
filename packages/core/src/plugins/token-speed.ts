@@ -160,13 +160,16 @@ export const tokenSpeedPlugin: CCRPlugin = {
 
     // Add onRequest hook to capture actual request start time (before processing)
     fastify.addHook('onRequest', async (request) => {
+      const url = new URL(`http://127.0.0.1${request.url}`);
+      if (!url.pathname.endsWith("/v1/messages")) return;
       (request as any).requestStartTime = performance.now();
     });
 
     // Add onSend hook to intercept both streaming and non-streaming responses
     fastify.addHook('onSend', async (request, _reply, payload) => {
+      const startTime = (request as any).requestStartTime;
+      if (!startTime) return;
       const requestId = (request as any).id || Date.now().toString();
-      const startTime = (request as any).requestStartTime || performance.now();
 
       // Extract session ID from request body metadata
       let sessionId: string | undefined;
@@ -177,8 +180,8 @@ export const tokenSpeedPlugin: CCRPlugin = {
           sessionId = match ? match[1] : undefined;
         }
       } catch (error) {
-        // Ignore errors extracting session ID
       }
+      if (!sessionId) return;
 
       // Get tokenizer for this specific request
       const tokenizer = await getTokenizerForRequest(request);

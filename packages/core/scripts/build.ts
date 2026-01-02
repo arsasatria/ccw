@@ -8,6 +8,7 @@ import { pathAliasPlugin } from "./esbuild-plugin-path-alias";
 const watch = process.argv.includes("--watch");
 
 // Get the absolute path to the src directory (ES module compatible)
+// @ts-ignore
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const baseUrl = path.resolve(__dirname, "..");
