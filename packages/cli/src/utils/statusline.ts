@@ -441,30 +441,12 @@ async function getTokenSpeedStats(sessionId: string): Promise<{
             return null;
         }
 
-        // List all files in temp directory
-        const files = await fs.readdir(tempDir);
-
-        // Find files matching pattern: session-{sessionId}-{timestamp}.json
-        const pattern = new RegExp(`^session-${sessionId}-(\\d+)\\.json$`);
-        const matchingFiles = files
-            .map(file => {
-                const match = file.match(pattern);
-                if (!match) return null;
-                return {
-                    file,
-                    timestamp: parseInt(match[1])
-                };
-            })
-            .filter(Boolean) as Array<{ file: string; timestamp: number }>;
-
-        if (matchingFiles.length === 0) {
+        const statsFilePath = path.join(tempDir, `session-${sessionId}.json`);
+        try {
+            await fs.access(statsFilePath);
+        } catch {
             return null;
         }
-
-        // Sort by timestamp descending and get the most recent file
-        matchingFiles.sort((a, b) => b.timestamp - a.timestamp);
-        const latestFile = matchingFiles[0];
-        const statsFilePath = path.join(tempDir, latestFile.file);
 
         // Read stats file
         const content = await fs.readFile(statsFilePath, 'utf-8');
