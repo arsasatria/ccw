@@ -4,11 +4,11 @@
   "description": "A universal LLM API transformation server",
   "main": "dist/cjs/server.cjs",
   "module": "dist/esm/server.mjs",
-  "types": "dist/plugins.d.ts",
+  "types": "./dist/index.d.ts",
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/plugins.d.ts",
+      "types": "./dist/index.d.ts",
       "import": "./dist/esm/server.mjs",
       "require": "./dist/cjs/server.cjs"
     }
