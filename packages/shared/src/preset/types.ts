@@ -147,6 +147,15 @@ export interface PresetConfigSection {
   transformers?: TransformerConfig[];
   StatusLine?: any;
   NON_INTERACTIVE_MODE?: boolean;
+
+  // CLI-only fields (not used by server)
+  noServer?: boolean;                // CLI: Whether to skip local server startup and use provider's API directly
+  claudeCodeSettings?: {             // CLI: Claude Code specific settings
+    env?: Record<string, any>;       // CLI: Environment variables to pass to Claude Code
+    statusLine?: any;                // CLI: Status line configuration
+    [key: string]: any;
+  };
+
   [key: string]: any;
 }
 
@@ -244,7 +253,6 @@ export enum MergeStrategy {
 // Sanitization result
 export interface SanitizeResult {
   sanitizedConfig: any;
-  requiredInputs: RequiredInput[];
   sanitizedCount: number;
 }
 

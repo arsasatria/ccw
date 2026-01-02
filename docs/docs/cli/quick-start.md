@@ -21,7 +21,7 @@ Edit `~/.ccw/config.json`:
   "Providers": [
     {
       "name": "openai",
-      "api_base_url": "https://api.openai.com/v1",
+      "api_base_url": "https://api.openai.com/v1/chat/completions",
       "api_key": "your-api-key-here",
       "models": ["gpt-4", "gpt-3.5-turbo"]
     }

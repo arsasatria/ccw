@@ -141,14 +141,14 @@ A preset is a directory containing a `manifest.json` file:
   "Providers": [
     {
       "name": "openai",
-      "api_base_url": "https://api.openai.com/v1",
+      "api_base_url": "https://api.openai.com/v1/chat/completions",
       "api_key": "{{apiKey}}",
       "models": ["gpt-4", "gpt-3.5-turbo"]
     }
   ],
 
   "Router": {
-    "default": "openai:gpt-4"
+    "default": "openai,gpt-4"
   },
 
   "schema": [
@@ -251,4 +251,4 @@ ccr preset export my-preset --include-sensitive
 
 - [Configuration Guide](/docs/cli/config/basic) - Basic configuration
 - [Project-Level Configuration](/docs/cli/config/project-level) - Project-specific settings
-- [Server: Presets](/docs/server/advanced/presets) - Advanced preset topics
+- [Presets](/docs/presets/intro) - Advanced preset topics

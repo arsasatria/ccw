@@ -55,7 +55,6 @@ Preset 是一个预定义的配置包，用于快速配置 Claude Code Router。
   "schema": [...],
   "template": {...},
   "configMappings": [...],
-  "requiredInputs": [...],
   "userValues": {...}
 }
 ```
@@ -113,7 +112,7 @@ Provider 配置数组，定义 LLM 服务提供商。
   "Providers": [
     {
       "name": "openai",
-      "api_base_url": "https://api.openai.com/v1",
+      "api_base_url": "https://api.openai.com/v1/chat/completions",
       "api_key": "${OPENAI_API_KEY}",
       "models": ["gpt-4o", "gpt-4o-mini"],
       "transformer": "anthropic",
@@ -159,7 +158,7 @@ Provider 配置数组，定义 LLM 服务提供商。
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
-| `default` | string | 默认路由（格式：`provider/model`） |
+| `default` | string | 默认路由（格式：`provider,model`） |
 | `background` | string | 后台任务路由 |
 | `think` | string | 思考模式路由 |
 | `longContext` | string | 长上下文路由 |
@@ -550,27 +549,6 @@ userValues 存储用户在安装时填写的值，运行时自动应用。
 }
 ```
 
-### requiredInputs（必填输入）
-
-requiredInputs 是导出预设时自动生成的字段列表，用于提示用户需要填写哪些信息。
-
-```json
-{
-  "requiredInputs": [
-    {
-      "id": "Providers[0].api_key",
-      "prompt": "Enter api_key",
-      "placeholder": "OPENAI_API_KEY"
-    },
-    {
-      "id": "PROXY_URL",
-      "prompt": "Enter proxy URL",
-      "placeholder": "PROXY_URL"
-    }
-  ]
-}
-```
-
 ## 敏感字段处理
 
 CCR 会自动识别敏感字段（如 `api_key`、`secret`、`password` 等），并将其替换为环境变量占位符。
@@ -617,13 +595,6 @@ $VARIABLE_NAME
       "name": "openai",
       "api_key": "${OPENAI_API_KEY}"
     }
-  ],
-  "requiredInputs": [
-    {
-      "id": "Providers[0].api_key",
-      "prompt": "Enter api_key",
-      "placeholder": "OPENAI_API_KEY"
-    }
   ]
 }
 ```
@@ -642,7 +613,7 @@ $VARIABLE_NAME
   "Providers": [
     {
       "name": "openai",
-      "api_base_url": "https://api.openai.com/v1",
+      "api_base_url": "https://api.openai.com/v1/chat/completions",
       "api_key": "${OPENAI_API_KEY}",
       "models": ["gpt-4o", "gpt-4o-mini"]
     }
@@ -651,15 +622,7 @@ $VARIABLE_NAME
   "Router": {
     "default": "openai/gpt-4o",
     "background": "openai/gpt-4o-mini"
-  },
-
-  "requiredInputs": [
-    {
-      "id": "Providers[0].api_key",
-      "prompt": "Enter OpenAI API Key",
-      "placeholder": "OPENAI_API_KEY"
-    }
-  ]
+  }
 }
 ```
 
@@ -806,7 +769,7 @@ $VARIABLE_NAME
     "Providers": [
       {
         "name": "#{primaryProvider}",
-        "api_base_url": "#{primaryProvider === 'openai' ? 'https://api.openai.com/v1' : 'https://api.deepseek.com'}",
+        "api_base_url": "#{primaryProvider === 'openai' ? 'https://api.openai.com/v1/chat/completions' : 'https://api.deepseek.com/v1/chat/completions'}",
         "api_key": "#{apiKey}",
         "models": [
           "#{defaultModel}",

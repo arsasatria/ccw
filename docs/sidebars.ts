@@ -106,10 +106,20 @@ const sidebars: SidebarsConfig = {
           },
           items: [
             'server/advanced/custom-router',
-            'server/advanced/presets',
           ],
         },
       ],
+    },
+    {
+      type: 'category',
+      label: 'Presets',
+      link: {
+        type: 'generated-index',
+        title: 'CCR Presets',
+        description: 'Predefined configurations for quick setup',
+        slug: 'category/presets',
+      },
+      items: ['presets/intro'],
     },
   ],
 };

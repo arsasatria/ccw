@@ -141,14 +141,14 @@ ccr preset delete my-config
   "Providers": [
     {
       "name": "openai",
-      "api_base_url": "https://api.openai.com/v1",
+      "api_base_url": "https://api.openai.com/v1/chat/completions",
       "api_key": "{{apiKey}}",
       "models": ["gpt-4", "gpt-3.5-turbo"]
     }
   ],
 
   "Router": {
-    "default": "openai:gpt-4"
+    "default": "openai,gpt-4"
   },
 
   "schema": [
@@ -251,4 +251,4 @@ ccr preset export my-preset --include-sensitive
 
 - [配置指南](/zh/docs/cli/config/basic) - 基础配置
 - [项目级配置](/zh/docs/cli/config/project-level) - 项目特定设置
-- [服务器：预设](/zh/docs/server/advanced/presets) - 高级预设主题
+- [预设](/zh/docs/presets/intro) - 高级预设主题

@@ -8,7 +8,7 @@ CLI uses the same configuration file as Server: `~/.ccw/config.json`
 
 ## Configuration Methods
 
-You can configure Claude Code Router in three ways:
+You can configure Claude Code Router in two ways:
 
 ### Option 1: Edit Configuration File Directly
 
@@ -25,20 +25,6 @@ Open the web interface and configure visually:
 ```bash
 ccr ui
 ```
-
-### Option 3: Interactive Configuration
-
-Use the interactive command-line configuration:
-
-```bash
-ccr model
-```
-
-This will guide you through:
-1. Select LLM provider
-2. Configure API Key
-3. Select model
-4. Set routing rules
 
 ## Restart After Configuration Changes
 

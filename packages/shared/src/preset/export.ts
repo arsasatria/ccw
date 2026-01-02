@@ -26,7 +26,6 @@ export interface ExportResult {
   presetDir: string;
   sanitizedConfig: any;
   metadata: PresetMetadata;
-  requiredInputs: any[];
   sanitizedCount: number;
 }
 
@@ -41,8 +40,7 @@ export function createManifest(
   presetName: string,
   config: any,
   sanitizedConfig: any,
-  options: ExportOptions,
-  requiredInputs: any[] = []
+  options: ExportOptions
 ): ManifestFile {
   const metadata: PresetMetadata = {
     name: presetName,
@@ -55,7 +53,6 @@ export function createManifest(
   return {
     ...metadata,
     ...sanitizedConfig,
-    requiredInputs: options.includeSensitive ? undefined : requiredInputs,
   };
 }
 
@@ -81,13 +78,12 @@ export async function exportPreset(
   };
 
   // 2. Sanitize configuration
-  const { sanitizedConfig, requiredInputs, sanitizedCount } = await sanitizeConfig(config);
+  const { sanitizedConfig, sanitizedCount } = await sanitizeConfig(config);
 
   // 3. Generate manifest.json (flattened structure)
   const manifest: ManifestFile = {
     ...metadata,
     ...sanitizedConfig,
-    requiredInputs: options.includeSensitive ? undefined : requiredInputs,
   };
 
   // 4. Create preset directory
@@ -114,7 +110,6 @@ export async function exportPreset(
     presetDir,
     sanitizedConfig,
     metadata,
-    requiredInputs,
     sanitizedCount,
   };
 }

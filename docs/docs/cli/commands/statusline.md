@@ -370,7 +370,7 @@ Output: ` feature/auth  📝 +150/-25  ⏱️ 2m34s`
 
 Statusline themes can be included in presets. When you install a preset with statusline configuration, it will automatically apply when you activate that preset.
 
-See [Presets](/docs/server/advanced/presets) for more information.
+See [Presets](/docs/presets/intro) for more information.
 
 ## Troubleshooting
 

@@ -30,10 +30,6 @@ ccr preset install /path/to/preset-directory
 ccr preset install my-preset
 ```
 
-:::note Note
-CLI mode **does not support** installing presets directly from URLs. To install from GitHub, clone to local first or use Web UI.
-:::
-
 #### Using Presets
 
 After installing a preset, you can use the preset name to start Claude Code:
@@ -41,9 +37,6 @@ After installing a preset, you can use the preset name to start Claude Code:
 ```bash
 # Start with a specific preset
 ccr my-preset "your prompt"
-
-# Background task with preset
-ccr my-preset --background "your prompt"
 ```
 
 The preset will:
@@ -88,13 +81,6 @@ Then open `http://localhost:3000` in your browser.
 1. Click the "Preset Market" button
 2. Select the preset you want to install from the list
 3. Click the "Install" button
-
-Or manually enter a GitHub repository URL:
-
-```
-Format: https://github.com/username/repo
-Example: https://github.com/example/ccr-presets
-```
 
 #### Reconfigure Preset
 
@@ -309,13 +295,13 @@ For complex configuration needs, use `configMappings` to precisely control value
     "Providers": [
       {
         "name": "{{primaryProvider}}",
-        "api_base_url": "https://api.openai.com/v1",
+        "api_base_url": "https://api.openai.com/v1/chat/completions",
         "api_key": "{{apiKey}}",
         "models": ["{{defaultModel}}"]
       }
     ],
     "Router": {
-      "default": "{{primaryProvider}}/{{defaultModel}}"
+      "default": "{{primaryProvider}},{{defaultModel}}"
     },
     "PROXY_URL": "{{proxyUrl}}"
   },
@@ -352,9 +338,6 @@ These fields describe basic information about the preset:
 | `license` | string | - | License type |
 | `keywords` | string[] | - | Keyword tags |
 | `ccwVersion` | string | - | Compatible CCR version |
-| `source` | string | - | Preset source URL |
-| `sourceType` | string | - | Source type (`local`/`gist`/`registry`) |
-| `checksum` | string | - | Content checksum (SHA256) |
 
 Example:
 
@@ -382,6 +365,14 @@ These fields are directly merged into CCR's configuration. All fields supported 
 | `Router` | object | Routing configuration |
 | `transformers` | array | Transformer configuration |
 | `StatusLine` | object | Status bar configuration |
+| `NON_INTERACTIVE_MODE` | boolean | Enable non-interactive mode (for CI/CD) |
+
+**CLI-Only Fields** (these fields only work in CLI mode and are not used by the server):
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `noServer` | boolean | Skip local server startup and use provider's API directly |
+| `claudeCodeSettings` | object | Claude Code specific settings (env, statusLine, etc.) |
 
 Example:
 
@@ -390,14 +381,14 @@ Example:
   "Providers": [
     {
       "name": "openai",
-      "api_base_url": "https://api.openai.com/v1",
+      "api_base_url": "https://api.openai.com/v1/chat/completions",
       "api_key": "${OPENAI_API_KEY}",
       "models": ["gpt-4o", "gpt-4o-mini"]
     }
   ],
   "Router": {
-    "default": "openai/gpt-4o",
-    "background": "openai/gpt-4o-mini"
+    "default": "openai,gpt-4o",
+    "background": "openai,gpt-4o-mini"
   },
   "PORT": 8080
 }
@@ -413,7 +404,6 @@ These fields are used to create interactive configuration templates:
 | `template` | object | Configuration template (with variable references) |
 | `configMappings` | array | Configuration mapping rules |
 | `userValues` | object | User-filled values (used at runtime) |
-| `requiredInputs` | array | Required input list (auto-generated) |
 
 **Schema Field Types:**
 
@@ -483,24 +473,16 @@ cat > ~/.ccw/presets/simple-openai/manifest.json << 'EOF'
   "Providers": [
     {
       "name": "openai",
-      "api_base_url": "https://api.openai.com/v1",
+      "api_base_url": "https://api.openai.com/v1/chat/completions",
       "api_key": "${OPENAI_API_KEY}",
       "models": ["gpt-4o", "gpt-4o-mini"]
     }
   ],
 
   "Router": {
-    "default": "openai/gpt-4o",
-    "background": "openai/gpt-4o-mini"
-  },
-
-  "requiredInputs": [
-    {
-      "id": "Providers[0].api_key",
-      "prompt": "Enter OpenAI API Key",
-      "placeholder": "OPENAI_API_KEY"
-    }
-  ]
+    "default": "openai,gpt-4o",
+    "background": "openai,gpt-4o-mini"
+  }
 }
 EOF
 
@@ -584,14 +566,14 @@ cat > ~/.ccw/presets/advanced-config/manifest.json << 'EOF'
     "Providers": [
       {
         "name": "#{provider}",
-        "api_base_url": "#{provider === 'openai' ? 'https://api.openai.com/v1' : 'https://api.deepseek.com'}",
+        "api_base_url": "#{provider === 'openai' ? 'https://api.openai.com/v1/chat/completions' : 'https://api.deepseek.com/v1/chat/completions'}",
         "api_key": "#{apiKey}",
         "models": ["gpt-4o", "gpt-4o-mini"]
       }
     ],
     "Router": {
-      "default": "#{provider}/gpt-4o",
-      "background": "#{provider}/gpt-4o-mini"
+      "default": "#{provider},gpt-4o",
+      "background": "#{provider},gpt-4o-mini"
     }
   },
 
@@ -638,12 +620,6 @@ ccr preset export my-exported-preset \
   --author "Your Name" \
   --tags "production,openai"
 ```
-
-:::tip Share Presets
-Exported preset directories can be directly shared with others. Recipients can:
-- **CLI Mode**: Place directory in `~/.ccw/presets/`, then run `ccr preset install preset-name`
-- **Web UI Mode**: Upload directory to GitHub, then install via repository URL
-:::
 
 ## Preset File Location
 

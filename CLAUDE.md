@@ -185,7 +185,7 @@ Located in `packages/shared/src/preset/`:
 
 - **sensitiveFields.ts**: Identify and sanitize sensitive fields
   - Detects api_key, password, secret fields automatically
-  - Creates `requiredInputs` array for installation prompts
+  - Replaces sensitive values with environment variable placeholders
 
 ### Preset File Format
 
@@ -205,12 +205,6 @@ Located in `packages/shared/src/preset/`:
       "type": "password",
       "label": "OpenAI API Key",
       "prompt": "Enter your OpenAI API key"
-    }
-  ],
-  "requiredInputs": [
-    {
-      "field": "Providers[0].api_key",
-      "placeholder": "Enter your API key"
     }
   ]
 }

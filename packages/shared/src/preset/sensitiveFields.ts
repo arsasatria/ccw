@@ -2,7 +2,7 @@
  * Sensitive field identification and sanitization functionality
  */
 
-import { RequiredInput, SanitizeResult } from './types';
+import { SanitizeResult } from './types';
 
 // Sensitive field pattern list
 const SENSITIVE_PATTERNS = [
@@ -88,17 +88,15 @@ function extractEnvVarName(value: string): string | null {
  * Recursively traverse object to identify and sanitize sensitive fields
  * @param config Configuration object
  * @param path Current field path
- * @param requiredInputs Required inputs array (cumulative)
  * @param sanitizedCount Sanitized field count
  */
 function sanitizeObject(
   config: any,
   path: string = '',
-  requiredInputs: RequiredInput[] = [],
   sanitizedCount: number = 0
-): { sanitized: any; requiredInputs: RequiredInput[]; count: number } {
+): { sanitized: any; count: number } {
   if (!config || typeof config !== 'object') {
-    return { sanitized: config, requiredInputs, count: sanitizedCount };
+    return { sanitized: config, count: sanitizedCount };
   }
 
   if (Array.isArray(config)) {
@@ -107,14 +105,12 @@ function sanitizeObject(
       const result = sanitizeObject(
         config[i],
         path ? `${path}[${i}]` : `[${i}]`,
-        requiredInputs,
         sanitizedCount
       );
       sanitizedArray.push(result.sanitized);
-      requiredInputs = result.requiredInputs;
       sanitizedCount = result.count;
     }
-    return { sanitized: sanitizedArray, requiredInputs, count: sanitizedCount };
+    return { sanitized: sanitizedArray, count: sanitizedCount };
   }
 
   const sanitizedObj: any = {};
@@ -126,15 +122,6 @@ function sanitizeObject(
       // If value is already an environment variable, keep unchanged
       if (isEnvPlaceholder(value)) {
         sanitizedObj[key] = value;
-        // Still need to record as required input, but use existing environment variable
-        const envVarName = extractEnvVarName(value);
-        if (envVarName && !requiredInputs.some(input => input.id === currentPath)) {
-          requiredInputs.push({
-            id: currentPath,
-            prompt: `Enter ${key}`,
-            placeholder: envVarName,
-          });
-        }
       } else {
         // Sanitize: replace with environment variable placeholder
         // Try to infer entity name from path
@@ -161,20 +148,12 @@ function sanitizeObject(
         const envVarName = generateEnvVarName('global', entityName, key);
         sanitizedObj[key] = `\${${envVarName}}`;
 
-        // Record as required input
-        requiredInputs.push({
-          id: currentPath,
-          prompt: `Enter ${key}`,
-          placeholder: envVarName,
-        });
-
         sanitizedCount++;
       }
     } else if (typeof value === 'object' && value !== null) {
       // Recursively process nested objects
-      const result = sanitizeObject(value, currentPath, requiredInputs, sanitizedCount);
+      const result = sanitizeObject(value, currentPath, sanitizedCount);
       sanitizedObj[key] = result.sanitized;
-      requiredInputs = result.requiredInputs;
       sanitizedCount = result.count;
     } else {
       // Keep original value
@@ -182,7 +161,7 @@ function sanitizeObject(
     }
   }
 
-  return { sanitized: sanitizedObj, requiredInputs, count: sanitizedCount };
+  return { sanitized: sanitizedObj, count: sanitizedCount };
 }
 
 /**
@@ -198,7 +177,6 @@ export async function sanitizeConfig(config: any): Promise<SanitizeResult> {
 
   return {
     sanitizedConfig: result.sanitized,
-    requiredInputs: result.requiredInputs,
     sanitizedCount: result.count,
   };
 }
