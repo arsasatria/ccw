@@ -3,9 +3,9 @@
   "version": "2.0.0",
   "description": "Use Claude Code without an Anthropics account and route it to another LLM provider",
   "scripts": {
-    "build": "node scripts/build.js",
-    "build:core": "node scripts/build-core.js",
-    "build:shared": "node scripts/build-shared.js",
+    "build": "pnpm build:shared && pnpm build:core && pnpm build:server && pnpm build:cli && pnpm build:ui",
+    "build:core": "pnpm --filter @musistudio/llms build",
+    "build:shared": "pnpm --filter @ccw/shared build",
     "build:cli": "pnpm --filter @ccw/cli build",
     "build:server": "pnpm --filter @ccw/server build",
     "build:ui": "pnpm --filter @ccw/ui build",
@@ -16,6 +16,7 @@
     "dev:cli": "pnpm --filter @ccw/cli dev",
     "dev:server": "pnpm --filter @ccw/server dev",
     "dev:ui": "pnpm --filter @ccw/ui dev",
+    "dev:core": "pnpm --filter @musistudio/llms dev",
     "dev:docs": "pnpm --filter ccw-docs start",
     "serve:docs": "pnpm --filter ccw-docs serve"
   },
