@@ -15,3 +15,5 @@ config.json
 ui
 scripts
 packages
+custom-router.example.js
+examples

@@ -2,7 +2,6 @@
   "name": "@arsasatria/ccw",
   "version": "2.0.0",
   "description": "Use Claude Code without an Anthropics account and route it to another LLM provider",
-  "private": true,
   "scripts": {
     "build": "node scripts/build.js",
     "build:core": "node scripts/build-core.js",
