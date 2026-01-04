@@ -7,8 +7,8 @@ const config: Config = {
   tagline: 'Use Claude Code without an Anthropics account and route it to another LLM provider',
   favicon: 'img/favicon.ico',
 
-  url: 'https://ccw.js.org',
-  baseUrl: '/',
+  url: 'https://musistudio.github.io',
+  baseUrl: '/ccw/',
 
   organizationName: 'musistudio',
   projectName: 'ccw',
