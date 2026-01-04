@@ -13,6 +13,7 @@ RUN npm install -g pnpm@latest && \
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json tsconfig.base.json ./
 COPY scripts ./scripts
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/core/package.json ./packages/core/
 COPY packages/server/package.json ./packages/server/
 
 # 安装所有依赖（包括开发依赖）并清理
@@ -21,9 +22,13 @@ RUN pnpm install --frozen-lockfile && \
 
 # 复制源代码并构建
 COPY packages/shared ./packages/shared
+COPY packages/core ./packages/core
 COPY packages/server ./packages/server
 
 # 构建所有包
+WORKDIR /app/packages/core
+RUN pnpm build
+
 WORKDIR /app/packages/shared
 RUN pnpm build
 
@@ -32,11 +37,11 @@ RUN pnpm build && \
     rm -rf node_modules/.cache
 
 # ===========================
-# 生产阶段（极简版 - 无 node_modules）
+# 生产阶段
 # ===========================
 FROM node:20-alpine AS production
 
-# 只安装 PM2、curl 和 pm2-logrotate，并删除不需要的 npm 和 corepack
+# 安装 PM2、curl 和 pm2-logrotate
 RUN apk add --no-cache curl && \
     npm install -g pm2 pm2-logrotate --no-scripts && \
     pm2 install pm2-logrotate && \
@@ -47,7 +52,13 @@ RUN apk add --no-cache curl && \
 
 WORKDIR /app
 
-# 从构建阶段复制 server bundle（shared 已被打包进 index.js，无需单独复制）
+# 复制 core 包（workspace 依赖）
+COPY --from=builder /app/packages/core ./packages/core
+
+# 复制生产依赖
+COPY --from=builder /app/packages/server/node_modules ./packages/server/node_modules
+
+# 从构建阶段复制 server bundle
 COPY --from=builder /app/packages/server/dist ./packages/server/dist
 # 复制本地预先构建的 UI 产物到同一目录
 COPY packages/ui/dist/. ./packages/server/dist/
