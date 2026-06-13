@@ -62,12 +62,12 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
         onChange={handleChange}
         onBlur={handleBlur}
         className={cn(
-          "flex h-9 w-full rounded-md border border-input bg-surface px-3 py-1 text-sm",
-          "shadow-[inset_0_1px_0_oklch(0_0_0_/_2%)]",
-          "placeholder:text-fg-subtle",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:border-brand/50",
+          "flex h-9 w-full rounded-sm border border-line bg-surface-2 px-3 py-1 text-[13px] text-ink",
+          "placeholder:text-ink-subtle",
+          "focus:bg-surface focus:border-line-strong",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-paper",
           "disabled:cursor-not-allowed disabled:opacity-50",
-          "file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-fg",
+          "file:border-0 file:bg-transparent file:text-sm file:font-medium",
           className
         )}
         ref={ref}
