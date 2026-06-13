@@ -3,6 +3,19 @@
 All notable changes to **ccw** are documented in this file. ccw is a fork of
 [musistudio/claude-code-router](https://github.com/musistudio/claude-code-router).
 
+## Unreleased
+
+### Features
+
+- **`ccw update`**: pull the latest source from
+  [arsasatria/ccw](https://github.com/arsasatria/ccw), rebuild, and restart
+  the running service without re-running the installer. Detects the install
+  directory from `$CCW_HOME` (highest priority), then
+  `~/.local/share/ccw` on macOS/Linux, then
+  `%LOCALAPPDATA%\Programs\ccw` on Windows. Exits with a clear message when
+  the install directory is not a git checkout (so users know to re-run the
+  installer instead). No-op when the local commit already matches `origin/main`.
+
 ## 1.0.0 — 2026-06-13
 
 Initial release of the standalone fork. All upstream code is inherited from
