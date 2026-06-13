@@ -287,3 +287,57 @@ test("backfills empty parameters for tools without input_schema (issue #1371 Bug
     },
   });
 });
+
+test("sets assistant content to null when text+tool_use+thinking are all empty (sanitize context histories)", async () => {
+  // Reproduces: a previous turn where the model emitted only a thinking block
+  // (no text, no tool_use) and the empty {"type":"text","text":""} part is
+  // sent back as part of the assistant history. After filtering empties, the
+  // assistant message has no text, no tool_calls, no thinking — must be
+  // serialized with content: null so strict OpenAI-spec providers don't
+  // reject an empty-string content field.
+  const transformer = new AnthropicTransformer();
+  // @ts-expect-error access private for test
+  const out = await transformer.transformRequestOut({
+    model: "test",
+    messages: [
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "" }, // empty — must be filtered
+          { type: "thinking", thinking: "hmm", signature: "sig" },
+        ],
+      },
+    ],
+  });
+
+  // content should be null (not "") because textParts was empty
+  assert.equal(out.messages[0].content, null);
+  // thinking should be preserved
+  assert.deepEqual(out.messages[0].thinking, { content: "hmm", signature: "sig" });
+});
+
+test("joins non-empty assistant text parts and preserves tool_calls and thinking", async () => {
+  const transformer = new AnthropicTransformer();
+  // @ts-expect-error access private for test
+  const out = await transformer.transformRequestOut({
+    model: "test",
+    messages: [
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "first" },
+          { type: "text", text: "" }, // empty — must be filtered
+          { type: "text", text: "second" },
+          { type: "tool_use", id: "t1", name: "search", input: { q: "x" } },
+          { type: "thinking", thinking: "reasoning", signature: "sig-1" },
+        ],
+      },
+    ],
+  });
+
+  assert.equal(out.messages[0].content, "first\nsecond");
+  assert.deepEqual(out.messages[0].tool_calls, [
+    { id: "t1", type: "function", function: { name: "search", arguments: '{"q":"x"}' } },
+  ]);
+  assert.deepEqual(out.messages[0].thinking, { content: "reasoning", signature: "sig-1" });
+});

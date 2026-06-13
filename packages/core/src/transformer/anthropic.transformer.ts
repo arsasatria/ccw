@@ -133,7 +133,7 @@ export class AnthropicTransformer implements Transformer {
           } else if (msg.role === "assistant") {
             const assistantMessage: UnifiedMessage = {
               role: "assistant",
-              content: "",
+              content: null,
             };
             const textParts = msg.content.filter(
               (c: any) => c.type === "text" && c.text
