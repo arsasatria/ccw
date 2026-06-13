@@ -43,6 +43,12 @@ MIT (Copyright (c) 2026 arsasatria).
   installer pattern: verify Node.js >= 20, ensure pnpm via corepack, clone
   the source, build, drop a shim, and add the install directory to the user
   PATH. Idempotent — re-running acts as an updater.
+- The installer also drops a second shim in a directory that is ALREADY on
+  PATH for the current user (`%APPDATA%\npm` or `WindowsApps` on Windows,
+  `/usr/local/bin` or `~/.local/bin` on Unix). This makes `ccw` callable
+  from any newly-opened terminal with no PATH refresh and no waiting for
+  environment propagation. The PATH-addition step is kept as a fallback for
+  users whose standard PATH doesn't include the picked directory.
 - Renamed binary from `ccr` to `ccw` (matches the repo name).
 - Renamed root package to `ccw`; added MIT LICENSE and a fork notice at the
   top of the README.
