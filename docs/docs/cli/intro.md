@@ -4,11 +4,11 @@ title: CLI Introduction
 
 # CLI Introduction
 
-Claude Code Router CLI (`ccr`) is a command-line tool for managing and controlling the Claude Code Router service.
+Claude Code Wrapper CLI (`ccw`) is a command-line tool for managing and controlling the Claude Code Wrapper service.
 
 ## Feature Overview
 
-`ccr` provides the following functionality:
+`ccw` provides the following functionality:
 
 - **Service Management**: Start, stop, restart service
 - **Configuration Management**: Interactive model selection configuration
@@ -16,7 +16,7 @@ Claude Code Router CLI (`ccr`) is a command-line tool for managing and controlli
 - **Code Execution**: Directly execute `claude` command
 - **Environment Integration**: Output environment variables for shell integration
 - **Web UI**: Open Web management interface
-- **Status Bar**: Display customizable session status with `ccr statusline`
+- **Status Bar**: Display customizable session status with `ccw statusline`
 
 ## Installation
 
@@ -28,15 +28,15 @@ npm install -g @arsasatria/ccw
 
 ### Configuration
 
-Before using Claude Code Router, you need to configure your providers. You can either:
+Before using Claude Code Wrapper, you need to configure your providers. You can either:
 
 1. **Edit configuration file directly**: Edit `~/.ccw/config.json` manually
-2. **Use Web UI**: Run `ccr ui` to open the web interface and configure visually
+2. **Use Web UI**: Run `ccw ui` to open the web interface and configure visually
 
 After making configuration changes, restart the service:
 
 ```bash
-ccr restart
+ccw restart
 ```
 
 Or restart directly through the Web UI.
@@ -46,7 +46,7 @@ Or restart directly through the Web UI.
 Once configured, you can start Claude Code with:
 
 ```bash
-ccr code
+ccw code
 ```
 
 This will launch Claude Code and route your requests through the configured provider.
@@ -54,21 +54,21 @@ This will launch Claude Code and route your requests through the configured prov
 ### Service Management
 
 ```bash
-ccr start    # Start the router service
-ccr status   # View service status
-ccr stop     # Stop the router service
-ccr restart  # Restart the router service
+ccw start    # Start the router service
+ccw status   # View service status
+ccw stop     # Stop the router service
+ccw restart  # Restart the router service
 ```
 
 ### Web UI
 
 ```bash
-ccr ui       # Open Web management interface
+ccw ui       # Open Web management interface
 ```
 
 ## Configuration File
 
-`ccr` uses the configuration file at `~/.ccw/config.json`
+`ccw` uses the configuration file at `~/.ccw/config.json`
 
 Configure once, and both CLI and Server will use it.
 

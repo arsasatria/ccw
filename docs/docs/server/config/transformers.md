@@ -771,8 +771,8 @@ async transformRequestIn(request, provider, context) {
 ### Manual Testing
 
 1. Add your transformer to the config
-2. Start the server: `ccr restart`
-3. Check logs: `tail -f ~/.ccw/logs/ccr-*.log`
+2. Start the server: `ccw restart`
+3. Check logs: `tail -f ~/.ccw/logs/ccw-*.log`
 4. Make a test request
 5. Verify the output
 

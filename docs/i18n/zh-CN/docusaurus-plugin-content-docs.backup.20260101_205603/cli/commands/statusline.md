@@ -1,29 +1,29 @@
 ---
 id: cli/commands/statusline
-title: ccr statusline
+title: ccw statusline
 sidebar_position: 5
 ---
 
-# ccr statusline
+# ccw statusline
 
 显示可自定义的状态栏，实时展示 Claude Code 会话信息，包括工作区、Git 分支、模型、token 使用情况等。
 
 ## 概述
 
-`ccr statusline` 命令从 stdin 读取 JSON 数据，并在终端中渲染格式精美的状态栏。它设计用于与 Claude Code 的 hook 系统集成，以显示实时会话信息。
+`ccw statusline` 命令从 stdin 读取 JSON 数据，并在终端中渲染格式精美的状态栏。它设计用于与 Claude Code 的 hook 系统集成，以显示实时会话信息。
 
 ## 使用方法
 
 ### 基本用法
 
 ```bash
-ccr statusline
+ccw statusline
 ```
 
 该命令期望通过 stdin 接收 JSON 数据，通常通过管道从 Claude Code hook 传递：
 
 ```bash
-echo '{"hook_event_name":"...","session_id":"...","..."}' | ccr statusline
+echo '{"hook_event_name":"...","session_id":"...","..."}' | ccw statusline
 ```
 
 ### Hook 集成
@@ -34,7 +34,7 @@ echo '{"hook_event_name":"...","session_id":"...","..."}' | ccr statusline
 {
   "hooks": {
     "postResponse": {
-      "command": "ccr statusline",
+      "command": "ccw statusline",
       "input": "json"
     }
   }
@@ -398,5 +398,5 @@ export COLORTERM=truecolor
 
 ## 相关命令
 
-- [ccr status](/docs/cli/commands/status) - 检查服务状态
-- [ccr preset](/docs/cli/commands/preset) - 管理带 statusline 主题的 presets
+- [ccw status](/docs/cli/commands/status) - 检查服务状态
+- [ccw preset](/docs/cli/commands/preset) - 管理带 statusline 主题的 presets

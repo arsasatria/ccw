@@ -1,16 +1,16 @@
 ---
-title: ccr status
+title: ccw status
 sidebar_position: 3
 ---
 
-# ccr status
+# ccw status
 
-显示 Claude Code Router 服务器的当前状态。
+显示 Claude Code Wrapper 服务器的当前状态。
 
 ## 用法
 
 ```bash
-ccr status
+ccw status
 ```
 
 ## 输出
@@ -20,7 +20,7 @@ ccr status
 当服务器正在运行时：
 
 ```
-Claude Code Router 状态: 运行中
+Claude Code Wrapper 状态: 运行中
 版本: 2.0.0
 PID: 12345
 端口: 3456
@@ -33,7 +33,7 @@ PID: 12345
 当服务器未运行时：
 
 ```
-Claude Code Router 状态: 已停止
+Claude Code Wrapper 状态: 已停止
 ```
 
 ## 退出代码
@@ -47,9 +47,9 @@ Claude Code Router 状态: 已停止
 ## 示例
 
 ```bash
-$ ccr status
+$ ccw status
 
-Claude Code Router 状态: 运行中
+Claude Code Wrapper 状态: 运行中
 版本: 2.0.0
 PID: 12345
 端口: 3456
@@ -58,6 +58,6 @@ PID: 12345
 
 ## 相关命令
 
-- [ccr start](/zh/docs/cli/start) - 启动服务器
-- [ccr stop](/zh/docs/cli/other-commands#ccr-stop) - 停止服务器
-- [ccr restart](/zh/docs/cli/other-commands#ccr-restart) - 重启服务器
+- [ccw start](/zh/docs/cli/start) - 启动服务器
+- [ccw stop](/zh/docs/cli/other-commands#ccw-stop) - 停止服务器
+- [ccw restart](/zh/docs/cli/other-commands#ccw-restart) - 重启服务器

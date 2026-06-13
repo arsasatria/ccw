@@ -1,16 +1,16 @@
 ---
-title: 欢迎使用 Claude Code Router
+title: 欢迎使用 Claude Code Wrapper
 sidebar_position: 1
 slug: /
 ---
 
-# 欢迎使用 Claude Code Router
+# 欢迎使用 Claude Code Wrapper
 
 [![npm version](https://badge.fury.io/js/%40musistudio%2Fccw.svg)](https://www.npmjs.com/package/@arsasatria/ccw)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 ![Node Version](https://img.shields.io/node/v/@arsasatria/ccw.svg)
 
-**Claude Code Router** 是一个强大的工具，允许你在没有 Anthropic 账户的情况下使用 [Claude Code](https://claude.ai/code)，并将请求路由到其他 LLM 提供商。
+**Claude Code Wrapper** 是一个强大的工具，允许你在没有 Anthropic 账户的情况下使用 [Claude Code](https://claude.ai/code)，并将请求路由到其他 LLM 提供商。
 
 ## 特性
 
@@ -39,7 +39,7 @@ yarn global add @arsasatria/ccw
 
 ```bash
 # 启动路由器服务器
-ccr start
+ccw start
 
 # 配置 Claude Code 使用路由器
 export ANTHROPIC_API_URL="http://localhost:8080/v1"
@@ -58,9 +58,9 @@ claude code
 
 ## 架构
 
-Claude Code Router 由四个主要组件组成：
+Claude Code Wrapper 由四个主要组件组成：
 
-- **CLI** (`@arsasatria/ccw`): 提供 `ccr` 命令的命令行工具
+- **CLI** (`@arsasatria/ccw`): 提供 `ccw` 命令的命令行工具
 - **Server** (`@ccw/server`): 处理 API 路由和转换的核心服务器
 - **Shared** (`@ccw/shared`): 共享常量和工具
 - **UI** (`@ccw/ui`): Web 管理界面（React + Vite）

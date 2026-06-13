@@ -1,28 +1,31 @@
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
 
-import * as React from "react"
-import { cva, type VariantProps } from "class-variance-authority"
-
-import { cn } from "@/lib/utils"
+import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  [
+    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+    "transition-colors duration-150",
+  ].join(" "),
   {
     variants: {
       variant: {
-        default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80",
-        secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
-        outline: "text-foreground",
+        default: "bg-brand-soft text-brand",
+        secondary: "bg-surface-2 text-fg-muted ring-1 ring-inset ring-border",
+        outline: "text-fg-muted ring-1 ring-inset ring-border",
+        success: "bg-success/12 text-success ring-1 ring-inset ring-success/30",
+        warning: "bg-warning/12 text-warning ring-1 ring-inset ring-warning/30",
+        danger: "bg-danger/12 text-danger ring-1 ring-inset ring-danger/30",
+        info: "bg-info/12 text-info ring-1 ring-inset ring-info/30",
+        brand: "bg-brand text-brand-fg",
       },
     },
     defaultVariants: {
       variant: "default",
     },
   }
-)
+);
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
@@ -31,8 +34,8 @@ export interface BadgeProps
 function Badge({ className, variant, ...props }: BadgeProps) {
   return (
     <div className={cn(badgeVariants({ variant }), className)} {...props} />
-  )
+  );
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
-export { Badge, badgeVariants }
+export { Badge, badgeVariants };

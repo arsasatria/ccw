@@ -4,46 +4,46 @@ sidebar_position: 4
 
 # Other Commands
 
-Additional CLI commands for managing Claude Code Router.
+Additional CLI commands for managing Claude Code Wrapper.
 
-## ccr stop
+## ccw stop
 
 Stop the running server.
 
 ```bash
-ccr stop
+ccw stop
 ```
 
-## ccr restart
+## ccw restart
 
 Restart the server.
 
 ```bash
-ccr restart
+ccw restart
 ```
 
-## ccr code
+## ccw code
 
 Execute a claude command through the router.
 
 ```bash
-ccr code [args...]
+ccw code [args...]
 ```
 
-## ccr ui
+## ccw ui
 
 Open the Web UI in your browser.
 
 ```bash
-ccr ui
+ccw ui
 ```
 
-## ccr activate
+## ccw activate
 
 Output shell environment variables for integration with external tools.
 
 ```bash
-ccr activate
+ccw activate
 ```
 
 ## Global Options
@@ -62,22 +62,22 @@ These options can be used with any command:
 ### Stop the server
 
 ```bash
-ccr stop
+ccw stop
 ```
 
 ### Restart with custom config
 
 ```bash
-ccr restart --config /path/to/config.json
+ccw restart --config /path/to/config.json
 ```
 
 ### Open Web UI
 
 ```bash
-ccr ui
+ccw ui
 ```
 
 ## Related Documentation
 
-- [Getting Started](/docs/intro) - Introduction to Claude Code Router
+- [Getting Started](/docs/intro) - Introduction to Claude Code Wrapper
 - [Configuration](/docs/config/basic) - Configuration guide

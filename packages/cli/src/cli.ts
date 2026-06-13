@@ -298,7 +298,7 @@ async function main() {
           }
         }
         console.log(
-          "claude code router service has been successfully stopped."
+          "Claude Code Wrapper service has been successfully stopped."
         );
       } catch (e) {
         console.log(

@@ -4,7 +4,7 @@ title: API Overview
 
 # API Overview
 
-Claude Code Router Server provides a complete HTTP API with support for:
+Claude Code Wrapper Server provides a complete HTTP API with support for:
 
 - **Messages API**: Message interface compatible with Anthropic Claude API
 - **Configuration API**: Read and update server configuration

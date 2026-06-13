@@ -1,6 +1,6 @@
 # 项目级配置
 
-除了全局配置，`ccr` 还支持为特定项目设置不同的路由规则。
+除了全局配置，`ccw` 还支持为特定项目设置不同的路由规则。
 
 ## 项目配置文件
 
@@ -29,7 +29,7 @@
 
 ```bash
 # 在项目目录中运行
-ccr status
+ccw status
 ```
 
 输出会显示当前项目 ID：
@@ -76,12 +76,12 @@ cat > ~/.claude/projects/abc123def456/claude-code-router.json << 'EOF'
 EOF
 ```
 
-### 使用 ccr model 命令
+### 使用 ccw model 命令
 
 ```bash
 # 在项目目录中运行
 cd /path/to/your/project
-ccr model --project
+ccw model --project
 ```
 
 ## 配置优先级
@@ -143,7 +143,7 @@ ccr model --project
 
 ```bash
 # 查看当前项目使用的路由
-ccr status
+ccw status
 
 # 查看日志确认路由决策
 tail -f ~/.claude-code-router/claude-code-router.log

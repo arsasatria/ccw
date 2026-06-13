@@ -2,14 +2,14 @@
 sidebar_position: 1
 ---
 
-# ccr start
+# ccw start
 
-Start the Claude Code Router server.
+Start the Claude Code Wrapper server.
 
 ## Usage
 
 ```bash
-ccr start [options]
+ccw start [options]
 ```
 
 ## Options
@@ -26,31 +26,31 @@ ccr start [options]
 ### Start with default settings
 
 ```bash
-ccr start
+ccw start
 ```
 
 ### Start on custom port
 
 ```bash
-ccr start --port 3000
+ccw start --port 3000
 ```
 
 ### Start with custom config
 
 ```bash
-ccr start --config /path/to/config.json
+ccw start --config /path/to/config.json
 ```
 
 ### Start as daemon
 
 ```bash
-ccr start --daemon
+ccw start --daemon
 ```
 
 ### Start with debug logging
 
 ```bash
-ccr start --log-level debug
+ccw start --log-level debug
 ```
 
 ## Environment Variables
@@ -70,12 +70,12 @@ You can also configure the server using environment variables:
 When started successfully, you'll see:
 
 ```
-Claude Code Router is running on http://localhost:8080
+Claude Code Wrapper is running on http://localhost:8080
 API endpoint: http://localhost:8080/v1
 ```
 
 ## Related Commands
 
-- [ccr stop](/docs/cli/other-commands#ccr-stop) - Stop the server
-- [ccr restart](/docs/cli/other-commands#ccr-restart) - Restart the server
-- [ccr status](/docs/cli/other-commands#ccr-status) - Check server status
+- [ccw stop](/docs/cli/other-commands#ccw-stop) - Stop the server
+- [ccw restart](/docs/cli/other-commands#ccw-restart) - Restart the server
+- [ccw status](/docs/cli/other-commands#ccw-status) - Check server status

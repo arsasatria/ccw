@@ -3,7 +3,7 @@ import { getServiceInfo } from './processCheck';
 export async function showStatus() {
     const info = await getServiceInfo();
     
-    console.log('\n📊 Claude Code Router Status');
+    console.log('\n📊 Claude Code Wrapper Status');
     console.log('═'.repeat(40));
     
     if (info.running) {

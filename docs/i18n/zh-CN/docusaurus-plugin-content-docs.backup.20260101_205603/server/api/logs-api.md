@@ -16,14 +16,14 @@ curl http://localhost:3456/api/logs/files \
 ```json
 [
   {
-    "name": "ccr-20241226143022.log",
-    "path": "/home/user/.claude-code-router/logs/ccr-20241226143022.log",
+    "name": "ccw-20241226143022.log",
+    "path": "/home/user/.claude-code-router/logs/ccw-20241226143022.log",
     "size": 1024000,
     "lastModified": "2024-12-26T14:30:22.000Z"
   },
   {
-    "name": "ccr-20241226143021.log",
-    "path": "/home/user/.claude-code-router/logs/ccr-20241226143021.log",
+    "name": "ccw-20241226143021.log",
+    "path": "/home/user/.claude-code-router/logs/ccw-20241226143021.log",
     "size": 980000,
     "lastModified": "2024-12-26T14:30:21.000Z"
   }
@@ -61,7 +61,7 @@ curl "http://localhost:3456/api/logs" \
 ### 请求示例（获取指定文件）
 
 ```bash
-curl "http://localhost:3456/api/logs?file=/home/user/.claude-code-router/logs/ccr-20241226143022.log" \
+curl "http://localhost:3456/api/logs?file=/home/user/.claude-code-router/logs/ccw-20241226143022.log" \
   -H "x-api-key: your-api-key"
 ```
 
@@ -128,7 +128,7 @@ curl -X DELETE "http://localhost:3456/api/logs" \
 ### 请求示例（清除指定文件）
 
 ```bash
-curl -X DELETE "http://localhost:3456/api/logs?file=/home/user/.claude-code-router/logs/ccr-20241226143022.log" \
+curl -X DELETE "http://localhost:3456/api/logs?file=/home/user/.claude-code-router/logs/ccw-20241226143022.log" \
   -H "x-api-key: your-api-key"
 ```
 
@@ -147,7 +147,7 @@ curl -X DELETE "http://localhost:3456/api/logs?file=/home/user/.claude-code-rout
 
 位置：`~/.claude-code-router/logs/`
 
-文件命名：`ccr-{YYYYMMDD}{HH}{MM}{SS}.log`
+文件命名：`ccw-{YYYYMMDD}{HH}{MM}{SS}.log`
 
 内容：HTTP 请求、API 调用、服务器事件
 

@@ -4,7 +4,7 @@ sidebar_position: 1
 
 # Basic Configuration
 
-Learn how to configure Claude Code Router to suit your needs.
+Learn how to configure Claude Code Wrapper to suit your needs.
 
 ## Configuration File Location
 
@@ -126,7 +126,7 @@ Both `$VAR_NAME` and `${VAR_NAME}` syntax are supported.
 Use the CLI to edit the configuration:
 
 ```bash
-ccr config edit
+ccw config edit
 ```
 
 This will open the configuration file in your default editor.
@@ -136,7 +136,7 @@ This will open the configuration file in your default editor.
 After editing the configuration, restart the router:
 
 ```bash
-ccr restart
+ccw restart
 ```
 
 ## Next Steps

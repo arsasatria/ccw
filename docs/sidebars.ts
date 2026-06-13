@@ -7,7 +7,7 @@ const sidebars: SidebarsConfig = {
       label: 'CLI',
       link: {
         type: 'generated-index',
-        title: 'Claude Code Router CLI',
+        title: 'Claude Code Wrapper CLI',
         description: 'Command-line tool usage guide',
         slug: 'category/cli',
       },
@@ -55,8 +55,8 @@ const sidebars: SidebarsConfig = {
       label: 'Server',
       link: {
         type: 'generated-index',
-        title: 'Claude Code Router Server',
-        description: 'Deploy and manage Claude Code Router server',
+        title: 'Claude Code Wrapper Server',
+        description: 'Deploy and manage Claude Code Wrapper server',
         slug: 'category/server',
       },
       items: [
@@ -115,7 +115,7 @@ const sidebars: SidebarsConfig = {
       label: 'Presets',
       link: {
         type: 'generated-index',
-        title: 'CCR Presets',
+        title: 'CCW Presets',
         description: 'Predefined configurations for quick setup',
         slug: 'category/presets',
       },

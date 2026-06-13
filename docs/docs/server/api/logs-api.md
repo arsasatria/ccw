@@ -151,7 +151,7 @@ curl -X DELETE "http://localhost:3456/api/logs?file=/home/user/.ccw/logs/ccw-202
 
 Location: `~/.ccw/logs/`
 
-File naming: `ccr-{YYYYMMDD}{HH}{MM}{SS}.log`
+File naming: `ccw-{YYYYMMDD}{HH}{MM}{SS}.log`
 
 Content: HTTP requests, API calls, server events
 

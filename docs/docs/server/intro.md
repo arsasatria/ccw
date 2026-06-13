@@ -4,7 +4,7 @@ title: Server Introduction
 
 # Server Introduction
 
-Claude Code Router Server is a core service component responsible for routing Claude Code API requests to different LLM providers. It provides a complete HTTP API with support for:
+Claude Code Wrapper Server is a core service component responsible for routing Claude Code API requests to different LLM providers. It provides a complete HTTP API with support for:
 
 - **API Request Routing**: Convert Anthropic-format requests to various provider API formats
 - **Authentication & Authorization**: Support API Key authentication
@@ -16,7 +16,7 @@ Claude Code Router Server is a core service component responsible for routing Cl
 
 ```
 ┌─────────────┐     ┌─────────────────────────────┐     ┌──────────────┐
-│ Claude Code │────▶│ CCR Server                  │────▶│ LLM Provider │
+│ Claude Code │────▶│ CCW Server                  │────▶│ LLM Provider │
 │   Client    │     │  ┌─────────────────────┐    │     │  (OpenAI/    │
 └─────────────┘     │  │ @musistudio/llms    │    │     │   Gemini/etc)│
                     │  │ (Core Package)       │    │     └──────────────┘
@@ -99,9 +99,9 @@ The core package includes transformers for:
 - **openrouter**: OpenRouter API format
 - And more...
 
-### Integration with CCR Server
+### Integration with CCW Server
 
-The CCR server integrates `@musistudio/llms` through:
+The CCW server integrates `@musistudio/llms` through:
 
 1. **Transformer Service** (`packages/core/src/services/transformer.ts`): Manages transformer registration and instantiation
 2. **Provider Configuration**: Maps provider configs to core package's LLMProvider interface
@@ -110,7 +110,7 @@ The CCR server integrates `@musistudio/llms` through:
 
 ### Version and Updates
 
-The current version of `@musistudio/llms` is `1.0.51`. It's published as an independent npm package and can be used standalone or as part of CCR Server.
+The current version of `@musistudio/llms` is `1.0.51`. It's published as an independent npm package and can be used standalone or as part of CCW Server.
 
 ## Core Features
 
@@ -141,7 +141,7 @@ The current version of `@musistudio/llms` is `1.0.51`. It's published as an inde
 Run the service locally for personal Claude Code use:
 
 ```bash
-ccr start
+ccw start
 ```
 
 ### Scenario 2: Team Shared Service

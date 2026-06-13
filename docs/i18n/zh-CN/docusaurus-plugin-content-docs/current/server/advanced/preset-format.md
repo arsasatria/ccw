@@ -9,7 +9,7 @@ sidebar_position: 4
 
 ## 概述
 
-Preset 是一个预定义的配置包，用于快速配置 Claude Code Router。Preset 以目录形式存储，内部包含一个 `manifest.json` 文件。
+Preset 是一个预定义的配置包，用于快速配置 Claude Code Wrapper。Preset 以目录形式存储，内部包含一个 `manifest.json` 文件。
 
 ### 文件结构
 
@@ -78,7 +78,7 @@ Preset 是一个预定义的配置包，用于快速配置 Claude Code Router。
 | `repository` | string | 源代码仓库 URL |
 | `license` | string | 许可证类型 |
 | `keywords` | string[] | 关键词标签 |
-| `ccwVersion` | string | 兼容的 CCR 版本 |
+| `ccwVersion` | string | 兼容的 CCW 版本 |
 | `source` | string | Preset 来源 URL |
 | `sourceType` | string | 来源类型（`local`/`gist`/`registry`） |
 | `checksum` | string | 内容校验和（SHA256） |
@@ -91,8 +91,8 @@ Preset 是一个预定义的配置包，用于快速配置 Claude Code Router。
   "version": "1.2.0",
   "description": "OpenAI 生产环境配置，包含代理和多模型支持",
   "author": "Your Name",
-  "homepage": "https://github.com/yourname/ccr-presets",
-  "repository": "https://github.com/yourname/ccr-presets.git",
+  "homepage": "https://github.com/yourname/ccw-presets",
+  "repository": "https://github.com/yourname/ccw-presets.git",
   "license": "MIT",
   "keywords": ["openai", "production", "proxy"],
   "ccwVersion": "2.0.0"
@@ -101,7 +101,7 @@ Preset 是一个预定义的配置包，用于快速配置 Claude Code Router。
 
 ## 配置字段
 
-配置字段直接对应 CCR 的配置文件结构（`config.json`）。
+配置字段直接对应 CCW 的配置文件结构（`config.json`）。
 
 ### Providers
 
@@ -208,7 +208,7 @@ Provider 配置数组，定义 LLM 服务提供商。
       "modules": [
         {
           "type": "text",
-          "text": "CCR",
+          "text": "CCW",
           "color": "cyan"
         },
         {
@@ -241,7 +241,7 @@ Provider 配置数组，定义 LLM 服务提供商。
 
 ## 动态配置系统
 
-动态配置系统是 CCR 2.0 的核心功能，允许创建可交互的配置模板。
+动态配置系统是 CCW 2.0 的核心功能，允许创建可交互的配置模板。
 
 ### Schema（配置输入表单）
 
@@ -551,7 +551,7 @@ userValues 存储用户在安装时填写的值，运行时自动应用。
 
 ## 敏感字段处理
 
-CCR 会自动识别敏感字段（如 `api_key`、`secret`、`password` 等），并将其替换为环境变量占位符。
+CCW 会自动识别敏感字段（如 `api_key`、`secret`、`password` 等），并将其替换为环境变量占位符。
 
 ### 自动识别的敏感字段
 
@@ -994,13 +994,13 @@ $VARIABLE_NAME
 ### 导出当前配置
 
 ```bash
-ccr preset export my-preset
+ccw preset export my-preset
 ```
 
 可选项：
 
 ```bash
-ccr preset export my-preset \
+ccw preset export my-preset \
   --description "我的预设" \
   --author "Your Name" \
   --tags "openai,production"
@@ -1012,10 +1012,10 @@ ccr preset export my-preset \
 
 ```bash
 # 从本地目录安装
-ccr preset install /path/to/preset
+ccw preset install /path/to/preset
 
 # 重新配置已安装的预设
-ccr preset install my-preset
+ccw preset install my-preset
 ```
 
 :::note 注意
@@ -1024,7 +1024,7 @@ CLI 方式**不支持**从 URL 安装。如需从 GitHub 安装，请使用 Web 
 
 **Web UI 方式：**
 
-1. 访问 Web UI：`ccr ui`
+1. 访问 Web UI：`ccw ui`
 2. 点击"预设商城"按钮
 3. 选择预设或输入 GitHub 仓库 URL
 4. 点击安装
@@ -1033,13 +1033,13 @@ CLI 方式**不支持**从 URL 安装。如需从 GitHub 安装，请使用 Web 
 
 ```bash
 # 列出所有预设
-ccr preset list
+ccw preset list
 
 # 查看预设信息
-ccr preset info my-preset
+ccw preset info my-preset
 
 # 删除预设
-ccr preset delete my-preset
+ccw preset delete my-preset
 ```
 
 ## 常见问题

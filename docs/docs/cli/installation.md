@@ -4,7 +4,7 @@ sidebar_position: 2
 
 # Installation
 
-Install Claude Code Router globally using your preferred package manager.
+Install Claude Code Wrapper globally using your preferred package manager.
 
 ## Prerequisites
 
@@ -32,10 +32,10 @@ yarn global add @arsasatria/ccw
 
 ## Verify Installation
 
-After installation, verify that `ccr` is available:
+After installation, verify that `ccw` is available:
 
 ```bash
-ccr --version
+ccw --version
 ```
 
 You should see the version number displayed.

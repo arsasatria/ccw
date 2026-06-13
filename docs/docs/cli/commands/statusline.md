@@ -2,26 +2,26 @@
 sidebar_position: 5
 ---
 
-# ccr statusline
+# ccw statusline
 
 Display a customizable status bar showing real-time information about your Claude Code session, including workspace, Git branch, model, token usage, and more.
 
 ## Overview
 
-The `ccr statusline` command reads JSON data from stdin and renders a beautifully formatted status bar in your terminal. It's designed to integrate with Claude Code's hook system to display real-time session information.
+The `ccw statusline` command reads JSON data from stdin and renders a beautifully formatted status bar in your terminal. It's designed to integrate with Claude Code's hook system to display real-time session information.
 
 ## Usage
 
 ### Basic Usage
 
 ```bash
-ccr statusline
+ccw statusline
 ```
 
 The command expects JSON data via stdin, typically piped from a Claude Code hook:
 
 ```bash
-echo '{"hook_event_name":"...","session_id":"...","..."}' | ccr statusline
+echo '{"hook_event_name":"...","session_id":"...","..."}' | ccw statusline
 ```
 
 ### Hook Integration
@@ -32,7 +32,7 @@ Configure in your Claude Code settings:
 {
   "hooks": {
     "postResponse": {
-      "command": "ccr statusline",
+      "command": "ccw statusline",
       "input": "json"
     }
   }
@@ -396,5 +396,5 @@ Ensure you're in a Git repository and have the `git` command installed.
 
 ## Related Commands
 
-- [ccr status](/docs/cli/commands/status) - Check server status
-- [ccr preset](/docs/cli/commands/preset) - Manage presets with statusline themes
+- [ccw status](/docs/cli/commands/status) - Check server status
+- [ccw preset](/docs/cli/commands/preset) - Manage presets with statusline themes

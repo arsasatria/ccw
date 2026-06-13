@@ -2,7 +2,7 @@
 sidebar_position: 5
 ---
 
-# ccr preset
+# ccw preset
 
 Manage presets - configuration templates that can be shared and reused.
 
@@ -21,7 +21,7 @@ Presets allow you to:
 Export your current configuration as a preset.
 
 ```bash
-ccr preset export <name> [options]
+ccw preset export <name> [options]
 ```
 
 **Options:**
@@ -33,7 +33,7 @@ ccr preset export <name> [options]
 
 **Example:**
 ```bash
-ccr preset export my-config --description "My production setup" --author "Your Name"
+ccw preset export my-config --description "My production setup" --author "Your Name"
 ```
 
 **What happens:**
@@ -48,7 +48,7 @@ ccr preset export my-config --description "My production setup" --author "Your N
 Install a preset from a local directory.
 
 ```bash
-ccr preset install <source>
+ccw preset install <source>
 ```
 
 **Sources:**
@@ -58,10 +58,10 @@ ccr preset install <source>
 **Example:**
 ```bash
 # Install from directory
-ccr preset install ./my-preset
+ccw preset install ./my-preset
 
 # Reconfigure an installed preset
-ccr preset install my-preset
+ccw preset install my-preset
 ```
 
 **What happens:**
@@ -78,7 +78,7 @@ ccr preset install my-preset
 List all installed presets.
 
 ```bash
-ccr preset list
+ccw preset list
 ```
 
 **Example output:**
@@ -98,7 +98,7 @@ Available presets:
 Show detailed information about a preset.
 
 ```bash
-ccr preset info <name>
+ccw preset info <name>
 ```
 
 **Shows:**
@@ -108,7 +108,7 @@ ccr preset info <name>
 
 **Example:**
 ```bash
-ccr preset info my-config
+ccw preset info my-config
 ```
 
 ### delete / rm / remove
@@ -116,14 +116,14 @@ ccr preset info my-config
 Delete an installed preset.
 
 ```bash
-ccr preset delete <name>
-ccr preset rm <name>
-ccr preset remove <name>
+ccw preset delete <name>
+ccw preset rm <name>
+ccw preset remove <name>
 ```
 
 **Example:**
 ```bash
-ccr preset delete my-config
+ccw preset delete my-config
 ```
 
 ## Preset Structure
@@ -210,7 +210,7 @@ To share a preset:
 
 1. **Export your configuration:**
    ```bash
-   ccr preset export my-preset
+   ccw preset export my-preset
    ```
 
 2. **Share the directory:**
@@ -226,7 +226,7 @@ To share a preset:
 
 4. **Users install with:**
    ```bash
-   ccr preset install /path/to/my-preset
+   ccw preset install /path/to/my-preset
    ```
 
 ## Security
@@ -242,7 +242,7 @@ By default, `export` sanitizes sensitive fields:
 
 To include actual values (not recommended):
 ```bash
-ccr preset export my-preset --include-sensitive
+ccw preset export my-preset --include-sensitive
 ```
 
 **Warning:** Never share presets containing sensitive data!

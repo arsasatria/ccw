@@ -1,6 +1,6 @@
 # API 概览
 
-Claude Code Router Server 提供了完整的 HTTP API，支持：
+Claude Code Wrapper Server 提供了完整的 HTTP API，支持：
 
 - **消息 API**：兼容 Anthropic Claude API 的消息接口
 - **配置 API**：读取和更新服务器配置

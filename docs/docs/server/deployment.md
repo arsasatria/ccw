@@ -4,7 +4,7 @@ title: Server Deployment
 
 # Server Deployment
 
-Claude Code Router Server supports multiple deployment methods, from local development to production environments.
+Claude Code Wrapper Server supports multiple deployment methods, from local development to production environments.
 
 ## Docker Deployment (Recommended)
 
@@ -183,4 +183,4 @@ Through the Web UI you can:
 
 ## Secondary Development
 
-If you need to develop based on CCR Server, please see [API Reference](/docs/category/api).
+If you need to develop based on CCW Server, please see [API Reference](/docs/category/api).

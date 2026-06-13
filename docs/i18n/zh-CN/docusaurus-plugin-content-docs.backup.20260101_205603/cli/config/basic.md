@@ -13,7 +13,7 @@ CLI 使用与 Server 相同的配置文件：`~/.claude-code-router/config.json`
 使用交互式命令配置：
 
 ```bash
-ccr model
+ccw model
 ```
 
 这将引导你完成：
@@ -130,7 +130,7 @@ export ANTHROPIC_API_KEY="sk-ant-..."
 修改配置后需要重启服务：
 
 ```bash
-ccr restart
+ccw restart
 ```
 
 ## 查看当前配置

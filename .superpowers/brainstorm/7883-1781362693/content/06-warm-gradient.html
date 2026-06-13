@@ -1,0 +1,44 @@
+<h2>Pilih gradien aksen hangat untuk glass hero</h2>
+<p class="subtitle">Tiga opsi — semua warm-tone, semua koheren dengan krem atelier. Klik untuk memilih.</p>
+
+<div class="cards">
+  <div class="card" data-choice="honey" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f5f0e8;padding:0;position:relative;overflow:hidden;height:120px;border-radius:8px">
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,#f0d4a8,#d4a574 50%,#b8825a)"></div>
+      <div style="position:absolute;bottom:8px;left:10px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(43,36,24,0.7);font-weight:500">Honey · 01</div>
+    </div>
+    <div class="card-body">
+      <h3>Honey</h3>
+      <p style="font-family:ui-monospace,monospace;font-size:10px;color:var(--fg-muted);margin-bottom:6px">#f0d4a8 → #d4a574 → #b8825a</p>
+      <p>Krim ke tan, koheren dengan brand atelier. Aman dan harmonis — tapi mungkin kurang beda dari card biasa.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="champagne" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f5f0e8;padding:0;position:relative;overflow:hidden;height:120px;border-radius:8px">
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,#f5e6c8,#e8c896 50%,#c89870)"></div>
+      <div style="position:absolute;bottom:8px;left:10px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(43,36,24,0.7);font-weight:500">Champagne · 02</div>
+    </div>
+    <div class="card-body">
+      <h3>Champagne</h3>
+      <p style="font-family:ui-monospace,monospace;font-size:10px;color:var(--fg-muted);margin-bottom:6px">#f5e6c8 → #e8c896 → #c89870</p>
+      <p>Cahaya sampanye ke perunggu muda. Lebih terang, lebih premium. Risiko: kurang terlihat kalau backdrop sudah krem.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="sunset" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#f5f0e8;padding:0;position:relative;overflow:hidden;height:120px;border-radius:8px">
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,#f0b890,#e08860 50%,#a85a3a)"></div>
+      <div style="position:absolute;bottom:8px;left:10px;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:rgba(255,255,255,0.9);font-weight:500;mix-blend-mode:difference">Sunset Amber · 03</div>
+    </div>
+    <div class="card-body">
+      <h3>Sunset Amber</h3>
+      <p style="font-family:ui-monospace,monospace;font-size:10px;color:var(--fg-muted);margin-bottom:6px">#f0b890 → #e08860 → #a85a3a</p>
+      <p>Persik ke terakota. Lebih hangat dan berani, terasa sore-panas. Kontras tertinggi dari ketiganya.</p>
+    </div>
+  </div>
+</div>
+
+<div style="margin-top:24px;padding:14px;background:var(--surface);border:1px solid var(--border);font-size:12px;color:var(--fg-muted);line-height:1.55">
+  <strong>Catatan teknis:</strong> Gradien ini akan jadi warna radial overlay di pojok glass hero, border glass (rgba tipis), dan glow lembut. Body text tetap gelap hangat (<code style="background:#faf7f0;padding:1px 4px;border-radius:3px;font-size:11px">#2b2418</code>), bukan ungu-biru slate.
+</div>

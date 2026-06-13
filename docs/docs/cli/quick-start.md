@@ -4,11 +4,11 @@ sidebar_position: 3
 
 # Quick Start
 
-Get up and running with Claude Code Router in 5 minutes.
+Get up and running with Claude Code Wrapper in 5 minutes.
 
 ## 1. Configure the Router
 
-Before using Claude Code Router, you need to configure your LLM providers. You can either:
+Before using Claude Code Wrapper, you need to configure your LLM providers. You can either:
 
 ### Option A: Edit Configuration File Directly
 
@@ -35,7 +35,7 @@ Edit `~/.ccw/config.json`:
 ### Option B: Use Web UI
 
 ```bash
-ccr ui
+ccw ui
 ```
 
 This will open the web interface where you can configure providers visually.
@@ -43,7 +43,7 @@ This will open the web interface where you can configure providers visually.
 ## 2. Start the Router
 
 ```bash
-ccr start
+ccw start
 ```
 
 The router will start on `http://localhost:8080` by default.
@@ -53,17 +53,17 @@ The router will start on `http://localhost:8080` by default.
 Now you can use Claude Code normally:
 
 ```bash
-ccr code
+ccw code
 ```
 
-Your requests will be routed through Claude Code Router to your configured provider.
+Your requests will be routed through Claude Code Wrapper to your configured provider.
 
 ## Restart After Configuration Changes
 
 If you modify the configuration file or make changes through the Web UI, restart the service:
 
 ```bash
-ccr restart
+ccw restart
 ```
 
 Or restart directly through the Web UI.

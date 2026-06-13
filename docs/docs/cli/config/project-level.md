@@ -4,7 +4,7 @@ title: Project-Level Configuration
 
 # Project-Level Configuration
 
-In addition to global configuration, `ccr` also supports setting different routing rules for specific projects.
+In addition to global configuration, `ccw` also supports setting different routing rules for specific projects.
 
 ## Project Configuration File
 
@@ -33,7 +33,7 @@ Where `<project-id>` is the unique identifier of the Claude Code project.
 
 ```bash
 # Run in project directory
-ccr status
+ccw status
 ```
 
 Output will show current project ID:
@@ -80,12 +80,12 @@ cat > ~/.claude/projects/abc123def456/ccw.json << 'EOF'
 EOF
 ```
 
-### Using ccr model Command
+### Using ccw model Command
 
 ```bash
 # Run in project directory
 cd /path/to/your/project
-ccr model --project
+ccw model --project
 ```
 
 ## Configuration Priority
@@ -147,7 +147,7 @@ Routing configuration priority (from high to low):
 
 ```bash
 # View routing used by current project
-ccr status
+ccw status
 
 # Check logs to confirm routing decisions
 tail -f ~/.ccw/ccw.log

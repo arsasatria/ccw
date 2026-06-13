@@ -134,12 +134,12 @@ tail -f ~/.claude-code-router/claude-code-router.log
 
 ## 子代理路由
 
-对于子代理内的路由，您必须在子代理提示词的**开头**包含 `<CCR-SUBAGENT-MODEL>provider,model</CCR-SUBAGENT-MODEL>` 来指定特定的提供商和模型。
+对于子代理内的路由，您必须在子代理提示词的**开头**包含 `<CCW-SUBAGENT-MODEL>provider,model</CCW-SUBAGENT-MODEL>` 来指定特定的提供商和模型。
 
 **示例：**
 
 ```
-<CCR-SUBAGENT-MODEL>openrouter,anthropic/claude-3.5-sonnet</CCR-SUBAGENT-MODEL>
+<CCW-SUBAGENT-MODEL>openrouter,anthropic/claude-3.5-sonnet</CCW-SUBAGENT-MODEL>
 请帮我分析这段代码是否存在潜在的优化空间...
 ```
 

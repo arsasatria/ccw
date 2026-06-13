@@ -2,7 +2,7 @@
 
 const { execSync } = require('child_process');
 
-console.log('Building Claude Code Router (Monorepo)...');
+console.log('Building Claude Code Wrapper (Monorepo)...');
 
 try {
   // Build core package first (@musistudio/llms)

@@ -8,7 +8,7 @@ CLI uses the same configuration file as Server: `~/.ccw/config.json`
 
 ## Configuration Methods
 
-You can configure Claude Code Router in two ways:
+You can configure Claude Code Wrapper in two ways:
 
 ### Option 1: Edit Configuration File Directly
 
@@ -23,7 +23,7 @@ nano ~/.ccw/config.json
 Open the web interface and configure visually:
 
 ```bash
-ccr ui
+ccw ui
 ```
 
 ## Restart After Configuration Changes
@@ -31,7 +31,7 @@ ccr ui
 After modifying the configuration file or making changes through the Web UI, you must restart the service:
 
 ```bash
-ccr restart
+ccw restart
 ```
 
 Or restart directly through the Web UI.
@@ -141,7 +141,7 @@ Configuration is automatically backed up on each update:
 After modifying the configuration file or making changes through the Web UI, restart the service:
 
 ```bash
-ccr restart
+ccw restart
 ```
 
 Or restart directly through the Web UI by clicking the "Save and Restart" button.

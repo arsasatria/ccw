@@ -14,7 +14,7 @@ const FeatureList: FeatureItem[] = [
     Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
     description: (
       <>
-        Install and configure Claude Code Router in minutes with our simple CLI.
+        Install and configure Claude Code Wrapper in minutes with our simple CLI.
         Start routing your Claude Code requests to any LLM provider instantly.
       </>
     ),

@@ -2,14 +2,14 @@
 sidebar_position: 2
 ---
 
-# ccr model
+# ccw model
 
 Interactive model selection and configuration.
 
 ## Usage
 
 ```bash
-ccr model [command]
+ccw model [command]
 ```
 
 ## Commands
@@ -19,7 +19,7 @@ ccr model [command]
 Interactively select a model:
 
 ```bash
-ccr model
+ccw model
 ```
 
 This will display an interactive menu with available providers and models.
@@ -29,13 +29,13 @@ This will display an interactive menu with available providers and models.
 Set the default model directly:
 
 ```bash
-ccr model set <provider>,<model>
+ccw model set <provider>,<model>
 ```
 
 Example:
 
 ```bash
-ccr model set deepseek,deepseek-chat
+ccw model set deepseek,deepseek-chat
 ```
 
 ### List Models
@@ -43,7 +43,7 @@ ccr model set deepseek,deepseek-chat
 List all configured models:
 
 ```bash
-ccr model list
+ccw model list
 ```
 
 ### Add Model
@@ -51,13 +51,13 @@ ccr model list
 Add a new model to configuration:
 
 ```bash
-ccr model add <provider>,<model>
+ccw model add <provider>,<model>
 ```
 
 Example:
 
 ```bash
-ccr model add groq,llama-3.3-70b-versatile
+ccw model add groq,llama-3.3-70b-versatile
 ```
 
 ### Remove Model
@@ -65,7 +65,7 @@ ccr model add groq,llama-3.3-70b-versatile
 Remove a model from configuration:
 
 ```bash
-ccr model remove <provider>,<model>
+ccw model remove <provider>,<model>
 ```
 
 ## Examples
@@ -73,7 +73,7 @@ ccr model remove <provider>,<model>
 ### Interactive selection
 
 ```bash
-$ ccr model
+$ ccw model
 
 ? Select a provider: deepseek
 ? Select a model: deepseek-chat
@@ -84,13 +84,13 @@ Default model set to: deepseek,deepseek-chat
 ### Direct configuration
 
 ```bash
-ccr model set deepseek,deepseek-chat
+ccw model set deepseek,deepseek-chat
 ```
 
 ### View current configuration
 
 ```bash
-ccr model list
+ccw model list
 ```
 
 Output:
@@ -104,5 +104,5 @@ Configured Models:
 
 ## Related Commands
 
-- [ccr start](/docs/cli/start) - Start the server
-- [ccr config](/docs/cli/other-commands#ccr-config) - Edit configuration
+- [ccw start](/docs/cli/start) - Start the server
+- [ccw config](/docs/cli/other-commands#ccw-config) - Edit configuration

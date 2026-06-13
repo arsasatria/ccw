@@ -1,6 +1,6 @@
 # Server 部署
 
-Claude Code Router Server 支持多种部署方式，从本地开发到生产环境。
+Claude Code Wrapper Server 支持多种部署方式，从本地开发到生产环境。
 
 ## Docker 部署（推荐）
 
@@ -179,4 +179,4 @@ http://localhost:3456/ui/
 
 ## 二次开发
 
-如果需要基于 CCR Server 进行二次开发，请查看 [API 参考](/docs/category/api)。
+如果需要基于 CCW Server 进行二次开发，请查看 [API 参考](/docs/category/api)。

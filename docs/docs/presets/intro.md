@@ -21,13 +21,13 @@ CLI mode is suitable for developers who prefer command-line operations.
 **Install from local directory:**
 
 ```bash
-ccr preset install /path/to/preset-directory
+ccw preset install /path/to/preset-directory
 ```
 
 **Reconfigure an installed preset:**
 
 ```bash
-ccr preset install my-preset
+ccw preset install my-preset
 ```
 
 #### Using Presets
@@ -36,7 +36,7 @@ After installing a preset, you can use the preset name to start Claude Code:
 
 ```bash
 # Start with a specific preset
-ccr my-preset "your prompt"
+ccw my-preset "your prompt"
 ```
 
 The preset will:
@@ -47,7 +47,7 @@ The preset will:
 #### List All Presets
 
 ```bash
-ccr preset list
+ccw preset list
 ```
 
 This will display all installed presets with their names, versions, and descriptions.
@@ -55,13 +55,13 @@ This will display all installed presets with their names, versions, and descript
 #### View Preset Information
 
 ```bash
-ccr preset info my-preset
+ccw preset info my-preset
 ```
 
 #### Delete Preset
 
 ```bash
-ccr preset delete my-preset
+ccw preset delete my-preset
 ```
 
 ### Web UI Mode
@@ -71,7 +71,7 @@ Web UI provides a more friendly visual interface with additional installation me
 #### Access Web UI
 
 ```bash
-ccr ui
+ccw ui
 ```
 
 Then open `http://localhost:3000` in your browser.
@@ -111,7 +111,7 @@ Presets are stored as directories with the following structure:
 
 ### Dynamic Configuration System
 
-CCR introduces a powerful dynamic configuration system that supports:
+CCW introduces a powerful dynamic configuration system that supports:
 
 - **Multiple Input Types**: Selectors, multi-select, confirm boxes, text input, number input, etc.
 - **Conditional Logic**: Dynamically show/hide configuration fields based on user input
@@ -215,7 +215,7 @@ For complex configuration needs, use `configMappings` to precisely control value
   "name": "multi-provider-example",
   "version": "1.0.0",
   "description": "Multi-provider configuration example - Switch between OpenAI and DeepSeek",
-  "author": "CCR Team",
+  "author": "CCW Team",
   "keywords": ["openai", "deepseek", "multi-provider"],
   "ccwVersion": "2.0.0",
   "schema": [
@@ -337,7 +337,7 @@ These fields describe basic information about the preset:
 | `repository` | string | - | Source repository URL |
 | `license` | string | - | License type |
 | `keywords` | string[] | - | Keyword tags |
-| `ccwVersion` | string | - | Compatible CCR version |
+| `ccwVersion` | string | - | Compatible CCW version |
 
 Example:
 
@@ -347,8 +347,8 @@ Example:
   "version": "1.0.0",
   "description": "My custom preset",
   "author": "Your Name",
-  "homepage": "https://github.com/yourname/ccr-presets",
-  "repository": "https://github.com/yourname/ccr-presets.git",
+  "homepage": "https://github.com/yourname/ccw-presets",
+  "repository": "https://github.com/yourname/ccw-presets.git",
   "license": "MIT",
   "keywords": ["openai", "production"],
   "ccwVersion": "2.0.0"
@@ -357,7 +357,7 @@ Example:
 
 #### 2. Configuration Fields
 
-These fields are directly merged into CCR's configuration. All fields supported in `config.json` can be used here:
+These fields are directly merged into CCW's configuration. All fields supported in `config.json` can be used here:
 
 | Field | Type | Description |
 |-------|------|-------------|
@@ -487,10 +487,10 @@ cat > ~/.ccw/presets/simple-openai/manifest.json << 'EOF'
 EOF
 
 # Configure preset (input API Key)
-ccr preset install simple-openai
+ccw preset install simple-openai
 
 # Use preset
-ccr simple-openai "your prompt"
+ccw simple-openai "your prompt"
 ```
 
 #### Example 2: Advanced Preset (Dynamic Configuration)
@@ -592,19 +592,19 @@ cat > ~/.ccw/presets/advanced-config/manifest.json << 'EOF'
 EOF
 
 # Configure preset (will prompt for input)
-ccr preset install advanced-config
+ccw preset install advanced-config
 
 # Use preset
-ccr advanced-config "your prompt"
+ccw advanced-config "your prompt"
 ```
 
 ### Export Current Configuration as Preset
 
-If you have already configured CCR, you can export the current configuration:
+If you have already configured CCW, you can export the current configuration:
 
 ```bash
 # Export current configuration
-ccr preset export my-exported-preset
+ccw preset export my-exported-preset
 ```
 
 Export will automatically:
@@ -615,7 +615,7 @@ Export will automatically:
 Optional flags:
 
 ```bash
-ccr preset export my-exported-preset \
+ccw preset export my-exported-preset \
   --description "Exported configuration" \
   --author "Your Name" \
   --tags "production,openai"

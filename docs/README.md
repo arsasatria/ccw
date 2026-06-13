@@ -1,4 +1,4 @@
-# Claude Code Router Documentation
+# Claude Code Wrapper Documentation
 
 This directory contains the documentation website built with [Docusaurus](https://docusaurus.io/).
 

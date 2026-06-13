@@ -2,14 +2,14 @@
 sidebar_position: 3
 ---
 
-# ccr status
+# ccw status
 
-Show the current status of the Claude Code Router server.
+Show the current status of the Claude Code Wrapper server.
 
 ## Usage
 
 ```bash
-ccr status
+ccw status
 ```
 
 ## Output
@@ -19,7 +19,7 @@ ccr status
 When the server is running:
 
 ```
-Claude Code Router Status: Running
+Claude Code Wrapper Status: Running
 Version: 2.0.0
 PID: 12345
 Port: 8080
@@ -32,7 +32,7 @@ Configuration: /home/user/.ccw/config.json
 When the server is not running:
 
 ```
-Claude Code Router Status: Stopped
+Claude Code Wrapper Status: Stopped
 ```
 
 ## Exit Codes
@@ -46,9 +46,9 @@ Claude Code Router Status: Stopped
 ## Examples
 
 ```bash
-$ ccr status
+$ ccw status
 
-Claude Code Router Status: Running
+Claude Code Wrapper Status: Running
 Version: 2.0.0
 PID: 12345
 Port: 8080
@@ -57,6 +57,6 @@ Uptime: 2h 34m
 
 ## Related Commands
 
-- [ccr start](/docs/cli/start) - Start the server
-- [ccr stop](/docs/cli/other-commands#ccr-stop) - Stop the server
-- [ccr restart](/docs/cli/other-commands#ccr-restart) - Restart the server
+- [ccw start](/docs/cli/start) - Start the server
+- [ccw stop](/docs/cli/other-commands#ccw-stop) - Stop the server
+- [ccw restart](/docs/cli/other-commands#ccw-restart) - Restart the server
