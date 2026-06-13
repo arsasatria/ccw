@@ -8,7 +8,7 @@ const buttonVariants = cva(
   [
     "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium",
     "transition-[background,border-color,color,box-shadow,transform] duration-150 ease-out",
-    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
+    "focus-visible:outline-none focus-warm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-bg",
     "disabled:pointer-events-none disabled:opacity-50",
     "[&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
     "active:translate-y-px",
@@ -16,17 +16,13 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default:
-          "bg-brand text-brand-fg shadow-[inset_0_-1px_0_oklch(0_0_0_/_18%)] hover:bg-brand/90",
-        destructive:
-          "bg-danger/12 text-danger ring-1 ring-inset ring-danger/30 hover:bg-danger/20",
+        default: "gradient-accent font-medium shadow-card",
         outline:
-          "border border-border bg-transparent text-fg hover:bg-surface-2 hover:border-border-strong",
-        secondary:
-          "bg-surface-2 text-fg ring-1 ring-inset ring-border hover:bg-surface-3",
-        ghost: "text-fg-muted hover:text-fg hover:bg-surface-2",
-        link: "text-brand underline-offset-4 hover:underline",
-        soft: "bg-brand-soft text-brand hover:bg-brand-soft/80",
+          "border border-line-strong bg-surface hover:bg-surface-2 text-ink",
+        secondary: "bg-surface-2 text-ink hover:bg-surface",
+        ghost: "hover:bg-surface-2 text-ink",
+        destructive: "bg-danger text-accent-fg hover:opacity-90",
+        link: "text-ink underline-offset-4 hover:underline",
       },
       size: {
         default: "h-9 px-3.5",
