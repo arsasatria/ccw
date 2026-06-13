@@ -598,3 +598,80 @@ test("omits reasoning field when thinking.type is not 'enabled' (issue #1410)", 
     "reasoning field must be absent when thinking.type is unknown",
   );
 });
+
+test("drops tool_use blocks without a name and backfills empty tool name/parameters (TokenRouter 400 fix)", async () => {
+  // Background: providers like TokenRouter/MiniMax-M3, Together, OpenRouter,
+  // and NVIDIA NIM reject tool calls with empty `function.name` or empty
+  // `function.parameters`. The previous transformer only checked `c.id` on
+  // assistant history blocks, so a malformed `tool_use` from upstream
+  // Claude Code (e.g. server-tool recovery, partial history) slipped through
+  // and got serialized as `{ name: undefined, arguments: "{}" }`. The
+  // provider then 400'd mid-stream with code 2013, which the Anthropic SDK
+  // surfaced as "Content block is not a text block" on the next call.
+  const transformer = new AnthropicTransformer();
+  // @ts-expect-error access private for test
+  const out = await transformer.transformRequestOut({
+    model: "test",
+    messages: [
+      { role: "user", content: "search the docs" },
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "Looking..." },
+          // Malformed: id but no name. Must be dropped.
+          { type: "tool_use", id: "toolu_bad", input: { x: 1 } },
+          // Well-formed: must be preserved.
+          { type: "tool_use", id: "toolu_good", name: "search", input: { q: "x" } },
+        ],
+      },
+      { role: "tool", tool_call_id: "toolu_good", content: "hit" },
+    ],
+    tools: [
+      // No name → must backfill to "unknown_tool".
+      { name: "", description: "empty name", input_schema: { type: "object", properties: { a: { type: "string" } } } },
+      // No input_schema → must backfill to emptySchema.
+      { name: "no_schema_tool", description: "no schema" },
+      // input_schema: {} → must backfill (the actual bug — `??` only catches null/undefined).
+      { name: "empty_schema_tool", description: "empty schema", input_schema: {} },
+      // Well-formed → must be preserved.
+      { name: "search", description: "search docs", input_schema: { type: "object", properties: { q: { type: "string" } } } },
+    ],
+  });
+
+  // 1. Assistant history: only the well-formed tool_use remains.
+  const assistantWithTools = out.messages.find(
+    (m: any) => m.role === "assistant" && m.tool_calls?.length,
+  );
+  assert.ok(assistantWithTools, "expected an assistant message with tool_calls");
+  assert.equal(assistantWithTools!.tool_calls!.length, 1, "malformed tool_use (no name) must be dropped");
+  assert.equal(assistantWithTools!.tool_calls![0].id, "toolu_good");
+  assert.equal(assistantWithTools!.tool_calls![0].function.name, "search");
+  assert.equal(assistantWithTools!.tool_calls![0].function.arguments, '{"q":"x"}');
+
+  // 2. Tool definitions: every one has a non-empty name.
+  assert.equal(out.tools!.length, 4);
+  for (const t of out.tools!) {
+    assert.ok(
+      typeof t.function.name === "string" && t.function.name.length > 0,
+      `tool name must be non-empty, got: ${JSON.stringify(t)}`,
+    );
+  }
+  const names = out.tools!.map((t: any) => t.function.name).sort();
+  assert.deepEqual(names, ["empty_schema_tool", "no_schema_tool", "search", "unknown_tool"]);
+
+  // 3. Tool definitions: every one has a non-empty parameters object.
+  for (const t of out.tools!) {
+    assert.ok(
+      t.function.parameters && typeof t.function.parameters === "object" && Object.keys(t.function.parameters).length > 0,
+      `tool parameters must be a non-empty object, got: ${JSON.stringify(t)}`,
+    );
+  }
+
+  // 4. The well-formed tool's parameters are preserved as-is, not overwritten
+  //    by the emptySchema fallback.
+  const searchTool = out.tools!.find((t: any) => t.function.name === "search")!;
+  assert.deepEqual(searchTool.function.parameters, {
+    type: "object",
+    properties: { q: { type: "string" } },
+  });
+});

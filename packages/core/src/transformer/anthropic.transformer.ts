@@ -153,7 +153,7 @@ export class AnthropicTransformer implements Transformer {
             }
 
             const toolCallParts = msg.content.filter(
-              (c: any) => c.type === "tool_use" && c.id
+              (c: any) => c.type === "tool_use" && c.id && c.name
             );
             if (toolCallParts.length) {
               assistantMessage.tool_calls = toolCallParts.map((tool: any) => {
@@ -161,7 +161,7 @@ export class AnthropicTransformer implements Transformer {
                   id: tool.id,
                   type: "function" as const,
                   function: {
-                    name: tool.name,
+                    name: tool.name || "unknown_tool",
                     arguments: JSON.stringify(tool.input || {}),
                   },
                 };
@@ -252,14 +252,24 @@ export class AnthropicTransformer implements Transformer {
 
   private convertAnthropicToolsToUnified(tools: any[]): UnifiedTool[] {
     const emptySchema = { type: "object", properties: {} };
-    return tools.map((tool) => ({
-      type: "function",
-      function: {
-        name: tool.name,
-        description: tool.description || "",
-        parameters: tool.input_schema ?? emptySchema,
-      },
-    }));
+    return tools.map((tool) => {
+      // `?? emptySchema` only catches null/undefined — Together, OpenRouter,
+      // NVIDIA NIM, TokenRouter/MiniMax-M3 also reject an empty `{}` schema.
+      // The name backfill mirrors the streaming-side default
+      // `tool_${toolCallIndex}` in convertOpenAIStreamToAnthropic.
+      const inputSchema =
+        tool.input_schema && Object.keys(tool.input_schema).length > 0
+          ? tool.input_schema
+          : emptySchema;
+      return {
+        type: "function",
+        function: {
+          name: tool.name || "unknown_tool",
+          description: tool.description || "",
+          parameters: inputSchema,
+        },
+      };
+    });
   }
 
   private async convertOpenAIStreamToAnthropic(

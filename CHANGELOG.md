@@ -57,6 +57,39 @@ All notable changes to **ccw** are documented in this file. ccw is a fork of
   (most commonly EADDRINUSE from a stale process or a manually-launched
   server on a different shell) completely invisible.
 
+- **Fix: `400 function name or parameters is empty (2013)` from
+  TokenRouter / MiniMax-M3 (and similar strict OpenAI-spec providers like
+  Together, OpenRouter, NVIDIA NIM) causing
+  `API Error: Content block is not a text block` to surface on the
+  *next* Claude Code call.** Two related gaps in
+  `AnthropicTransformer.transformRequestOut` allowed malformed tool
+  shapes to leak into the OpenAI-format request body. The provider
+  400'd mid-stream; the Anthropic SDK then reframed the error event
+  as a content-block type mismatch.
+  1. The assistant `tool_use` filter at line 155-156 only required
+     `c.id` — a `tool_use` block with no `name` (server-tool
+     recovery, partial history) slipped through and got serialized as
+     `{ function: { name: undefined, arguments: "{}" } }`. Now also
+     requires `c.name`.
+  2. `convertAnthropicToolsToUnified` (line 253-263) used
+     `tool.input_schema ?? emptySchema`, which only catches
+     `null`/`undefined`. An upstream `input_schema: {}` (no fields
+     declared) still passed through, and providers reject an empty
+     parameters object. Switched to a key-count check that also
+     catches `{}`. Added an `unknown_tool` name backfill to match
+     the streaming-side default in `convertOpenAIStreamToAnthropic`.
+
+### Regression test
+
+- `packages/core/src/transformer/__tests__/anthropic.transformer.test.ts`
+  now also asserts the request-side invariants: an assistant
+  `tool_use` block without a `name` is dropped from the outgoing
+  `tool_calls`; every tool definition ends up with a non-empty
+  `function.name` and a non-empty `function.parameters` object (so
+  strict providers stop 400'ing with `function name or parameters is
+  empty (2013)`). Run with
+  `cd packages/core && npx tsx --test src/transformer/__tests__/anthropic.transformer.test.ts`.
+
 ## 1.0.0 — 2026-06-13
 
 Initial release of the standalone fork. All upstream code is inherited from
