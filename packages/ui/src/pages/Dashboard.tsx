@@ -115,7 +115,7 @@ export default function Dashboard() {
                 }
               />
               {port > 0 && (
-                <Badge variant="secondary" className="font-mono">
+                <Badge variant="default" className="font-mono">
                   127.0.0.1:{port}
                 </Badge>
               )}
@@ -146,26 +146,22 @@ export default function Dashboard() {
         <StatCard
           label={t("dashboard.stats.providers")}
           value={providers.length}
-          icon={<Cpu className="h-3.5 w-3.5" />}
-          hint={t("dashboard.stats.providers_hint")}
+          footnote={t("dashboard.stats.providers_hint")}
         />
         <StatCard
           label={t("dashboard.stats.models")}
           value={totalModels}
-          icon={<Layers className="h-3.5 w-3.5" />}
-          hint={t("dashboard.stats.models_hint")}
+          footnote={t("dashboard.stats.models_hint")}
         />
         <StatCard
           label={t("dashboard.stats.routes")}
           value={routerEntries.length}
-          icon={<GitBranch className="h-3.5 w-3.5" />}
-          hint={t("dashboard.stats.routes_hint")}
+          footnote={t("dashboard.stats.routes_hint")}
         />
         <StatCard
           label={t("dashboard.stats.transformers")}
           value={transformerCount}
-          icon={<Workflow className="h-3.5 w-3.5" />}
-          hint={t("dashboard.stats.transformers_hint")}
+          footnote={t("dashboard.stats.transformers_hint")}
         />
       </section>
 
@@ -190,7 +186,6 @@ export default function Dashboard() {
 
         {routerEntries.length === 0 ? (
           <EmptyState
-            icon={<GitBranch className="h-4 w-4" />}
             title={t("dashboard.router_map.empty_title")}
             description={t("dashboard.router_map.empty_description")}
             action={

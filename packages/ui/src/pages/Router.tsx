@@ -130,7 +130,7 @@ export default function RouterPage() {
                       {t(`router.${route.key}`)}
                     </span>
                     {parsed ? (
-                      <Badge variant="brand" className="font-mono text-[10px]">
+                      <Badge variant="accent" className="font-mono text-[10px]">
                         {parsed.provider}
                       </Badge>
                     ) : (

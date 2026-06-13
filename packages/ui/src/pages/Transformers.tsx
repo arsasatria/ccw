@@ -1,6 +1,6 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { Plus, Trash2, Settings2, Workflow, Pencil } from "lucide-react";
+import { Plus, Trash2, Settings2, Pencil } from "lucide-react";
 import { useConfig } from "@/components/ConfigProvider";
 import { AppShell } from "@/components/shell/AppShell";
 import { Button } from "@/components/ui/button";
@@ -85,7 +85,6 @@ export default function Transformers() {
     >
       {transformers.length === 0 ? (
         <EmptyState
-          icon={<Workflow className="h-4 w-4" />}
           title={t("transformers.empty_title")}
           description={t("transformers.empty_description")}
           action={
@@ -127,7 +126,7 @@ export default function Transformers() {
                   </div>
                   <div>
                     {optCount > 0 ? (
-                      <Badge variant="info" className="font-mono">
+                      <Badge variant="outline" className="font-mono">
                         {optCount} keys
                       </Badge>
                     ) : (

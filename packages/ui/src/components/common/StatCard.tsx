@@ -1,62 +1,23 @@
-import * as React from "react";
 import { cn } from "@/lib/utils";
 
-interface StatCardProps {
-  label: React.ReactNode;
-  value: React.ReactNode;
-  hint?: React.ReactNode;
-  icon?: React.ReactNode;
-  trend?: { value: string; positive?: boolean };
+type Props = {
+  label: string;
+  value: string | number;
+  footnote?: string;
   className?: string;
-  iconClassName?: string;
-}
+};
 
-export function StatCard({
-  label,
-  value,
-  hint,
-  icon,
-  trend,
-  className,
-  iconClassName,
-}: StatCardProps) {
+export function StatCard({ label, value, footnote, className }: Props) {
   return (
-    <div
-      className={cn(
-        "cc-card relative flex flex-col gap-2 p-4 transition-colors hover:border-border-strong",
-        className
-      )}
-    >
-      <div className="flex items-center justify-between text-xs text-fg-muted">
-        <span className="font-medium uppercase tracking-wide text-[10.5px]">{label}</span>
-        {icon && (
-          <span
-            className={cn(
-              "flex h-7 w-7 items-center justify-center rounded-md bg-surface-2 text-fg-muted ring-1 ring-inset ring-border",
-              iconClassName
-            )}
-          >
-            {icon}
-          </span>
-        )}
+    <div className={cn("rounded-md border border-line bg-surface p-6", className)}>
+      <div className="text-[10px] font-medium uppercase tracking-[0.1em] text-ink-subtle">
+        {label}
       </div>
-      <div className="cc-text-mono text-2xl font-semibold tracking-tight text-fg">
+      <div className="mt-3 font-serif text-[32px] leading-[1] tracking-[-0.02em] text-ink">
         {value}
       </div>
-      {(hint || trend) && (
-        <div className="flex items-center gap-2 text-xs text-fg-muted">
-          {trend && (
-            <span
-              className={cn(
-                "font-medium",
-                trend.positive ? "text-success" : "text-danger"
-              )}
-            >
-              {trend.value}
-            </span>
-          )}
-          {hint && <span>{hint}</span>}
-        </div>
+      {footnote && (
+        <div className="mt-2 text-[11px] italic text-ink-muted">{footnote}</div>
       )}
     </div>
   );
