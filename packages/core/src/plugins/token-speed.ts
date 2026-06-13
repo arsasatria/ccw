@@ -89,7 +89,7 @@ export const tokenSpeedPlugin: CcwPlugin = {
             type: 'temp-file',
             enabled: true,
             config: {
-              subdirectory: 'claude-code-router',
+              subdirectory: 'ccw',
               extension: 'json',
               includeTimestamp: true,
               prefix: 'session'

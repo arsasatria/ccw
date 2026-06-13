@@ -39,7 +39,7 @@ export class TempFileOutputHandler implements OutputHandler {
 
   constructor(config: TempFileOutputConfig = {}) {
     this.config = {
-      subdirectory: 'claude-code-router',
+      subdirectory: 'ccw',
       extension: 'json',
       includeTimestamp: false,
       prefix: 'session',

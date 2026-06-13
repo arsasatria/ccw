@@ -174,9 +174,8 @@ async function getServer(options: RunOptions = {}) {
       HOST: HOST,
       PORT: servicePort,
       LOG_FILE: join(
-        homedir(),
-        ".claude-code-router",
-        "claude-code-router.log"
+        HOME_DIR,
+        "ccw.log"
       ),
     },
     logger: loggerConfig,

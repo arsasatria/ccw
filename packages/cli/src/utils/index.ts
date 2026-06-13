@@ -266,7 +266,7 @@ export const getSettingsPath = async (content: string): Promise<string> => {
   const hash = createHash('sha256').update(content, 'utf-8').digest('hex');
 
   // Create claude-code-router directory in system temp folder
-  const tempDir = path.join(os.tmpdir(), 'claude-code-router');
+  const tempDir = path.join(os.tmpdir(), 'ccw');
   const fileName = `ccw-settings-${hash}.json`;
   const tempFilePath = path.join(tempDir, fileName);
 
