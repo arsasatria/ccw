@@ -12,13 +12,14 @@ import { activateCommand } from "./utils/activateCommand";
 import { readConfigFile } from "./utils";
 import { version } from "../package.json";
 import { spawn, exec } from "child_process";
-import {getPresetDir, loadConfigFromManifest, PID_FILE, readPresetFile, REFERENCE_COUNT_FILE} from "@ccw/shared";
-import fs, { existsSync, readFileSync } from "fs";
+import {getPresetDir, loadConfigFromManifest, HOME_DIR, PID_FILE, readPresetFile, REFERENCE_COUNT_FILE} from "@ccw/shared";
+import fs, { existsSync, readFileSync, openSync } from "fs";
 import { join } from "path";
 import { parseStatusLineData, StatusLineInput } from "./utils/statusline";
 import {handlePresetCommand} from "./utils/preset";
 import { handleInstallCommand } from "./utils/installCommand";
 import { runUpdate } from "./utils/updateCommand";
+import { createConnection } from "net";
 
 
 const command = process.argv[2];
@@ -79,20 +80,81 @@ Examples:
   ccw ui
 `;
 
+// Opens a per-spawn log file under ~/.ccw/logs/ and returns the fd + path
+// so the auto-spawned `ccw start` writes its stdout/stderr somewhere the
+// user can inspect when startup times out. The pino logger already writes
+// server errors to the same directory, but a separate per-attempt log
+// makes it easy to grep "what did the last spawn print?".
+function openStartupLog(): { fd: number; path: string } {
+  const logDir = join(HOME_DIR, "logs");
+  try {
+    fs.mkdirSync(logDir, { recursive: true });
+  } catch {
+    // best effort
+  }
+  const path = join(
+    logDir,
+    `ccw-startup-${new Date().toISOString().replace(/[:.]/g, "-")}-${process.pid}.log`
+  );
+  const fd = openSync(path, "a");
+  return { fd, path };
+}
+
+async function isPortListening(port: number, host = "127.0.0.1"): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = createConnection({ port, host });
+    const finish = (result: boolean) => {
+      socket.removeAllListeners();
+      socket.destroy();
+      resolve(result);
+    };
+    socket.setTimeout(500);
+    socket.once("connect", () => finish(true));
+    socket.once("timeout", () => finish(false));
+    socket.once("error", () => finish(false));
+  });
+}
+
+// Stronger liveness check than the sync isServiceRunning(): also accepts
+// the port being open, which catches the case where the service is up
+// under a different PID (e.g. the user started it manually outside of
+// ccw, or a previous detached process survived but the PID file is stale
+// or points at a recycled PID).
+async function isServiceAliveAsync(): Promise<boolean> {
+  if (isServiceRunning()) return true;
+  try {
+    const config = await readConfigFile();
+    const port = config.PORT || 3456;
+    return await isPortListening(port);
+  } catch {
+    return false;
+  }
+}
+
 async function waitForService(
-  timeout = 10000,
+  timeout = 30000,
   initialDelay = 1000
 ): Promise<boolean> {
   // Wait for an initial period to let the service initialize
   await new Promise((resolve) => setTimeout(resolve, initialDelay));
 
   const startTime = Date.now();
+  let lastProgress = 0;
   while (Date.now() - startTime < timeout) {
-    const isRunning = isServiceRunning()
-    if (isRunning) {
+    if (await isServiceAliveAsync()) {
       // Wait for an additional short period to ensure service is fully ready
       await new Promise((resolve) => setTimeout(resolve, 500));
       return true;
+    }
+    // Emit a heartbeat every 5s so the user knows we're still polling,
+    // not hung — the previous 10s ceiling could be eaten silently by
+    // getServer()'s transformer/plugin load on first run.
+    const elapsed = Date.now() - startTime;
+    if (elapsed - lastProgress >= 5000) {
+      lastProgress = elapsed;
+      process.stderr.write(
+        `         still waiting... (${(elapsed / 1000).toFixed(0)}s/${(timeout / 1000).toFixed(0)}s)\n`
+      );
     }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
@@ -175,10 +237,15 @@ async function main() {
       if (shouldStartServer && !isRunning) {
         console.log("Service not running, starting service...");
         const cliPath = join(__dirname, "cli.js");
+        const { fd: logFd, path: logPath } = openStartupLog();
         const startProcess = spawn("node", [cliPath, "start"], {
           detached: true,
-          stdio: "ignore",
+          stdio: ["ignore", logFd, logFd],
         });
+        // The child inherited a dup of logFd. Close the parent's copy so
+        // we don't leak the fd for the lifetime of the parent process.
+        try { fs.closeSync(logFd); } catch {}
+        process.stderr.write(`         startup log: ${logPath}\n`);
 
         startProcess.on("error", (error) => {
           console.error("Failed to start service:", error.message);
@@ -191,7 +258,10 @@ async function main() {
           executeCodeCommand(codeArgs, presetConfig, envOverrides, command);
         } else {
           console.error(
-            "Service startup timeout, please manually run `ccw start` to start the service"
+            "Service startup timeout. To see why, run `ccw start` directly " +
+            "(errors are written to ~/.ccw/logs/). " +
+            "Common causes: another process is bound to the configured PORT, " +
+            "or a plugin/transformer threw during init."
           );
           process.exit(1);
         }
@@ -283,10 +353,15 @@ async function main() {
       if (!isRunning) {
         console.log("Service not running, starting service...");
         const cliPath = join(__dirname, "cli.js");
+        const { fd: logFd, path: logPath } = openStartupLog();
         const startProcess = spawn("node", [cliPath, "start"], {
           detached: true,
-          stdio: "ignore",
+          stdio: ["ignore", logFd, logFd],
         });
+        // The child inherited a dup of logFd. Close the parent's copy so
+        // we don't leak the fd for the lifetime of the parent process.
+        try { fs.closeSync(logFd); } catch {}
+        process.stderr.write(`         startup log: ${logPath}\n`);
 
         startProcess.on("error", (error) => {
           console.error("Failed to start service:", error.message);
@@ -300,7 +375,10 @@ async function main() {
           executeCodeCommand(codeArgs);
         } else {
           console.error(
-            "Service startup timeout, please manually run `ccw start` to start the service"
+            "Service startup timeout. To see why, run `ccw start` directly " +
+            "(errors are written to ~/.ccw/logs/). " +
+            "Common causes: another process is bound to the configured PORT, " +
+            "or a plugin/transformer threw during init."
           );
           process.exit(1);
         }
@@ -314,10 +392,15 @@ async function main() {
       if (!isRunning) {
         console.log("Service not running, starting service...");
         const cliPath = join(__dirname, "cli.js");
+        const { fd: logFd, path: logPath } = openStartupLog();
         const startProcess = spawn("node", [cliPath, "start"], {
           detached: true,
-          stdio: "ignore",
+          stdio: ["ignore", logFd, logFd],
         });
+        // The child inherited a dup of logFd. Close the parent's copy so
+        // we don't leak the fd for the lifetime of the parent process.
+        try { fs.closeSync(logFd); } catch {}
+        process.stderr.write(`         startup log: ${logPath}\n`);
 
         startProcess.on("error", (error) => {
           console.error("Failed to start service:", error.message);
@@ -363,10 +446,15 @@ async function main() {
             );
 
             // Try starting the service again
+            const { fd: logFd, path: logPath } = openStartupLog();
             const restartProcess = spawn("node", [cliPath, "start"], {
               detached: true,
-              stdio: "ignore",
+              stdio: ["ignore", logFd, logFd],
             });
+            // The child inherited a dup of logFd. Close the parent's copy so
+            // we don't leak the fd for the lifetime of the parent process.
+            try { fs.closeSync(logFd); } catch {}
+            process.stderr.write(`         startup log: ${logPath}\n`);
 
             restartProcess.on("error", (error) => {
               console.error(

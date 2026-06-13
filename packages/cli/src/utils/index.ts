@@ -191,8 +191,6 @@ export const run = async (args: string[] = []) => {
   }
   const server = await getServer();
   const app = server.app;
-  // Save the PID of the background process
-  writeFileSync(PID_FILE, process.pid.toString());
 
   app.post('/api/update/perform', async () => {
     return await performUpdate();
@@ -213,8 +211,20 @@ export const run = async (args: string[] = []) => {
     return { success: true, message: "Service restart initiated" }
   });
 
-  // await server.start() to ensure it starts successfully and keep process alive
+  // Start the server BEFORE writing the PID. The llms start() can call
+  // process.exit(1) on failure (e.g. EADDRINUSE → port already bound,
+  // or a misconfigured plugin that throws during init). Writing the PID
+  // first would leave a stale PID pointing at a dead process; the next
+  // caller would then spend 30s trying to spawn a replacement and report
+  // "service startup timeout" even though the real problem is upstream.
   await server.start();
+
+  // Atomic write: temp file + rename. Closes a tiny window where another
+  // process could read a half-written PID file during the first run.
+  const tempPath = `${PID_FILE}.${process.pid}.tmp`;
+  writeFileSync(tempPath, process.pid.toString());
+  const fsSync = require('fs');
+  fsSync.renameSync(tempPath, PID_FILE);
 }
 
 export const restartService = async () => {

@@ -83,8 +83,18 @@ export function isServiceRunning(): boolean {
             process.kill(pid, 0);
             return true; // 如果没有抛出异常，说明进程存在
         }
-    } catch (e) {
-        // 捕获到异常，说明进程不存在 (无论是 kill 还是 execSync 失败)
+    } catch (e: any) {
+        // process.kill(pid, 0) 在不同错误码下含义不同：
+        //   ESRCH (3) - 进程不存在，确实是过期的 PID
+        //   EPERM (1) - 进程存在但不属于当前用户（典型场景：上一次
+        //                用户会话留下的 detached 进程，PID 文件
+        //                偶然指向了它）。绝不能清理掉，否则会误杀
+        //                一个正在运行的实例。
+        //   其它      - 罕见（EINVAL 等），按过期处理。
+        if (e && e.code === 'EPERM') {
+            return true;
+        }
+        // 捕获到 ESRCH 或其它异常，说明进程不存在
         // 清理掉无效的 PID 文件
         cleanupPidFile();
         return false;

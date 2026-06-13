@@ -16,6 +16,43 @@ All notable changes to **ccw** are documented in this file. ccw is a fork of
   the install directory is not a git checkout (so users know to re-run the
   installer instead). No-op when the local commit already matches `origin/main`.
 
+### Bug fixes
+
+- **Fix: `Service not running, starting service...` followed by
+  `Service startup timeout` even after `ccw start/restart`**. Three
+  related bugs combined to make the next command (`ccw code`,
+  `ccw <preset>`, `ccw ui`) hang for 10 seconds and then give up:
+  1. `run()` in `packages/cli/src/utils/index.ts` wrote the PID file
+     *before* `await server.start()`. The `llms` start() calls
+     `process.exit(1)` on failure (EADDRINUSE, misconfigured plugin, ...),
+     so a crash during startup left a PID pointing at a dead process.
+     Every subsequent `isServiceRunning()` then hit the stale PID,
+     cleaned it up, and the auto-spawn never had anything to detect.
+     The PID is now written only after `server.start()` resolves
+     successfully, using an atomic temp-file + rename to close the
+     half-written-file window.
+  2. `isServiceRunning()` in
+     `packages/cli/src/utils/processCheck.ts` treated every error from
+     `process.kill(pid, 0)` the same (`cleanupPidFile()` + return false).
+     On macOS, `EPERM` means the process IS alive but owned by another
+     user — the previous user session's detached process, for example.
+     `isServiceRunning()` now distinguishes `EPERM` (return true, leave
+     the PID file alone) from `ESRCH` (truly stale, safe to clean up).
+  3. `waitForService()` in `packages/cli/src/cli.ts` had a 10-second
+     ceiling that could be eaten silently by `getServer()`'s
+     transformer/plugin load on first run. Bumped to 30 seconds with a
+     5-second heartbeat so the user sees the poll is still alive. Added
+     a port-fallback to `isServiceAliveAsync()` so the helper accepts
+     "port is open" as a secondary liveness signal when the PID file is
+     missing or points at a recycled PID.
+
+  The auto-spawn in `ccw code` / `ccw ui` / preset launches now also
+  captures the child's stdout and stderr to a per-attempt log under
+  `~/.ccw/logs/ccw-startup-<timestamp>-<pid>.log` and prints the path
+  to the user. The previous `stdio: "ignore"` made startup failures
+  (most commonly EADDRINUSE from a stale process or a manually-launched
+  server on a different shell) completely invisible.
+
 ## 1.0.0 — 2026-06-13
 
 Initial release of the standalone fork. All upstream code is inherited from
