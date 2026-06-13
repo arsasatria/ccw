@@ -2,17 +2,17 @@ import { FastifyPluginAsync } from 'fastify';
 
 declare module '@musistudio/llms' {
 
-  export interface CCRPluginOptions {
+  export interface CcwPluginOptions {
     enabled?: boolean;
     [key: string]: any;
   }
 
 
-  export interface CCRPlugin {
+  export interface CcwPlugin {
     name: string;
     version?: string;
     description?: string;
-    register: FastifyPluginAsync<CCRPluginOptions>;
+    register: FastifyPluginAsync<CcwPluginOptions>;
   }
 
 
@@ -26,11 +26,11 @@ declare module '@musistudio/llms' {
   export class PluginManager {
     private plugins;
     private pluginInstances;
-    registerPlugin(plugin: CCRPlugin, options?: any): void;
+    registerPlugin(plugin: CcwPlugin, options?: any): void;
     enablePlugin(name: string, fastify: import('fastify').FastifyInstance): Promise<void>;
     enablePlugins(fastify: import('fastify').FastifyInstance): Promise<void>;
     getPlugins(): PluginMetadata[];
-    getPlugin(name: string): CCRPlugin | undefined;
+    getPlugin(name: string): CcwPlugin | undefined;
     hasPlugin(name: string): boolean;
     isPluginEnabled(name: string): boolean;
     setPluginEnabled(name: string, enabled: boolean): void;
@@ -42,7 +42,7 @@ declare module '@musistudio/llms' {
   export const pluginManager: PluginManager;
 
 
-  export const tokenSpeedPlugin: CCRPlugin;
+  export const tokenSpeedPlugin: CcwPlugin;
 
 
   export class SSEParserTransform extends TransformStream<string, any> {

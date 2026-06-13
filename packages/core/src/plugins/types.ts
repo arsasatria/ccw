@@ -3,7 +3,7 @@ import { FastifyPluginAsync } from 'fastify';
 /**
  * Plugin configuration interface
  */
-export interface CCRPluginOptions {
+export interface CcwPluginOptions {
   enabled?: boolean;
   [key: string]: any;
 }
@@ -11,11 +11,11 @@ export interface CCRPluginOptions {
 /**
  * Plugin interface
  */
-export interface CCRPlugin {
+export interface CcwPlugin {
   name: string;
   version?: string;
   description?: string;
-  register: FastifyPluginAsync<CCRPluginOptions>;
+  register: FastifyPluginAsync<CcwPluginOptions>;
 }
 
 /**

@@ -246,7 +246,7 @@ export const createServer = async (config: any): Promise<any> => {
             repository: metadata.repository,
             license: metadata.license,
             keywords: metadata.keywords,
-            ccrVersion: metadata.ccrVersion,
+            ccwVersion: metadata.ccwVersion,
             source: metadata.source,
             sourceType: metadata.sourceType,
             checksum: metadata.checksum,

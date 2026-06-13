@@ -65,7 +65,7 @@ interface PresetMetadata {
   repository?: string;
   license?: string;
   keywords?: string[];
-  ccrVersion?: string;
+  ccwVersion?: string;
   source?: string;
   sourceType?: 'local' | 'gist' | 'registry';
   checksum?: string;

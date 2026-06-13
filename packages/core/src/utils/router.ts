@@ -160,14 +160,14 @@ const getUseModel = async (
   }
   if (
     req.body?.system?.length > 1 &&
-    req.body?.system[1]?.text?.startsWith("<CCR-SUBAGENT-MODEL>")
+    req.body?.system[1]?.text?.startsWith("<CCW-SUBAGENT-MODEL>")
   ) {
     const model = req.body?.system[1].text.match(
-      /<CCR-SUBAGENT-MODEL>(.*?)<\/CCR-SUBAGENT-MODEL>/s
+      /<CCW-SUBAGENT-MODEL>(.*?)<\/CCW-SUBAGENT-MODEL>/s
     );
     if (model) {
       req.body.system[1].text = req.body.system[1].text.replace(
-        `<CCR-SUBAGENT-MODEL>${model[1]}</CCR-SUBAGENT-MODEL>`,
+        `<CCW-SUBAGENT-MODEL>${model[1]}</CCW-SUBAGENT-MODEL>`,
         ""
       );
       return { model: model[1], scenarioType: 'default' };
