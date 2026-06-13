@@ -243,12 +243,13 @@ export class AnthropicTransformer implements Transformer {
   }
 
   private convertAnthropicToolsToUnified(tools: any[]): UnifiedTool[] {
+    const emptySchema = { type: "object", properties: {} };
     return tools.map((tool) => ({
       type: "function",
       function: {
         name: tool.name,
         description: tool.description || "",
-        parameters: tool.input_schema,
+        parameters: tool.input_schema ?? emptySchema,
       },
     }));
   }
@@ -264,7 +265,7 @@ export class AnthropicTransformer implements Transformer {
         let stopReasonMessageDelta: null | Record<string, any> = null;
         let model = "unknown";
         let hasStarted = false;
-        let hasTextContentStarted = false;
+        let currentContentBlockType: "text" | "tool_use" | "thinking" | "web_search_tool_result" | null = null;
         let hasFinished = false;
         const toolCalls = new Map<number, any>();
         const toolCallIndexToContentBlockIndex = new Map<number, number>();
@@ -328,6 +329,7 @@ export class AnthropicTransformer implements Transformer {
                   )
                 );
                 currentContentBlockIndex = -1;
+                currentContentBlockType = null;
               }
 
               if (stopReasonMessageDelta) {
@@ -540,6 +542,7 @@ export class AnthropicTransformer implements Transformer {
                       )
                     );
                     currentContentBlockIndex = thinkingBlockIndex;
+                    currentContentBlockType = "thinking";
                     isThinkingStarted = true;
                   }
                   if (choice.delta.thinking.signature) {
@@ -570,6 +573,7 @@ export class AnthropicTransformer implements Transformer {
                       )
                     );
                     currentContentBlockIndex = -1;
+                    currentContentBlockType = null;
                   } else if (choice.delta.thinking.content) {
                     const thinkingChunk = {
                       type: "content_block_delta",
@@ -595,7 +599,7 @@ export class AnthropicTransformer implements Transformer {
                   // Close any previous content block if open and it's not a text content block
                   if (currentContentBlockIndex >= 0) {
                     // Check if current content block is text type
-                    const isCurrentTextBlock = hasTextContentStarted;
+                    const isCurrentTextBlock = currentContentBlockType === "text";
                     if (!isCurrentTextBlock) {
                       const contentBlockStop = {
                         type: "content_block_stop",
@@ -609,11 +613,11 @@ export class AnthropicTransformer implements Transformer {
                         )
                       );
                       currentContentBlockIndex = -1;
+                      currentContentBlockType = null;
                     }
                   }
 
-                  if (!hasTextContentStarted && !hasFinished) {
-                    hasTextContentStarted = true;
+                  if (currentContentBlockType !== "text" && !hasFinished) {
                     const textBlockIndex = assignContentBlockIndex();
                     const contentBlockStart = {
                       type: "content_block_start",
@@ -631,6 +635,7 @@ export class AnthropicTransformer implements Transformer {
                       )
                     );
                     currentContentBlockIndex = textBlockIndex;
+                    currentContentBlockType = "text";
                   }
 
                   if (!isClosed && !hasFinished) {
@@ -658,7 +663,7 @@ export class AnthropicTransformer implements Transformer {
                   !hasFinished
                 ) {
                   // Close text content block if open
-                  if (currentContentBlockIndex >= 0 && hasTextContentStarted) {
+                  if (currentContentBlockIndex >= 0 && currentContentBlockType === "text") {
                     const contentBlockStop = {
                       type: "content_block_stop",
                       index: currentContentBlockIndex,
@@ -671,7 +676,7 @@ export class AnthropicTransformer implements Transformer {
                       )
                     );
                     currentContentBlockIndex = -1;
-                    hasTextContentStarted = false;
+                    currentContentBlockType = null;
                   }
 
                   choice?.delta?.annotations.forEach((annotation: any) => {
@@ -743,6 +748,7 @@ export class AnthropicTransformer implements Transformer {
                           )
                         );
                         currentContentBlockIndex = -1;
+                        currentContentBlockType = null;
                       }
 
                       const newContentBlockIndex = assignContentBlockIndex();
@@ -773,6 +779,7 @@ export class AnthropicTransformer implements Transformer {
                         )
                       );
                       currentContentBlockIndex = newContentBlockIndex;
+                      currentContentBlockType = "tool_use";
 
                       const toolCallInfo = {
                         id: toolCallId,
@@ -876,6 +883,7 @@ export class AnthropicTransformer implements Transformer {
                       )
                     );
                     currentContentBlockIndex = -1;
+                    currentContentBlockType = null;
                   }
 
                   if (!isClosed) {
