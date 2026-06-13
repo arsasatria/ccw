@@ -114,6 +114,37 @@ node "%~dp0packages\cli\dist\cli.js" %*
   Set-Content -Path $shimPath -Value $shim -Encoding ASCII
 }
 
+# Drop a second copy of the shim in a directory that is ALREADY on PATH for
+# the current user. This makes `ccw` callable from any new terminal
+# immediately, with no PATH refresh and no waiting for env propagation.
+function Install-GlobalShim {
+  $globalShim = @"
+@echo off
+node "$Dest\packages\cli\dist\cli.js" %*
+"@
+
+  $candidates = @()
+  $npmDir = Join-Path $env:APPDATA 'npm'
+  if (Test-Path $npmDir) { $candidates += @{ Dir = $npmDir; Reason = 'npm global' } }
+  $winApps = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps'
+  if (Test-Path $winApps) { $candidates += @{ Dir = $winApps; Reason = 'WindowsApps' } }
+
+  foreach ($c in $candidates) {
+    $probe = Join-Path $c.Dir 'ccw-shim-probe.tmp'
+    try {
+      '' | Set-Content -Path $probe -ErrorAction Stop
+      Remove-Item $probe -Force -ErrorAction SilentlyContinue
+      $target = Join-Path $c.Dir $ShimName
+      Set-Content -Path $target -Value $globalShim -Encoding ASCII
+      Write-Host "  [ok] Global shim at $target ($($c.Reason), already on PATH)"
+      return
+    } catch {
+      # not writable, try next
+    }
+  }
+  Write-Host "  [skip] No writable PATH dir found; rely on Add-To-Path below."
+}
+
 function Add-To-Path {
   $userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
   if (-not $userPath) { $userPath = '' }
@@ -136,13 +167,17 @@ Write-Host 'Installing:'
 Install-Source
 Build-Source
 Install-Shim
+Install-GlobalShim
 Add-To-Path
 Write-Host ''
 Write-Host 'ccw installed.' -ForegroundColor Green
 Write-Host "  Source: $Dest"
 Write-Host "  Binary: $Dest\packages\cli\dist\cli.js"
-Write-Host "  Shim:   $Dest\$ShimName"
+Write-Host "  Local shim:   $Dest\$ShimName"
 Write-Host ''
 Write-Host 'Open a NEW terminal and run:' -ForegroundColor Cyan
 Write-Host '  ccw --version'
 Write-Host '  ccw code'
+Write-Host ''
+Write-Host 'Or, in the CURRENT terminal, refresh PATH with:' -ForegroundColor DarkGray
+Write-Host "  `$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine')" -ForegroundColor DarkGray
