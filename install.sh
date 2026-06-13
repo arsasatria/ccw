@@ -96,6 +96,45 @@ EOF
   chmod +x "$BIN_DIR/$CMD_NAME"
 }
 
+# Drop a second copy of the shim in a directory that is ALREADY on PATH.
+# Makes `ccw` callable from any new terminal with no PATH refresh.
+install_global_shim() {
+  local global_shim
+  global_shim=$(cat <<EOF
+#!/usr/bin/env bash
+exec node "$DEST/packages/cli/dist/cli.js" "\$@"
+EOF
+)
+
+  # /usr/local/bin first (system-wide, no PATH edit needed). Try no-sudo,
+  # then sudo non-interactively.
+  if [ -d "/usr/local/bin" ]; then
+    if [ -w "/usr/local/bin" ]; then
+      printf '%s\n' "$global_shim" > "/usr/local/bin/$CMD_NAME"
+      chmod +x "/usr/local/bin/$CMD_NAME"
+      ok "Global shim at /usr/local/bin/$CMD_NAME (no sudo, already on PATH)"
+      return
+    fi
+    if command -v sudo >/dev/null 2>&1 && sudo -n true 2>/dev/null; then
+      if printf '%s\n' "$global_shim" | sudo tee "/usr/local/bin/$CMD_NAME" >/dev/null 2>&1; then
+        sudo chmod +x "/usr/local/bin/$CMD_NAME" 2>/dev/null
+        ok "Global shim at /usr/local/bin/$CMD_NAME (sudo -n, already on PATH)"
+        return
+      fi
+    fi
+  fi
+
+  # ~/.local/bin (XDG, user-local). Most modern distros have this on PATH.
+  if [ -d "$HOME/.local/bin" ] && [ -w "$HOME/.local/bin" ]; then
+    printf '%s\n' "$global_shim" > "$HOME/.local/bin/$CMD_NAME"
+    chmod +x "$HOME/.local/bin/$CMD_NAME"
+    ok "Global shim at $HOME/.local/bin/$CMD_NAME (already on PATH)"
+    return
+  fi
+
+  say "  [skip] No writable PATH dir found; rely on the user-profile edit below."
+}
+
 check_path() {
   case ":$PATH:" in
     *":$BIN_DIR:"*)
@@ -103,6 +142,9 @@ check_path() {
       say "ccw installed. Open a NEW terminal and run:" >&2
       say "  $CMD_NAME --version" >&2
       say "  $CMD_NAME code" >&2
+      say "" >&2
+      say "Or, in the CURRENT terminal:" >&2
+      say "  export PATH=\"\$PATH:$BIN_DIR\"" >&2
       ;;
     *)
       say ""
@@ -111,6 +153,9 @@ check_path() {
       say "  export PATH=\"\$PATH:$BIN_DIR\"" >&2
       say "Then open a new terminal and run:" >&2
       say "  $CMD_NAME --version" >&2
+      say "" >&2
+      say "Or, in the CURRENT terminal:" >&2
+      say "  export PATH=\"\$PATH:$BIN_DIR\"" >&2
       ;;
   esac
 }
@@ -124,5 +169,6 @@ say "Installing:"
 install_source
 build_source
 install_shim
-ok "Installed: $BIN_DIR/$CMD_NAME (source: $DEST)"
+install_global_shim
+ok "Local shim: $BIN_DIR/$CMD_NAME (source: $DEST)"
 check_path
