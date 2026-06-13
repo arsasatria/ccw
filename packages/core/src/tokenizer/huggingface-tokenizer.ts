@@ -1,5 +1,4 @@
 import { join } from "path";
-import { homedir } from "os";
 import { existsSync, mkdirSync } from "fs";
 import { promises as fs } from "fs";
 import {
@@ -7,6 +6,7 @@ import {
   TokenizeRequest,
 } from "../types/tokenizer";
 import { Tokenizer } from "@huggingface/tokenizers";
+import { HOME_DIR } from "@ccw/shared";
 
 /**
  * Options for HuggingFace tokenizer
@@ -34,7 +34,7 @@ export class HuggingFaceTokenizer implements ITokenizer {
     this.modelId = modelId;
     this.logger = logger;
     this.options = options;
-    this.cacheDir = options.cacheDir || join(homedir(), ".ccw", ".huggingface");
+    this.cacheDir = options.cacheDir || join(HOME_DIR, ".huggingface");
     // Cache safe model name to avoid repeated regex operations
     this.safeModelName = modelId.replace(/\//g, "_").replace(/[^a-zA-Z0-9_-]/g, "_");
     this.name = `huggingface-${modelId.split("/").pop()}`;

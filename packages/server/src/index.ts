@@ -174,8 +174,7 @@ async function getServer(options: RunOptions = {}) {
       HOST: HOST,
       PORT: servicePort,
       LOG_FILE: join(
-        homedir(),
-        ".ccw",
+        HOME_DIR,
         "ccw.log"
       ),
     },

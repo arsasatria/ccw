@@ -1,3 +1,8 @@
+const os = require('os');
+const path = require('path');
+
+const logDir = path.join(os.homedir(), '.ccw', 'logs');
+
 module.exports = {
   apps: [
     {
@@ -11,12 +16,10 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
       },
-      // 日志配置
-      error_file: '/root/.ccw/logs/error.log',
-      out_file: '/root/.ccw/logs/out.log',
+      error_file: path.join(logDir, 'error.log'),
+      out_file: path.join(logDir, 'out.log'),
       log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
       merge_logs: true,
-      // 启用日志时间戳
       time: true,
     },
   ],

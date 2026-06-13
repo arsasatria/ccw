@@ -68,7 +68,7 @@ const AVAILABLE_TRANSFORMERS = [
 ];
 
 function getConfigPath(): string {
-  const configDir = path.join(process.env.HOME || process.env.USERPROFILE || '', '.ccw');
+  const configDir = HOME_DIR;
   const configPath = path.join(configDir, 'config.json');
   
   if (!fs.existsSync(configPath)) {
