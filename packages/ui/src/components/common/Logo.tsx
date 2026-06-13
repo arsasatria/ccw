@@ -22,8 +22,8 @@ export function Logo({ className, showWordmark = true, size = 28 }: LogoProps) {
       >
         <defs>
           <linearGradient id="ccw-logo-grad" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
-            <stop offset="0" stopColor="currentColor" stopOpacity="1" />
-            <stop offset="1" stopColor="currentColor" stopOpacity="0.55" />
+            <stop offset="0" stopColor="oklch(0.92 0.05 80)" />
+            <stop offset="1" stopColor="oklch(0.68 0.1 65)" />
           </linearGradient>
         </defs>
         <rect x="1" y="1" width="30" height="30" rx="8" fill="url(#ccw-logo-grad)" />
@@ -34,7 +34,7 @@ export function Logo({ className, showWordmark = true, size = 28 }: LogoProps) {
         <circle cx="23.5" cy="9.5" r="2" fill="var(--bg, #0c1116)" fillOpacity="0.85" />
       </svg>
       {showWordmark && (
-        <span className="text-[15px] font-semibold tracking-tight text-fg">
+        <span className="font-serif text-[14px] text-fg">
           ccw
         </span>
       )}
