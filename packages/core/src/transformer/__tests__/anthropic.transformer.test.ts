@@ -450,6 +450,114 @@ test("coerces empty-string assistant content to null (issue #1329 Bedrock)", asy
 });
 
 
+test("DeepSeek V4 flow: thinking → text → tool_use → text → finish keeps every block's type aligned (issue #1355)", async () => {
+  // Repro of issue #1355: CCR proxying DeepSeek V4 with thinking enabled
+  // throws "Content block is not a text block". The interleaving here is the
+  // full DeepSeek R1/V4 pattern: the model emits a thinking block, then text
+  // (often the explanation), then a tool_use, then more text after the tool
+  // returns, then finish. Each transition must close the prior block and open
+  // a new one of the correct type before the next delta.
+  const upstreamChunks: string[] = [
+    // initial role
+    `data: ${JSON.stringify({
+      id: "cmpl-ds", model: "deepseek-v4",
+      choices: [{ index: 0, delta: { role: "assistant" }, finish_reason: null }],
+    })}\n\n`,
+    // thinking content
+    `data: ${JSON.stringify({
+      id: "cmpl-ds", model: "deepseek-v4",
+      choices: [{ index: 0, delta: { thinking: { content: "I need to search" } }, finish_reason: null }],
+    })}\n\n`,
+    `data: ${JSON.stringify({
+      id: "cmpl-ds", model: "deepseek-v4",
+      choices: [{ index: 0, delta: { thinking: { content: " for that" } }, finish_reason: null }],
+    })}\n\n`,
+    // thinking signature closes the thinking block
+    `data: ${JSON.stringify({
+      id: "cmpl-ds", model: "deepseek-v4",
+      choices: [{ index: 0, delta: { thinking: { signature: "sig-ds" } }, finish_reason: null }],
+    })}\n\n`,
+    // text right after thinking
+    `data: ${JSON.stringify({
+      id: "cmpl-ds", model: "deepseek-v4",
+      choices: [{ index: 0, delta: { content: "Let me search" }, finish_reason: null }],
+    })}\n\n`,
+    // tool_use opens
+    `data: ${JSON.stringify({
+      id: "cmpl-ds", model: "deepseek-v4",
+      choices: [{
+        index: 0,
+        delta: { tool_calls: [{ index: 0, id: "call_ds", function: { name: "search", arguments: "" } }] },
+        finish_reason: null,
+      }],
+    })}\n\n`,
+    `data: ${JSON.stringify({
+      id: "cmpl-ds", model: "deepseek-v4",
+      choices: [{
+        index: 0,
+        delta: { tool_calls: [{ index: 0, function: { arguments: '{"q":"x"}' } }] },
+        finish_reason: null,
+      }],
+    })}\n\n`,
+    // text after tool_use
+    `data: ${JSON.stringify({
+      id: "cmpl-ds", model: "deepseek-v4",
+      choices: [{ index: 0, delta: { content: " here it is" }, finish_reason: null }],
+    })}\n\n`,
+    // finish
+    `data: ${JSON.stringify({
+      id: "cmpl-ds", model: "deepseek-v4",
+      choices: [{ index: 0, delta: {}, finish_reason: "tool_calls" }],
+    })}\n\n`,
+    `data: [DONE]\n\n`,
+  ];
+
+  const upstream = buildReadableStreamFromChunks(upstreamChunks);
+  const response = new Response(upstream, { headers: { "Content-Type": "text/event-stream" } });
+  const transformer = new AnthropicTransformer();
+  transformer.logger = logger;
+  const out = await transformer.transformResponseIn(response, { req: { id: "test" } });
+  const events = await collectEvents(out!);
+
+  const blockTypeByIndex = new Map<number, string>();
+  for (const { data } of events) {
+    if (data.type === "content_block_start" && typeof data.index === "number") {
+      blockTypeByIndex.set(data.index, data.content_block?.type ?? "unknown");
+    }
+  }
+
+  // Verify every text_delta is on a text block and every thinking_delta is on a thinking block
+  const violations: string[] = [];
+  for (const { data } of events) {
+    if (data.type === "content_block_delta" && data.delta?.type === "text_delta") {
+      const blockType = blockTypeByIndex.get(data.index!);
+      if (blockType !== "text") {
+        violations.push(`text_delta on index=${data.index} (block_type=${blockType})`);
+      }
+    }
+    if (data.type === "content_block_delta" && data.delta?.type === "thinking_delta") {
+      const blockType = blockTypeByIndex.get(data.index!);
+      if (blockType !== "thinking") {
+        violations.push(`thinking_delta on index=${data.index} (block_type=${blockType})`);
+      }
+    }
+    if (data.type === "content_block_delta" && data.delta?.type === "input_json_delta") {
+      const blockType = blockTypeByIndex.get(data.index!);
+      if (blockType !== "tool_use") {
+        violations.push(`input_json_delta on index=${data.index} (block_type=${blockType})`);
+      }
+    }
+  }
+  assert.deepEqual(violations, [], `stream events:\n${JSON.stringify(events, null, 2)}`);
+
+  // Also verify each content_block_start has a matching content_block_stop
+  const starts = events.filter((e) => e.data.type === "content_block_start").map((e) => e.data.index);
+  const stops = events.filter((e) => e.data.type === "content_block_stop").map((e) => e.data.index);
+  for (const idx of starts) {
+    assert.ok(stops.includes(idx), `content_block_start at index=${idx} was never closed`);
+  }
+});
+
 test("omits reasoning field when thinking.type is not 'enabled' (issue #1410)", async () => {
   // Repro: Claude Code sends thinking: { type: "disabled" } on every normal
   // coding request. The previous code emitted `reasoning: { effort, enabled: false }`
