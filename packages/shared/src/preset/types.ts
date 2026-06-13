@@ -134,7 +134,7 @@ export interface PresetMetadata {
   repository?: string;            // Source repository
   license?: string;               // License
   keywords?: string[];            // Keywords
-  ccwVersion?: string;            // Compatible CCR version
+  ccwVersion?: string;            // Compatible ccw version
   source?: string;                // Preset source URL
   sourceType?: 'local' | 'gist' | 'registry';
   checksum?: string;              // Preset content checksum

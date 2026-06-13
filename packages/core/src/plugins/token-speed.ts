@@ -1,5 +1,5 @@
 import fp from 'fastify-plugin';
-import { CCRPlugin, CCRPluginOptions } from './types';
+import { CcwPlugin, CcwPluginOptions } from './types';
 import { SSEParserTransform } from '../utils/sse';
 import { OutputHandlerConfig, OutputOptions, outputManager } from './output';
 import { ITokenizer, TokenizerConfig } from '../types/tokenizer';
@@ -23,7 +23,7 @@ interface TokenStats {
 /**
  * Plugin options
  */
-interface TokenSpeedOptions extends CCRPluginOptions {
+interface TokenSpeedOptions extends CcwPluginOptions {
   /**
    * Reporter type(s) to use for output
    * Can be a single type or an array of types: 'console' | 'temp-file' | 'webhook'
@@ -52,7 +52,7 @@ const tokenizerCache = new Map<string, ITokenizer>();
 /**
  * Token speed measurement plugin
  */
-export const tokenSpeedPlugin: CCRPlugin = {
+export const tokenSpeedPlugin: CcwPlugin = {
   name: 'token-speed',
   version: '1.0.0',
   description: 'Statistics for streaming response token generation speed',

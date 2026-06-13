@@ -1,19 +1,19 @@
 import { FastifyInstance } from 'fastify';
-import { CCRPlugin, PluginMetadata } from './types';
+import { CcwPlugin, PluginMetadata } from './types';
 
 /**
  * Plugin manager
  */
 class PluginManager {
   private plugins: Map<string, PluginMetadata> = new Map();
-  private pluginInstances: Map<string, CCRPlugin> = new Map();
+  private pluginInstances: Map<string, CcwPlugin> = new Map();
 
   /**
    * Register a plugin
    * @param plugin Plugin instance
    * @param options Plugin configuration options
    */
-  registerPlugin(plugin: CCRPlugin, options: any = {}): void {
+  registerPlugin(plugin: CcwPlugin, options: any = {}): void {
     this.pluginInstances.set(plugin.name, plugin);
     this.plugins.set(plugin.name, {
       name: plugin.name,
@@ -67,7 +67,7 @@ class PluginManager {
    * Get plugin instance
    * @param name Plugin name
    */
-  getPlugin(name: string): CCRPlugin | undefined {
+  getPlugin(name: string): CcwPlugin | undefined {
     return this.pluginInstances.get(name);
   }
 

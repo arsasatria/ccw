@@ -163,7 +163,7 @@ const getUseModel = async (
     req.body?.system[1]?.text?.startsWith("<CCW-SUBAGENT-MODEL>")
   ) {
     const model = req.body?.system[1].text.match(
-      /<CCW-SUBAGENT-MODEL>(.*?)<\/CCR-SUBAGENT-MODEL>/s
+      /<CCW-SUBAGENT-MODEL>(.*?)<\/CCW-SUBAGENT-MODEL>/s
     );
     if (model) {
       req.body.system[1].text = req.body.system[1].text.replace(

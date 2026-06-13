@@ -773,7 +773,7 @@ export async function transformResponseOut(
                   .map((part: Part) => ({
                     id:
                       part.functionCall?.id ||
-                      `ccr_tool_${Math.random().toString(36).substring(2, 15)}`,
+                      `ccw_tool_${Math.random().toString(36).substring(2, 15)}`,
                     type: "function",
                     function: {
                       name: part.functionCall?.name,
@@ -828,7 +828,7 @@ export async function transformResponseOut(
                             role: "assistant",
                             content: null,
                             thinking: {
-                              signature: `ccr_${+new Date()}`,
+                              signature: `ccw_${+new Date()}`,
                             },
                           },
                           finish_reason: null,
