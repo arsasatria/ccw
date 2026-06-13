@@ -322,6 +322,7 @@ test("joins non-empty assistant text parts and preserves tool_calls and thinking
   const out = await transformer.transformRequestOut({
     model: "test",
     messages: [
+      { role: "user", content: "search for x" },
       {
         role: "assistant",
         content: [
@@ -332,14 +333,18 @@ test("joins non-empty assistant text parts and preserves tool_calls and thinking
           { type: "thinking", thinking: "reasoning", signature: "sig-1" },
         ],
       },
+      {
+        role: "user",
+        content: [{ type: "tool_result", tool_use_id: "t1", content: "hit" }],
+      },
     ],
   });
 
-  assert.equal(out.messages[0].content, "first\nsecond");
-  assert.deepEqual(out.messages[0].tool_calls, [
+  assert.equal(out.messages[1].content, "first\nsecond");
+  assert.deepEqual(out.messages[1].tool_calls, [
     { id: "t1", type: "function", function: { name: "search", arguments: '{"q":"x"}' } },
   ]);
-  assert.deepEqual(out.messages[0].thinking, { content: "reasoning", signature: "sig-1" });
+  assert.deepEqual(out.messages[1].thinking, { content: "reasoning", signature: "sig-1" });
 });
 
 test("captures usage when finish_reason and usage arrive in the same stream chunk (issue #1422)", async () => {
@@ -451,7 +456,7 @@ test("coerces empty-string assistant content to null (issue #1329 Bedrock)", asy
 
 
 test("DeepSeek V4 flow: thinking → text → tool_use → text → finish keeps every block's type aligned (issue #1355)", async () => {
-  // Repro of issue #1355: CCR proxying DeepSeek V4 with thinking enabled
+  // Repro of issue #1355: CCW proxying DeepSeek V4 with thinking enabled
   // throws "Content block is not a text block". The interleaving here is the
   // full DeepSeek R1/V4 pattern: the model emits a thinking block, then text
   // (often the explanation), then a tool_use, then more text after the tool
@@ -624,7 +629,10 @@ test("drops tool_use blocks without a name and backfills empty tool name/paramet
           { type: "tool_use", id: "toolu_good", name: "search", input: { q: "x" } },
         ],
       },
-      { role: "tool", tool_call_id: "toolu_good", content: "hit" },
+      {
+        role: "user",
+        content: [{ type: "tool_result", tool_use_id: "toolu_good", content: "hit" }],
+      },
     ],
     tools: [
       // No name → must backfill to "unknown_tool".
@@ -674,4 +682,132 @@ test("drops tool_use blocks without a name and backfills empty tool name/paramet
     type: "object",
     properties: { q: { type: "string" } },
   });
+});
+
+test("drops orphan tool_use and orphan tool_result in history (TokenRouter 2013 fix)", async () => {
+  // OpenAI-spec providers (TokenRouter/MiniMax-M3, Together, OpenRouter,
+  // NVIDIA NIM) reject with code 2013 when:
+  //   - assistant.tool_calls is not directly followed by tool messages
+  //     with matching tool_call_id ("tool call result does not follow
+  //     tool call")
+  //   - a tool message has a tool_call_id with no matching preceding
+  //     assistant.tool_calls ("tool result's tool id not found")
+  // Anthropic SDK allows tool_use without a following tool_result (user
+  // interruption), so we must drop the orphans before sending. The
+  // provider 400s mid-stream; the Anthropic SDK reframes the error event
+  // as "Content block is not a text block".
+  const transformer = new AnthropicTransformer();
+  // @ts-expect-error access private for test
+  const out = await transformer.transformRequestOut({
+    model: "test",
+    messages: [
+      { role: "user", content: "hi" },
+      // Orphan tool_use: no following tool_result. The text part is kept,
+      // the tool_use must be dropped.
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "let me check" },
+          { type: "tool_use", id: "orphan_use", name: "search", input: { q: "x" } },
+        ],
+      },
+      // No tool_result following — user "interrupted" the tool flow.
+      { role: "user", content: "never mind" },
+      // Orphan tool_result: no preceding tool_use. The tool_result must
+      // be dropped; the text part is kept as a normal user message.
+      {
+        role: "user",
+        content: [
+          { type: "tool_result", tool_use_id: "orphan_result", content: "result" },
+          { type: "text", text: "and also..." },
+        ],
+      },
+      // Well-formed pair: must be preserved.
+      {
+        role: "assistant",
+        content: [
+          { type: "text", text: "checking" },
+          { type: "tool_use", id: "good", name: "search", input: { q: "y" } },
+        ],
+      },
+      {
+        role: "user",
+        content: [{ type: "tool_result", tool_use_id: "good", content: "found" }],
+      },
+    ],
+  });
+
+  // Expected output (6 messages):
+  //   0. user "hi"
+  //   1. assistant "let me check"  (orphan tool_use dropped → no tool_calls)
+  //   2. user "never mind"
+  //   3. user "and also..."        (orphan tool_result dropped)
+  //   4. assistant "checking" + tool_call for "good"
+  //   5. tool message for "good"
+  assert.equal(out.messages.length, 6);
+
+  assert.equal(out.messages[0].role, "user");
+  assert.equal(out.messages[0].content, "hi");
+
+  assert.equal(out.messages[1].role, "assistant");
+  assert.equal(out.messages[1].content, "let me check");
+  assert.equal(
+    out.messages[1].tool_calls,
+    undefined,
+    "orphan tool_use must not produce a tool_call",
+  );
+
+  assert.equal(out.messages[2].role, "user");
+  assert.equal(out.messages[2].content, "never mind");
+
+  assert.equal(out.messages[3].role, "user");
+  assert.deepEqual(out.messages[3].content, [{ type: "text", text: "and also..." }]);
+
+  assert.equal(out.messages[4].role, "assistant");
+  assert.equal(out.messages[4].content, "checking");
+  assert.equal(out.messages[4].tool_calls?.length, 1);
+  assert.equal(out.messages[4].tool_calls![0].id, "good");
+  assert.equal(out.messages[4].tool_calls![0].function.name, "search");
+
+  assert.equal(out.messages[5].role, "tool");
+  assert.equal(out.messages[5].tool_call_id, "good");
+  assert.equal(out.messages[5].content, "found");
+});
+
+test("drops tool_use that has tool_result in a later (non-adjacent) user message", async () => {
+  // OpenAI spec requires the tool_result to IMMEDIATELY follow the
+  // assistant.tool_calls. A tool_result in a later, non-adjacent user
+  // message doesn't count — the tool_use must still be dropped.
+  const transformer = new AnthropicTransformer();
+  // @ts-expect-error access private for test
+  const out = await transformer.transformRequestOut({
+    model: "test",
+    messages: [
+      { role: "user", content: "search" },
+      {
+        role: "assistant",
+        content: [{ type: "tool_use", id: "t1", name: "search", input: { q: "x" } }],
+      },
+      // Regular user message (NOT a tool_result) sits between.
+      { role: "user", content: "actually never mind" },
+      // Late tool_result for t1 — but the assistant is already past
+      // the tool_use. This is the "out-of-order" edge case.
+      { role: "user", content: [{ type: "tool_result", tool_use_id: "t1", content: "late" }] },
+    ],
+  });
+
+  // The orphan tool_use must be dropped; the late tool_result must also
+  // be dropped (it has no valid preceding tool_call in the converted
+  // history).
+  const toolMessages = out.messages.filter((m: any) => m.role === "tool");
+  assert.equal(toolMessages.length, 0, "late tool_result must be dropped");
+
+  const assistantWithCalls = out.messages.find(
+    (m: any) => m.role === "assistant" && m.tool_calls?.length,
+  );
+  assert.equal(
+    assistantWithCalls,
+    undefined,
+    "non-adjacent tool_use must not produce a tool_call",
+  );
 });

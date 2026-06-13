@@ -72,6 +72,37 @@ export class AnthropicTransformer implements Transformer {
 
     const requestMessages = JSON.parse(JSON.stringify(request.messages || []));
 
+    // Pre-pass: identify tool_use IDs that have a matching tool_result in
+    // the IMMEDIATELY next user message. OpenAI-spec providers (Together,
+    // OpenRouter, NVIDIA NIM, TokenRouter/MiniMax-M3) 400 with code 2013
+    // if assistant.tool_calls is not directly followed by tool messages
+    // with matching tool_call_id ("tool call result does not follow tool
+    // call"), or a tool message has a tool_call_id with no matching
+    // preceding assistant.tool_calls ("tool result's tool id not found").
+    // Anthropic SDK allows tool_use without a following tool_result (user
+    // interruption), so we must drop the orphans here. The provider 400
+    // mid-stream; the Anthropic SDK reframes the error as
+    // "Content block is not a text block".
+    const validToolUseIds = new Set<string>();
+    for (let i = 0; i < requestMessages.length; i++) {
+      const msg = requestMessages[i];
+      if (msg.role !== "assistant" || !Array.isArray(msg.content)) continue;
+      const toolUseIds: string[] = [];
+      for (const c of msg.content) {
+        if (c.type === "tool_use" && c.id) toolUseIds.push(c.id);
+      }
+      if (toolUseIds.length === 0) continue;
+      const next = requestMessages[i + 1];
+      if (!next || next.role !== "user" || !Array.isArray(next.content)) continue;
+      const resultIds = new Set<string>();
+      for (const c of next.content) {
+        if (c.type === "tool_result" && c.tool_use_id) resultIds.add(c.tool_use_id);
+      }
+      for (const id of toolUseIds) {
+        if (resultIds.has(id)) validToolUseIds.add(id);
+      }
+    }
+
     requestMessages?.forEach((msg: any) => {
       if (msg.role === "user" || msg.role === "assistant") {
         if (typeof msg.content === "string") {
@@ -93,7 +124,10 @@ export class AnthropicTransformer implements Transformer {
         if (Array.isArray(msg.content)) {
           if (msg.role === "user") {
             const toolParts = msg.content.filter(
-              (c: any) => c.type === "tool_result" && c.tool_use_id
+              (c: any) =>
+                c.type === "tool_result" &&
+                c.tool_use_id &&
+                validToolUseIds.has(c.tool_use_id)
             );
             if (toolParts.length) {
               toolParts.forEach((tool: any) => {
@@ -153,7 +187,11 @@ export class AnthropicTransformer implements Transformer {
             }
 
             const toolCallParts = msg.content.filter(
-              (c: any) => c.type === "tool_use" && c.id && c.name
+              (c: any) =>
+                c.type === "tool_use" &&
+                c.id &&
+                c.name &&
+                validToolUseIds.has(c.id)
             );
             if (toolCallParts.length) {
               assistantMessage.tool_calls = toolCallParts.map((tool: any) => {
