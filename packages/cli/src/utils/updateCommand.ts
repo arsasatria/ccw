@@ -98,13 +98,50 @@ export const runUpdate = async (): Promise<void> => {
   }
 
   process.stderr.write(`\n  Updating source:\n`);
-  if (!runStep("git pull --ff-only", `git pull --ff-only origin ${BRANCH}`, dest)) {
+  const ffOk = runStep(
+    "git pull --ff-only",
+    `git pull --ff-only origin ${BRANCH}`,
+    dest,
+  );
+  if (!ffOk) {
+    // Fast-forward failed. The installer uses `git clone --depth 1`, so
+    // when origin has moved past a commit the shallow history can't see,
+    // ff-only refuses ("diverged"). Telling the user to re-run the
+    // installer is heavy: it re-clones the whole repo and re-runs
+    // pnpm install. A fetch + hard-reset does the same job in seconds
+    // and reuses the existing node_modules / build cache.
     process.stderr.write(
-      `\n  Fast-forward pull failed. Local history diverged from origin.\n` +
-        `  Resolve by re-running the installer, which re-clones cleanly:\n` +
-        `    curl -fsSL https://raw.githubusercontent.com/arsasatria/ccw/main/install.sh | bash\n\n`,
+      `\n  Fast-forward pull failed (shallow clone can't follow origin's history).\n` +
+        `  Falling back to fetch + reset to origin/${BRANCH}.\n` +
+        `  Local commits in the install dir will be lost — this is fine for\n` +
+        `  a managed install, but if you've been editing ccw source here,\n` +
+        `  back them up first.\n\n`,
     );
-    process.exit(1);
+    const fetchOk = runStep(
+      `git fetch --depth 1 origin ${BRANCH}`,
+      `git fetch --depth 1 origin ${BRANCH}`,
+      dest,
+    );
+    if (!fetchOk) {
+      process.stderr.write(
+        `\n  Fetch failed. As a last resort, re-run the installer:\n` +
+          `    curl -fsSL https://raw.githubusercontent.com/arsasatria/ccw/main/install.sh | bash\n\n`,
+      );
+      process.exit(1);
+    }
+    const resetOk = runStep(
+      `git reset --hard origin/${BRANCH}`,
+      `git reset --hard origin/${BRANCH}`,
+      dest,
+    );
+    if (!resetOk) {
+      process.stderr.write(
+        `\n  Reset failed — most likely uncommitted local changes are blocking it.\n` +
+          `  Either stash/discard them and re-run \`ccw update\`, or re-run the installer:\n` +
+          `    curl -fsSL https://raw.githubusercontent.com/arsasatria/ccw/main/install.sh | bash\n\n`,
+      );
+      process.exit(1);
+    }
   }
 
   process.stderr.write(`\n  Rebuilding:\n`);

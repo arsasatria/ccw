@@ -15,6 +15,10 @@ All notable changes to **ccw** are documented in this file. ccw is a fork of
   `%LOCALAPPDATA%\Programs\ccw` on Windows. Exits with a clear message when
   the install directory is not a git checkout (so users know to re-run the
   installer instead). No-op when the local commit already matches `origin/main`.
+  When `git pull --ff-only` fails (the installer uses `git clone --depth 1`,
+  so a shallow history can refuse to fast-forward past a commit it doesn't
+  have), falls back to `git fetch --depth 1` + `git reset --hard
+  origin/main` instead of asking the user to re-run the installer.
 
 ### Bug fixes
 
