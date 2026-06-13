@@ -18,6 +18,7 @@ import { join } from "path";
 import { parseStatusLineData, StatusLineInput } from "./utils/statusline";
 import {handlePresetCommand} from "./utils/preset";
 import { handleInstallCommand } from "./utils/installCommand";
+import { runUpdate } from "./utils/updateCommand";
 
 
 const command = process.argv[2];
@@ -36,6 +37,7 @@ const KNOWN_COMMANDS = [
   "activate",
   "env",
   "ui",
+  "update",
   "-v",
   "version",
   "-h",
@@ -57,6 +59,7 @@ Commands:
   install       Install preset from GitHub marketplace
   activate      Output environment variables for shell integration
   ui            Open the web UI in browser
+  update        Pull latest source from GitHub, rebuild, and restart service
   -v, version   Show version information
   -h, help      Show help information
 
@@ -431,6 +434,9 @@ async function main() {
       break;
     case "restart":
       await restartService();
+      break;
+    case "update":
+      await runUpdate();
       break;
     case "-h":
     case "help":
