@@ -1,3 +1,12 @@
+> **This is a fixed fork of [musistudio/ccw](https://github.com/musistudio/ccw).**
+> It resolves the "API Error: Content block is not a text block" crash that
+> occurs with models that interleave text and `tool_use` blocks in a single
+> response (DeepSeek V4 Pro, Kimi K2.5, Qwen 3, Together-hosted OpenAI-format
+> providers, NVIDIA NIM, etc.). See [CHANGELOG.md](./CHANGELOG.md) for details.
+>
+> The binary is exposed as `ccw`. For full upstream documentation, see the
+> original README below.
+
 ![](blog/images/ccw-img.png)
 
 [![](https://img.shields.io/badge/%F0%9F%87%A8%F0%9F%87%B3-%E4%B8%AD%E6%96%87%E7%89%88-ff0000?style=flat)](README_zh.md)

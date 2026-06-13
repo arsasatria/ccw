@@ -1,6 +1,12 @@
 MIT License
 
 Copyright (c) 2025 musistudio
+Copyright (c) 2026 arsasatria
+
+This project is a fork of https://github.com/musistudio/claude-code-router,
+which is licensed under the MIT License by musistudio. Substantial portions
+of the original code are retained; modifications are documented in
+CHANGELOG.md.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
