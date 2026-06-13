@@ -69,15 +69,22 @@ ensure_pnpm() {
 install_source() {
   if [ -d "$DEST/.git" ]; then
     step "Updating existing install at $DEST"
-    git -C "$DEST" pull --depth 1 || fail "git pull failed"
-  else
-    if [ -e "$DEST" ]; then
-      fail "$DEST exists but is not a git repo. Remove it and re-run."
+    # --ff-only avoids the "divergent branches" warning that plain `git pull`
+    # emits when local and remote have any commit difference.
+    if ( cd "$DEST" && git pull --ff-only --depth 1 origin main ) >/dev/null 2>&1; then
+      ok "Updated to latest"
+      return
     fi
-    step "Cloning $REPO_URL -> $DEST"
-    mkdir -p "$(dirname "$DEST")"
-    git clone --depth 1 -b "$BRANCH" "$REPO_URL" "$DEST" || fail "git clone failed"
+    # Fast-forward failed: local history diverged (e.g. an old install with
+    # commits that no longer exist on origin). Re-clone cleanly.
+    step "Local state diverged from origin; re-cloning cleanly..."
+    rm -rf "$DEST"
+  elif [ -e "$DEST" ]; then
+    fail "$DEST exists but is not a git repo. Remove it and re-run."
   fi
+  step "Cloning $REPO_URL -> $DEST"
+  mkdir -p "$(dirname "$DEST")"
+  git clone --depth 1 -b main "$REPO_URL" "$DEST" || fail "git clone failed"
 }
 
 build_source() {

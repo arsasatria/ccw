@@ -68,25 +68,32 @@ function Test-Pnpm {
 function Install-Source {
   if (Test-Path (Join-Path $Dest '.git')) {
     Write-Host "  [..] Updating existing install at $Dest"
+    # --ff-only avoids the "divergent branches" warning that plain
+    # `git pull` emits when local and remote have any commit difference.
     Push-Location $Dest
     try {
-      & git pull --depth 1
-      if ($LASTEXITCODE -ne 0) { throw 'git pull failed' }
+      & git pull --ff-only --depth 1 origin main 2>&1 | Out-Null
+      if ($LASTEXITCODE -eq 0) {
+        Write-Host '  [ok] Updated to latest'
+        return
+      }
     } finally {
       Pop-Location
     }
-  } else {
-    if (Test-Path $Dest) {
-      Write-Host "  [fail] $Dest exists but is not a git repo. Remove it and re-run." -ForegroundColor Red
-      exit 1
-    }
-    Write-Host "  [..] Cloning $RepoUrl -> $Dest"
-    New-Item -ItemType Directory -Force -Path (Split-Path $Dest) | Out-Null
-    & git clone --depth 1 -b $Branch $RepoUrl $Dest
-    if ($LASTEXITCODE -ne 0) {
-      Write-Host '  [fail] git clone failed. Check the repo URL and your network.' -ForegroundColor Red
-      exit 1
-    }
+    # Fast-forward failed: local history diverged (e.g. an old install with
+    # commits that no longer exist on origin). Re-clone cleanly.
+    Write-Host '  [..] Local state diverged from origin; re-cloning cleanly...'
+    Remove-Item -Recurse -Force $Dest
+  } elseif (Test-Path $Dest) {
+    Write-Host "  [fail] $Dest exists but is not a git repo. Remove it and re-run." -ForegroundColor Red
+    exit 1
+  }
+  Write-Host "  [..] Cloning $RepoUrl -> $Dest"
+  New-Item -ItemType Directory -Force -Path (Split-Path $Dest) | Out-Null
+  & git clone --depth 1 -b $Branch $RepoUrl $Dest
+  if ($LASTEXITCODE -ne 0) {
+    Write-Host '  [fail] git clone failed. Check the repo URL and your network.' -ForegroundColor Red
+    exit 1
   }
 }
 
