@@ -273,7 +273,6 @@ export class AnthropicTransformer implements Transformer {
         let contentChunks = 0;
         let toolCallChunks = 0;
         let isClosed = false;
-        let isThinkingStarted = false;
         let contentIndex = 0;
         let currentContentBlockIndex = -1; // Track the current content block index
 
@@ -511,23 +510,26 @@ export class AnthropicTransformer implements Transformer {
                 }
 
                 if (choice?.delta?.thinking && !isClosed && !hasFinished) {
-                  // Close any previous content block if open
-                  // if (currentContentBlockIndex >= 0) {
-                  //   const contentBlockStop = {
-                  //     type: "content_block_stop",
-                  //     index: currentContentBlockIndex,
-                  //   };
-                  //   safeEnqueue(
-                  //     encoder.encode(
-                  //       `event: content_block_stop\ndata: ${JSON.stringify(
-                  //         contentBlockStop
-                  //       )}\n\n`
-                  //     )
-                  //   );
-                  //   currentContentBlockIndex = -1;
-                  // }
+                  // Open a new thinking block if one isn't already open. We
+                  // also close any prior block (text, tool_use, etc.) since
+                  // the Anthropic API only allows one open block at a time.
+                  if (currentContentBlockType !== "thinking") {
+                    if (currentContentBlockIndex >= 0) {
+                      const contentBlockStop = {
+                        type: "content_block_stop",
+                        index: currentContentBlockIndex,
+                      };
+                      safeEnqueue(
+                        encoder.encode(
+                          `event: content_block_stop\ndata: ${JSON.stringify(
+                            contentBlockStop
+                          )}\n\n`
+                        )
+                      );
+                      currentContentBlockIndex = -1;
+                      currentContentBlockType = null;
+                    }
 
-                  if (!isThinkingStarted) {
                     const thinkingBlockIndex = assignContentBlockIndex();
                     const contentBlockStart = {
                       type: "content_block_start",
@@ -543,7 +545,6 @@ export class AnthropicTransformer implements Transformer {
                     );
                     currentContentBlockIndex = thinkingBlockIndex;
                     currentContentBlockType = "thinking";
-                    isThinkingStarted = true;
                   }
                   if (choice.delta.thinking.signature) {
                     const thinkingSignature = {

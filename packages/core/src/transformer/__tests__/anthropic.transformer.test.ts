@@ -196,6 +196,72 @@ test("does not emit text_delta on a tool_use block when stream interleaves text 
   assert.deepEqual(violations, [], `stream events:\n${JSON.stringify(events, null, 2)}`);
 });
 
+test("does not emit thinking_delta on a text block when stream interleaves thinking + text + thinking", async () => {
+  // Bug: the transformer tracked "are we in a thinking block" with a separate
+  // isThinkingStarted flag that was only ever set to true. After a thinking
+  // block closed (via signature) and a text block opened, a follow-up
+  // thinking chunk would skip content_block_start and emit thinking_delta
+  // on the text block's index — the SDK then rejects it.
+  const upstreamChunks: string[] = [
+    // chunk 1: text
+    `data: ${JSON.stringify({
+      id: "cmpl-2", model: "test-model",
+      choices: [{ index: 0, delta: { role: "assistant", content: "answer" }, finish_reason: null }],
+    })}\n\n`,
+    // chunk 2: thinking with signature (closes the thinking block)
+    `data: ${JSON.stringify({
+      id: "cmpl-2", model: "test-model",
+      choices: [{ index: 0, delta: { thinking: { signature: "sig-1" } }, finish_reason: null }],
+    })}\n\n`,
+    // chunk 3: more text
+    `data: ${JSON.stringify({
+      id: "cmpl-2", model: "test-model",
+      choices: [{ index: 0, delta: { content: " — done" }, finish_reason: null }],
+    })}\n\n`,
+    // chunk 4: thinking content again (this is the buggy case)
+    `data: ${JSON.stringify({
+      id: "cmpl-2", model: "test-model",
+      choices: [{ index: 0, delta: { thinking: { content: "follow-up thought" } }, finish_reason: null }],
+    })}\n\n`,
+    `data: ${JSON.stringify({
+      id: "cmpl-2", model: "test-model",
+      choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+    })}\n\n`,
+    `data: [DONE]\n\n`,
+  ];
+
+  const upstream = buildReadableStreamFromChunks(upstreamChunks);
+  const response = new Response(upstream, {
+    headers: { "Content-Type": "text/event-stream" },
+  });
+  const transformer = new AnthropicTransformer();
+  transformer.logger = logger;
+  const out = await transformer.transformResponseIn(response, { req: { id: "test" } });
+  const events = await collectEvents(out!);
+
+  const blockTypeByIndex = new Map<number, string>();
+  for (const { data } of events) {
+    if (data.type === "content_block_start" && typeof data.index === "number") {
+      blockTypeByIndex.set(data.index, data.content_block?.type ?? "unknown");
+    }
+  }
+
+  const violations: string[] = [];
+  for (const { data } of events) {
+    if (data.type === "content_block_delta" && data.delta?.type === "thinking_delta") {
+      const idx = data.index!;
+      const blockType = blockTypeByIndex.get(idx);
+      if (blockType !== "thinking") {
+        violations.push(
+          `thinking_delta emitted on index=${idx} (block_type=${blockType}) — should be on a thinking block`,
+        );
+      }
+    }
+  }
+
+  assert.deepEqual(violations, [], `stream events:\n${JSON.stringify(events, null, 2)}`);
+});
+
 test("backfills empty parameters for tools without input_schema (issue #1371 Bug 1)", () => {
   const transformer = new AnthropicTransformer();
   // @ts-expect-error access private for test
