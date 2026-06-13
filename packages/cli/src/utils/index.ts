@@ -204,7 +204,7 @@ export const run = async (args: string[] = []) => {
 
   app.post("/api/restart", async () => {
     setTimeout(async () => {
-      spawn("ccr", ["restart"], {
+      spawn("ccw", ["restart"], {
         detached: true,
         stdio: "ignore",
       }).unref();
@@ -267,7 +267,7 @@ export const getSettingsPath = async (content: string): Promise<string> => {
 
   // Create claude-code-router directory in system temp folder
   const tempDir = path.join(os.tmpdir(), 'claude-code-router');
-  const fileName = `ccr-settings-${hash}.json`;
+  const fileName = `ccw-settings-${hash}.json`;
   const tempFilePath = path.join(tempDir, fileName);
 
   // Ensure the directory exists

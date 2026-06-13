@@ -151,7 +151,7 @@ export async function applyPresetCli(
       console.log(`${BOLDCYAN}Keywords:${RESET} ${keywords.join(', ')}`);
     }
 
-    console.log(`\n${GREEN}Use this preset:${RESET} ccr ${presetName} "your prompt"`);
+    console.log(`\n${GREEN}Use this preset:${RESET} ccw ${presetName} "your prompt"`);
     console.log(`${DIM}Note: Configuration is stored in the manifest file${RESET}\n`);
 
   } catch (error: any) {
@@ -198,7 +198,7 @@ export async function installPresetCli(
 
       // Check if preset with this name already exists BEFORE installing
       if (await isPresetInstalled(presetName)) {
-        throw new Error(`Preset '${presetName}' is already installed. To reconfigure, use: ccr preset install ${presetName}\nTo delete and reinstall, use: ccr preset delete ${presetName}`);
+        throw new Error(`Preset '${presetName}' is already installed. To reconfigure, use: ccw preset install ${presetName}\nTo delete and reinstall, use: ccw preset delete ${presetName}`);
       }
     } else {
       // Preset name (without path)
