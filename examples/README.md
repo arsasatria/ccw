@@ -1,6 +1,6 @@
 # Preset 示例说明
 
-本目录包含 CCR 预设配置的示例文件。
+本目录包含 ccw 预设配置的示例文件。
 
 ## 示例文件
 
@@ -36,13 +36,13 @@
 
 ```bash
 # 创建预设目录
-mkdir -p ~/.claude-code-router/presets/my-preset
+mkdir -p ~/.ccw/presets/my-preset
 
 # 复制示例文件
-cp simple-preset-example.json ~/.claude-code-router/presets/my-preset/manifest.json
+cp simple-preset-example.json ~/.ccw/presets/my-preset/manifest.json
 
 # 应用预设
-ccr my-preset
+ccw my-preset
 ```
 
 ### 方法2：修改后使用
@@ -52,7 +52,7 @@ ccr my-preset
 3. 使用 CLI 安装：
 
 ```bash
-ccr preset install ./simple-preset-example.json --name my-preset
+ccw preset install ./simple-preset-example.json --name my-preset
 ```
 
 ## Schema 字段类型说明

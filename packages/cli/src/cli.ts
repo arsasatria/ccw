@@ -61,7 +61,7 @@ Commands:
   -h, help      Show help information
 
 Presets:
-  Any preset directory in ~/.claude-code-router/presets/
+  Any preset directory in ~/.ccw/presets/
 
 Examples:
   ccw start
@@ -353,7 +353,7 @@ async function main() {
               Router: {},
             });
             console.log(
-              "Created minimal default configuration file at ~/.claude-code-router/config.json"
+              "Created minimal default configuration file at ~/.ccw/config.json"
             );
             console.log(
               "Please edit this file with your actual configuration."
@@ -427,7 +427,7 @@ async function main() {
       break;
     case "-v":
     case "version":
-      console.log(`claude-code-router version: ${version}`);
+      console.log(`ccw version: ${version}`);
       break;
     case "restart":
       await restartService();

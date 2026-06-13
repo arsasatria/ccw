@@ -40,20 +40,20 @@ npm install -g @anthropic-ai/claude-code
 然后，安装 Claude Code Router：
 
 ```shell
-npm install -g @musistudio/claude-code-router
+npm install -g @arsasatria/ccw
 ```
 
 ### 2. 配置
 
-创建并配置您的 `~/.claude-code-router/config.json` 文件。有关更多详细信息，您可以参考 `config.example.json`。
+创建并配置您的 `~/.ccw/config.json` 文件。有关更多详细信息，您可以参考 `config.example.json`。
 
 `config.json` 文件有几个关键部分：
 - **`PROXY_URL`** (可选): 您可以为 API 请求设置代理，例如：`"PROXY_URL": "http://127.0.0.1:7890"`。
 - **`LOG`** (可选): 您可以通过将其设置为 `true` 来启用日志记录。当设置为 `false` 时，将不会创建日志文件。默认值为 `true`。
 - **`LOG_LEVEL`** (可选): 设置日志级别。可用选项包括：`"fatal"`、`"error"`、`"warn"`、`"info"`、`"debug"`、`"trace"`。默认值为 `"debug"`。
 - **日志系统**: Claude Code Router 使用两个独立的日志系统：
-  - **服务器级别日志**: HTTP 请求、API 调用和服务器事件使用 pino 记录在 `~/.claude-code-router/logs/` 目录中，文件名类似于 `ccr-*.log`
-  - **应用程序级别日志**: 路由决策和业务逻辑事件记录在 `~/.claude-code-router/claude-code-router.log` 文件中
+  - **服务器级别日志**: HTTP 请求、API 调用和服务器事件使用 pino 记录在 `~/.ccw/logs/` 目录中，文件名类似于 `ccw-*.log`
+  - **应用程序级别日志**: 路由决策和业务逻辑事件记录在 `~/.ccw/ccw.log` 文件中
 - **`APIKEY`** (可选): 您可以设置一个密钥来进行身份验证。设置后，客户端请求必须在 `Authorization` 请求头 (例如, `Bearer your-secret-key`) 或 `x-api-key` 请求头中提供此密钥。例如：`"APIKEY": "your-secret-key"`。
 - **`HOST`** (可选): 您可以设置服务的主机地址。如果未设置 `APIKEY`，出于安全考虑，主机地址将强制设置为 `127.0.0.1`，以防止未经授权的访问。例如：`"HOST": "0.0.0.0"`。
 - **`NON_INTERACTIVE_MODE`** (可选): 当设置为 `true` 时，启用与非交互式环境（如 GitHub Actions、Docker 容器或其他 CI/CD 系统）的兼容性。这会设置适当的环境变量（`CI=true`、`FORCE_COLOR=0` 等）并配置 stdin 处理，以防止进程在自动化环境中挂起。例如：`"NON_INTERACTIVE_MODE": true`。
@@ -186,12 +186,12 @@ npm install -g @musistudio/claude-code-router
 使用 router 启动 Claude Code：
 
 ```shell
-ccr code
+ccw code
 ```
 
 > **注意**: 修改配置文件后，需要重启服务使配置生效：
 > ```shell
-> ccr restart
+> ccw restart
 > ```
 
 ### 4. UI 模式
@@ -199,7 +199,7 @@ ccr code
 为了获得更直观的体验，您可以使用 UI 模式来管理您的配置：
 
 ```shell
-ccr ui
+ccw ui
 ```
 
 这将打开一个基于 Web 的界面，您可以在其中轻松查看和编辑您的 `config.json` 文件。
@@ -211,7 +211,7 @@ ccr ui
 对于偏好终端工作流的用户，可以使用交互式 CLI 模型选择器：
 
 ```shell
-ccr model
+ccw model
 ```
 
 该命令提供交互式界面来：
@@ -237,22 +237,22 @@ CLI 工具验证所有输入并提供有用的提示来引导您完成配置过�
 
 ```shell
 # 将当前配置导出为预设
-ccr preset export my-preset
+ccw preset export my-preset
 
 # 使用元数据导出
-ccr preset export my-preset --description "我的 OpenAI 配置" --author "您的名字" --tags "openai,生产环境"
+ccw preset export my-preset --description "我的 OpenAI 配置" --author "您的名字" --tags "openai,生产环境"
 
 # 从本地目录安装预设
-ccr preset install /path/to/preset
+ccw preset install /path/to/preset
 
 # 列出所有已安装的预设
-ccr preset list
+ccw preset list
 
 # 显示预设信息
-ccr preset info my-preset
+ccw preset info my-preset
 
 # 删除预设
-ccr preset delete my-preset
+ccw preset delete my-preset
 ```
 
 **预设功能：**
@@ -264,7 +264,7 @@ ccr preset delete my-preset
 
 **预设文件结构：**
 ```
-~/.claude-code-router/presets/
+~/.ccw/presets/
 ├── my-preset/
 │   └── manifest.json    # 包含配置和元数据
 ```
@@ -276,12 +276,12 @@ ccr preset delete my-preset
 要激活环境变量，请运行：
 
 ```shell
-eval "$(ccr activate)"
+eval "$(ccw activate)"
 ```
 
 此命令会以 shell 友好的格式输出必要的环境变量，这些变量将在当前的 shell 会话中设置。激活后，您可以：
 
-- **直接使用 `claude` 命令**：无需使用 `ccr code` 即可运行 `claude` 命令。`claude` 命令将自动通过 Claude Code Router 路由请求。
+- **直接使用 `claude` 命令**：无需使用 `ccw code` 即可运行 `claude` 命令。`claude` 命令将自动通过 Claude Code Router 路由请求。
 - **与 Agent SDK 应用程序集成**：使用 Anthropic Agent SDK 构建的应用程序将自动使用配置的路由器和模型。
 
 `activate` 命令设置以下环境变量：
@@ -293,7 +293,7 @@ eval "$(ccr activate)"
 - `DISABLE_COST_WARNINGS`: 禁用成本警告
 - `API_TIMEOUT_MS`: 来自配置的 API 超时时间
 
-> **注意**：在使用激活的环境变量之前，请确保 Claude Code Router 服务正在运行（`ccr start`）。环境变量仅在当前 shell 会话中有效。要使其持久化，您可以将 `eval "$(ccr activate)"` 添加到您的 shell 配置文件（例如 `~/.zshrc` 或 `~/.bashrc`）中。
+> **注意**：在使用激活的环境变量之前，请确保 Claude Code Router 服务正在运行（`ccw start`）。环境变量仅在当前 shell 会话中有效。要使其持久化，您可以将 `eval "$(ccw activate)"` 添加到您的 shell 配置文件（例如 `~/.zshrc` 或 `~/.bashrc`）中。
 
 #### Providers
 
@@ -400,7 +400,7 @@ Transformers 允许您修改请求和响应负载，以确保与不同提供商 
 {
   "transformers": [
       {
-        "path": "/User/xxx/.claude-code-router/plugins/gemini-cli.js",
+        "path": "/User/xxx/.ccw/plugins/gemini-cli.js",
         "options": {
           "project": "xxx"
         }
@@ -419,7 +419,7 @@ Transformers 允许您修改请求和响应负载，以确保与不同提供商 
 -   `longContext`: 用于处理长上下文（例如，> 60K 令牌）的模型。
 -   `longContextThreshold` (可选): 触发长上下文模型的令牌数阈值。如果未指定，默认为 60000。
 -   `webSearch`: 用于处理网络搜索任务，需要模型本身支持。如果使用`openrouter`需要在模型后面加上`:online`后缀。
--   `image`(测试版): 用于处理图片类任务（采用CCR内置的agent支持），如果该模型不支持工具调用，需要将`config.forceUseImageAgent`属性设置为`true`。
+-   `image`(测试版): 用于处理图片类任务（采用CCW内置的agent支持），如果该模型不支持工具调用，需要将`config.forceUseImageAgent`属性设置为`true`。
 
 您还可以使用 `/model` 命令在 Claude Code 中动态切换模型：
 `/model provider_name,model_name`
@@ -433,7 +433,7 @@ Transformers 允许您修改请求和响应负载，以确保与不同提供商 
 
 ```json
 {
-  "CUSTOM_ROUTER_PATH": "/User/xxx/.claude-code-router/custom-router.js"
+  "CUSTOM_ROUTER_PATH": "/User/xxx/.ccw/custom-router.js"
 }
 ```
 
@@ -442,7 +442,7 @@ Transformers 允许您修改请求和响应负载，以确保与不同提供商 
 这是一个基于 `custom-router.example.js` 的 `custom-router.js` 示例：
 
 ```javascript
-// /User/xxx/.claude-code-router/custom-router.js
+// /User/xxx/.ccw/custom-router.js
 
 /**
  * 一个自定义路由函数，用于根据请求确定使用哪个模型。
@@ -466,17 +466,17 @@ module.exports = async function router(req, config) {
 
 ##### 子代理路由
 
-对于子代理内的路由，您必须在子代理提示词的**开头**包含 `<CCR-SUBAGENT-MODEL>provider,model</CCR-SUBAGENT-MODEL>` 来指定特定的提供商和模型。这样可以将特定的子代理任务定向到指定的模型。
+对于子代理内的路由，您必须在子代理提示词的**开头**包含 `<CCW-SUBAGENT-MODEL>provider,model</CCW-SUBAGENT-MODEL>` 来指定特定的提供商和模型。这样可以将特定的子代理任务定向到指定的模型。
 
 **示例：**
 
 ```
-<CCR-SUBAGENT-MODEL>openrouter,anthropic/claude-3.5-sonnet</CCR-SUBAGENT-MODEL>
+<CCW-SUBAGENT-MODEL>openrouter,anthropic/claude-3.5-sonnet</CCW-SUBAGENT-MODEL>
 请帮我分析这段代码是否存在潜在的优化空间...
 ```
 
 ## Status Line (Beta)
-为了在运行时更好的查看claude-code-router的状态，claude-code-router在v1.0.40内置了一个statusline工具，你可以在UI中启用它，
+为了在运行时更好的查看ccw的状态，ccw在v1.0.40内置了一个statusline工具，你可以在UI中启用它，
 ![statusline-config.png](/blog/images/statusline-config.png)
 
 效果如下：
@@ -514,8 +514,8 @@ jobs:
       - name: Prepare Environment
         run: |
           curl -fsSL https://bun.sh/install | bash
-          mkdir -p $HOME/.claude-code-router
-          cat << 'EOF' > $HOME/.claude-code-router/config.json
+          mkdir -p $HOME/.ccw
+          cat << 'EOF' > $HOME/.ccw/config.json
           {
             "log": true,
             "NON_INTERACTIVE_MODE": true,
@@ -528,7 +528,7 @@ jobs:
 
       - name: Start Claude Code Router
         run: |
-          nohup ~/.bun/bin/bunx @musistudio/claude-code-router@1.0.8 start &
+          nohup ~/.bun/bin/bunx @arsasatria/ccw@1.0.8 start &
         shell: bash
 
       - name: Run Claude Code

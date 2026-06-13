@@ -6,10 +6,10 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Claude Code Router is a tool that routes Claude Code requests to different LLM providers. It uses a Monorepo architecture with four main packages:
 
-- **cli** (`@musistudio/claude-code-router`): Command-line tool providing the `ccr` command
-- **server** (`@CCR/server`): Core server handling API routing and transformations
-- **shared** (`@CCR/shared`): Shared constants, utilities, and preset management
-- **ui** (`@CCR/ui`): Web management interface (React + Vite)
+- **cli** (`@ccw/cli`): Command-line tool providing the `ccw` command
+- **server** (`@ccw/server`): Core server handling API routing and transformations
+- **shared** (`@ccw/shared`): Shared constants, utilities, and preset management
+- **ui** (`@ccw/ui`): Web management interface (React + Vite)
 
 ## Build Commands
 
@@ -44,7 +44,7 @@ pnpm release        # Build and publish all packages
 The routing logic determines which model a request should be sent to:
 
 - **Default routing**: Uses `Router.default` configuration
-- **Project-level routing**: Checks `~/.claude/projects/<project-id>/claude-code-router.json`
+- **Project-level routing**: Checks `~/.claude/projects/<project-id>/ccw.json`
 - **Custom routing**: Loads custom JavaScript router function via `CUSTOM_ROUTER_PATH`
 - **Built-in scenario routing**:
   - `background`: Background tasks (typically lightweight models)
@@ -93,13 +93,13 @@ The server uses custom Transform streams to handle Server-Sent Events:
 
 ### 5. Configuration Management
 
-Configuration file location: `~/.claude-code-router/config.json`
+Configuration file location: `~/.ccw/config.json`
 
 Key features:
 - Supports environment variable interpolation (`$VAR_NAME` or `${VAR_NAME}`)
 - JSON5 format (supports comments)
 - Automatic backups (keeps last 3 backups)
-- Hot reload requires service restart (`ccr restart`)
+- Hot reload requires service restart (`ccw restart`)
 
 Configuration validation:
 - If `Providers` are configured, both `HOST` and `APIKEY` must be set
@@ -110,44 +110,44 @@ Configuration validation:
 Two separate logging systems:
 
 **Server-level logs** (pino):
-- Location: `~/.claude-code-router/logs/ccr-*.log`
+- Location: `~/.ccw/logs/ccw-*.log`
 - Content: HTTP requests, API calls, server events
 - Configuration: `LOG_LEVEL` (fatal/error/warn/info/debug/trace)
 
 **Application-level logs**:
-- Location: `~/.claude-code-router/claude-code-router.log`
+- Location: `~/.ccw/ccw.log`
 - Content: Routing decisions, business logic events
 
 ## CLI Commands
 
 ```bash
-ccr start      # Start server
-ccr stop       # Stop server
-ccr restart    # Restart server
-ccr status     # Show status
-ccr code       # Execute claude command
-ccr model      # Interactive model selection and configuration
-ccr preset     # Manage presets (export, install, list, info, delete)
-ccr activate   # Output shell environment variables (for integration)
-ccr ui         # Open Web UI
-ccr statusline # Integrated statusline (reads JSON from stdin)
+ccw start      # Start server
+ccw stop       # Stop server
+ccw restart    # Restart server
+ccw status     # Show status
+ccw code       # Execute claude command
+ccw model      # Interactive model selection and configuration
+ccw preset     # Manage presets (export, install, list, info, delete)
+ccw activate   # Output shell environment variables (for integration)
+ccw ui         # Open Web UI
+ccw statusline # Integrated statusline (reads JSON from stdin)
 ```
 
 ### Preset Commands
 
 ```bash
-ccr preset export <name>      # Export current configuration as a preset
-ccr preset install <source>   # Install a preset from file, URL, or name
-ccr preset list               # List all installed presets
-ccr preset info <name>        # Show preset information
-ccr preset delete <name>      # Delete a preset
+ccw preset export <name>      # Export current configuration as a preset
+ccw preset install <source>   # Install a preset from file, URL, or name
+ccw preset list               # List all installed presets
+ccw preset info <name>        # Show preset information
+ccw preset delete <name>      # Delete a preset
 ```
 
 ## Subagent Routing
 
 Use special tags in subagent prompts to specify models:
 ```
-<CCR-SUBAGENT-MODEL>provider,model</CCR-SUBAGENT-MODEL>
+<CCW-SUBAGENT-MODEL>provider,model</CCW-SUBAGENT-MODEL>
 Please help me analyze this code...
 ```
 
@@ -157,7 +157,7 @@ The preset system allows users to save, share, and reuse configurations easily.
 
 ### Preset Structure
 
-Presets are stored in `~/.claude-code-router/presets/<preset-name>/manifest.json`
+Presets are stored in `~/.ccw/presets/<preset-name>/manifest.json`
 
 Each preset contains:
 - **Metadata**: name, version, description, author, keywords, etc.
@@ -218,7 +218,7 @@ The CLI layer (`packages/cli/src/utils/preset/`) handles:
 - Display formatting
 
 Key files:
-- `commands.ts`: Command handlers for `ccr preset` subcommands
+- `commands.ts`: Command handlers for `ccw preset` subcommands
 - `export.ts`: CLI wrapper for export functionality
 - `install.ts`: CLI wrapper for install functionality
 

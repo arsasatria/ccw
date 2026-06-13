@@ -112,7 +112,7 @@ export const readConfigFile = async () => {
         // Create a minimal default config file
         await writeConfigFile(config);
         console.log(
-            "Created minimal default configuration file at ~/.claude-code-router/config.json"
+            "Created minimal default configuration file at ~/.ccw/config.json"
         );
         console.log(
             "Please edit this file with your actual configuration."
@@ -186,7 +186,7 @@ export const initConfig = async () => {
 export const run = async (args: string[] = []) => {
   const isRunning = isServiceRunning()
   if (isRunning) {
-    console.log('claude-code-router server is running');
+    console.log('ccw server is running');
     return;
   }
   const server = await getServer();
@@ -230,14 +230,14 @@ export const restartService = async () => {
         // Ignore cleanup errors
       }
     }
-    console.log("claude code router service has been stopped.");
+    console.log("ccw service has been stopped.");
   } catch (e) {
     console.log("Service was not running or failed to stop.");
     cleanupPidFile();
   }
 
   // Start the service again in the background
-  console.log("Starting claude code router service...");
+  console.log("Starting ccw service...");
   const cliPath = path.join(__dirname, "cli.js");
   const startProcess = spawn("node", [cliPath, "start"], {
     detached: true,
@@ -265,7 +265,7 @@ export const getSettingsPath = async (content: string): Promise<string> => {
   // Hash the content using SHA256 algorithm
   const hash = createHash('sha256').update(content, 'utf-8').digest('hex');
 
-  // Create claude-code-router directory in system temp folder
+  // Create ccw directory in system temp folder
   const tempDir = path.join(os.tmpdir(), 'ccw');
   const fileName = `ccw-settings-${hash}.json`;
   const tempFilePath = path.join(tempDir, fileName);
