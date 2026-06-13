@@ -57,7 +57,7 @@ export function MultiCombobox({
           {value.map((val) => {
             const option = options.find((opt) => opt.value === val);
             return (
-              <Badge key={val} variant="secondary" className="font-normal pr-1">
+              <Badge key={val} variant="default" className="font-normal pr-1">
                 {option?.label || val}
                 <button
                   onClick={(e) => removeValue(val, e)}

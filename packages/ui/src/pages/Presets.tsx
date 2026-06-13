@@ -438,7 +438,7 @@ export default function PresetsPage() {
           <span className="inline-flex items-center gap-1.5">
             <Package className="h-3.5 w-3.5" />
             {t("presets.title")}
-            <Badge variant="secondary" className="ml-1 font-mono text-[10px]">
+            <Badge variant="default" className="ml-1 font-mono text-[10px]">
               {presets.length}
             </Badge>
           </span>
@@ -493,7 +493,6 @@ export default function PresetsPage() {
             </div>
           ) : filteredInstalled.length === 0 ? (
             <EmptyState
-              icon={<Package className="h-4 w-4" />}
               title={
                 presets.length === 0
                   ? t("presets.no_presets")
@@ -543,7 +542,6 @@ export default function PresetsPage() {
             </div>
           ) : filteredMarket.length === 0 ? (
             <EmptyState
-              icon={<Store className="h-4 w-4" />}
               title={t("presets.no_presets_found")}
               description={t("presets.no_presets_found_hint")}
             />

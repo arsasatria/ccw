@@ -8,7 +8,6 @@ import {
   Eye,
   EyeOff,
   XCircle,
-  Cpu,
   X,
   ArrowRight,
   Globe,
@@ -203,7 +202,6 @@ export default function ProvidersPage() {
     >
       {filtered.length === 0 ? (
         <EmptyState
-          icon={<Cpu className="h-4 w-4" />}
           title={
             providers.length === 0
               ? t("providers.empty_title")
@@ -255,11 +253,11 @@ export default function ProvidersPage() {
                 </div>
 
                 <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant="info" className="font-mono">
+                  <Badge variant="outline" className="font-mono">
                     {p.models?.length ?? 0} models
                   </Badge>
                   {transformerCount > 0 && (
-                    <Badge variant="secondary" className="font-mono">
+                    <Badge variant="default" className="font-mono">
                       {transformerCount} transformers
                     </Badge>
                   )}
@@ -697,7 +695,7 @@ function ProviderEditDialog({
                         <div className="cc-text-mono text-xs font-medium text-fg">
                           {model}
                         </div>
-                        <Badge variant="secondary">
+                        <Badge variant="default">
                           {use.length} transformers
                         </Badge>
                       </div>

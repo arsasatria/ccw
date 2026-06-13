@@ -621,7 +621,7 @@ function HistoryDrawer({
             <DialogTitle className="flex items-center gap-2">
               <History className="h-4 w-4" />
               Request History
-              <Badge variant="secondary" className="font-mono text-[10px]">
+              <Badge variant="default" className="font-mono text-[10px]">
                 {items.length}
               </Badge>
             </DialogTitle>
