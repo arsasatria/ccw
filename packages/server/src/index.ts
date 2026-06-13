@@ -134,7 +134,7 @@ async function getServer(options: RunOptions = {}) {
     const hour = pad(date.getHours());
     const minute = pad(date.getMinutes());
 
-    return `./logs/ccr-${month}${day}${hour}${minute}${pad(date.getSeconds())}${index ? `_${index}` : ''}.log`;
+    return `./logs/ccw-${month}${day}${hour}${minute}${pad(date.getSeconds())}${index ? `_${index}` : ''}.log`;
   };
 
   let loggerConfig: any;

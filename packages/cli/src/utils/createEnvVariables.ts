@@ -2,7 +2,7 @@ import { readConfigFile } from ".";
 
 /**
  * Get environment variables for Agent SDK/Claude Code integration
- * This function is shared between `ccr env` and `ccr code` commands
+ * This function is shared between `ccw env` and `ccw code` commands
  */
 export const createEnvVariables = async (): Promise<Record<string, string | undefined>> => {
   const config = await readConfigFile();
@@ -16,7 +16,7 @@ export const createEnvVariables = async (): Promise<Record<string, string | unde
     DISABLE_TELEMETRY: "true",
     DISABLE_COST_WARNINGS: "true",
     API_TIMEOUT_MS: String(config.API_TIMEOUT_MS ?? 600000),
-    // Reset CLAUDE_CODE_USE_BEDROCK when running with ccr
+    // Reset CLAUDE_CODE_USE_BEDROCK when running with ccw
     CLAUDE_CODE_USE_BEDROCK: undefined,
   };
 }

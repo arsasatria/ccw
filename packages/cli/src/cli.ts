@@ -43,7 +43,7 @@ const KNOWN_COMMANDS = [
 ];
 
 const HELP_TEXT = `
-Usage: ccr [command] [preset-name]
+Usage: ccw [command] [preset-name]
 
 Commands:
   start         Start server
@@ -64,16 +64,16 @@ Presets:
   Any preset directory in ~/.ccw/presets/
 
 Examples:
-  ccr start
-  ccr code "Write a Hello World"
-  ccr my-preset "Write a Hello World"    # Use preset configuration
-  ccr model
-  ccr preset export my-config            # Export current config as preset
-  ccr preset install /path/to/preset     # Install a preset from directory
-  ccr preset list                        # List all presets
-  ccr install my-preset                  # Install preset from marketplace
-  eval "$(ccr activate)"  # Set environment variables globally
-  ccr ui
+  ccw start
+  ccw code "Write a Hello World"
+  ccw my-preset "Write a Hello World"    # Use preset configuration
+  ccw model
+  ccw preset export my-config            # Export current config as preset
+  ccw preset install /path/to/preset     # Install a preset from directory
+  ccw preset list                        # List all presets
+  ccw install my-preset                  # Install preset from marketplace
+  eval "$(ccw activate)"  # Set environment variables globally
+  ccw ui
 `;
 
 async function waitForService(
@@ -188,14 +188,14 @@ async function main() {
           executeCodeCommand(codeArgs, presetConfig, envOverrides, command);
         } else {
           console.error(
-            "Service startup timeout, please manually run `ccr start` to start the service"
+            "Service startup timeout, please manually run `ccw start` to start the service"
           );
           process.exit(1);
         }
       } else {
         // Service is already running or no need to start server
         if (shouldStartServer && !isRunning) {
-          console.error("Service is not running. Please start it first with `ccr start`");
+          console.error("Service is not running. Please start it first with `ccw start`");
           process.exit(1);
         }
         executeCodeCommand(codeArgs, presetConfig, envOverrides, command);
@@ -297,7 +297,7 @@ async function main() {
           executeCodeCommand(codeArgs);
         } else {
           console.error(
-            "Service startup timeout, please manually run `ccr start` to start the service"
+            "Service startup timeout, please manually run `ccw start` to start the service"
           );
           process.exit(1);
         }
@@ -378,7 +378,7 @@ async function main() {
             if (!(await waitForService(15000))) {
               // Wait a bit longer for the first start
               console.error(
-                "Service startup still failing. Please manually run `ccr start` to start the service and check the logs."
+                "Service startup still failing. Please manually run `ccw start` to start the service and check the logs."
               );
               process.exit(1);
             }

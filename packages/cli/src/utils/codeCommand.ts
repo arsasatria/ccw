@@ -49,8 +49,8 @@ export async function executeCodeCommand(
   if (statusLineConfig?.enabled) {
     // If using preset, pass preset name to statusline command
     const statuslineCommand = presetName
-      ? `ccr statusline ${presetName}`
-      : "ccr statusline";
+      ? `ccw statusline ${presetName}`
+      : "ccw statusline";
 
     settingsFlag.statusLine = {
       type: "command",
