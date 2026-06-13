@@ -1,5 +1,5 @@
 {
-  "name": "@CCR/cli",
+  "name": "@ccw/cli",
   "version": "2.0.0",
   "description": "CLI for Claude Code Router",
   "bin": {
@@ -18,8 +18,8 @@
   "author": "musistudio",
   "license": "MIT",
   "devDependencies": {
-    "@CCR/server": "workspace:*",
-    "@CCR/shared": "workspace:*",
+    "@ccw/server": "workspace:*",
+    "@ccw/shared": "workspace:*",
     "@inquirer/prompts": "^5.0.0",
     "@types/archiver": "^7.0.0",
     "@types/node": "^24.0.15",
