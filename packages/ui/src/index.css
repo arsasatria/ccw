@@ -17,124 +17,92 @@
 
 @theme inline {
   --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
-  --radius-xl: 14px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
 
-  --color-bg: var(--bg);
+  --color-paper: var(--paper);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
-  --color-surface-3: var(--surface-3);
-  --color-fg: var(--fg);
-  --color-fg-muted: var(--fg-muted);
-  --color-fg-subtle: var(--fg-subtle);
-  --color-fg-inverse: var(--fg-inverse);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-subtle: var(--ink-subtle);
+  --color-ink-inverse: var(--ink-inverse);
 
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
 
-  --color-brand: var(--brand);
-  --color-brand-fg: var(--brand-fg);
-  --color-brand-soft: var(--brand-soft);
+  --color-accent-1: var(--accent-1);
+  --color-accent-2: var(--accent-2);
+  --color-accent-3: var(--accent-3);
+  --color-accent-fg: var(--accent-fg);
 
   --color-success: var(--success);
-  --color-success-fg: var(--success-fg);
   --color-warning: var(--warning);
-  --color-warning-fg: var(--warning-fg);
   --color-danger: var(--danger);
-  --color-danger-fg: var(--danger-fg);
-  --color-info: var(--info);
-  --color-info-fg: var(--info-fg);
 
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-fg: var(--sidebar-fg);
-  --color-sidebar-muted: var(--sidebar-muted);
-  --color-sidebar-active: var(--sidebar-active);
-  --color-sidebar-border: var(--sidebar-border);
+  --shadow-card: var(--shadow-card);
+  --shadow-modal: var(--shadow-modal);
+  --shadow-glass: var(--shadow-glass);
 
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
     Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  --font-serif: "Fraunces", Georgia, "Times New Roman", serif;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, "SF Mono",
     Menlo, Consolas, "Liberation Mono", monospace;
 }
 
-/* DARK (default) */
-:root,
-.dark {
-  --bg: oklch(0.14 0.006 245);
-  --surface: oklch(0.175 0.007 245);
-  --surface-2: oklch(0.215 0.008 245);
-  --surface-3: oklch(0.255 0.009 245);
-  --fg: oklch(0.97 0.002 245);
-  --fg-muted: oklch(0.72 0.01 245);
-  --fg-subtle: oklch(0.52 0.01 245);
-  --fg-inverse: oklch(0.14 0.006 245);
-
-  --border: oklch(1 0 0 / 7%);
-  --border-strong: oklch(1 0 0 / 13%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.78 0.15 230 / 50%);
-
-  --brand: oklch(0.8 0.14 230);
-  --brand-fg: oklch(0.14 0.006 245);
-  --brand-soft: oklch(0.8 0.14 230 / 12%);
-
-  --success: oklch(0.76 0.16 150);
-  --success-fg: oklch(0.14 0.006 245);
-  --warning: oklch(0.82 0.15 80);
-  --warning-fg: oklch(0.14 0.006 245);
-  --danger: oklch(0.7 0.2 25);
-  --danger-fg: oklch(0.97 0.002 245);
-  --info: oklch(0.78 0.13 230);
-  --info-fg: oklch(0.14 0.006 245);
-
-  --sidebar: oklch(0.12 0.006 245);
-  --sidebar-fg: oklch(0.85 0.005 245);
-  --sidebar-muted: oklch(0.55 0.008 245);
-  --sidebar-active: oklch(0.22 0.008 245);
-  --sidebar-border: oklch(1 0 0 / 6%);
-
-  color-scheme: dark;
-}
-
-/* LIGHT (opt-in via .light) */
-.light {
-  --bg: oklch(0.985 0 0);
+:root {
+  --paper: oklch(0.965 0.012 80);
   --surface: oklch(1 0 0);
-  --surface-2: oklch(0.97 0 0);
-  --surface-3: oklch(0.94 0 0);
-  --fg: oklch(0.16 0 0);
-  --fg-muted: oklch(0.42 0 0);
-  --fg-subtle: oklch(0.58 0 0);
-  --fg-inverse: oklch(0.98 0 0);
+  --surface-2: oklch(0.975 0.008 80);
+  --ink: oklch(0.22 0.02 60);
+  --ink-muted: oklch(0.45 0.02 60);
+  --ink-subtle: oklch(0.62 0.018 60);
+  --ink-inverse: oklch(0.99 0 0);
 
-  --border: oklch(0.92 0 0);
-  --border-strong: oklch(0.86 0 0);
-  --input: oklch(0.94 0 0);
-  --ring: oklch(0.55 0.18 230 / 50%);
+  --line: oklch(0.91 0.01 75);
+  --line-strong: oklch(0.84 0.015 75);
+  --input: oklch(0.97 0.005 80);
+  --ring: oklch(0.72 0.13 60 / 35%);
 
-  --brand: oklch(0.55 0.18 230);
-  --brand-fg: oklch(1 0 0);
-  --brand-soft: oklch(0.55 0.18 230 / 10%);
+  --accent-1: oklch(0.92 0.05 80);
+  --accent-2: oklch(0.82 0.08 75);
+  --accent-3: oklch(0.68 0.1 65);
+  --accent-fg: oklch(0.99 0 0);
 
-  --success: oklch(0.55 0.16 150);
-  --success-fg: oklch(1 0 0);
-  --warning: oklch(0.65 0.18 80);
-  --warning-fg: oklch(0.16 0 0);
-  --danger: oklch(0.55 0.22 25);
-  --danger-fg: oklch(1 0 0);
-  --info: oklch(0.55 0.13 230);
-  --info-fg: oklch(1 0 0);
+  --success: oklch(0.55 0.08 150);
+  --warning: oklch(0.7 0.12 75);
+  --danger: oklch(0.55 0.18 25);
 
-  --sidebar: oklch(0.98 0 0);
-  --sidebar-fg: oklch(0.25 0 0);
-  --sidebar-muted: oklch(0.55 0 0);
-  --sidebar-active: oklch(0.92 0 0);
-  --sidebar-border: oklch(0.92 0 0);
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.04), 0 4px 12px rgba(0,0,0,0.04);
+  --shadow-modal: 0 20px 60px rgba(0,0,0,0.12), 0 4px 12px rgba(0,0,0,0.06);
+  --shadow-glass: 0 8px 24px oklch(0.85 0.08 80 / 0.18), 0 2px 6px rgba(0,0,0,0.04);
 
   color-scheme: light;
+}
+
+.dark {
+  --paper: oklch(0.16 0.015 60);
+  --surface: oklch(0.21 0.018 60);
+  --surface-2: oklch(0.26 0.02 60);
+  --ink: oklch(0.96 0.008 80);
+  --ink-muted: oklch(0.72 0.012 70);
+  --ink-subtle: oklch(0.5 0.015 60);
+  --ink-inverse: oklch(0.22 0.02 60);
+
+  --line: oklch(0.32 0.02 60);
+  --line-strong: oklch(0.4 0.025 60);
+  --input: oklch(0.24 0.018 60);
+  --ring: oklch(0.78 0.15 75 / 40%);
+
+  --shadow-card: 0 1px 2px rgba(0,0,0,0.2), 0 4px 12px rgba(0,0,0,0.18);
+  --shadow-modal: 0 20px 60px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.25);
+  --shadow-glass: 0 8px 24px oklch(0.85 0.08 80 / 0.12), 0 2px 6px rgba(0,0,0,0.18);
+
+  color-scheme: dark;
 }
 
 @layer base {
@@ -143,13 +111,23 @@
   html, body, #root { height: 100%; }
 
   body {
-    background-color: var(--bg);
-    color: var(--fg);
+    background-color: var(--paper);
+    color: var(--ink);
     font-family: var(--font-sans);
     font-feature-settings: "cv11", "ss01", "ss03";
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+  }
+
+  h1, h2, h3 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.02em;
+    font-weight: 500;
+  }
+  code, pre, kbd, samp {
+    font-family: var(--font-mono);
+    font-size: 0.9em;
   }
 
   ::selection {
@@ -177,11 +155,6 @@
     border: 2px solid transparent;
   }
   * { scrollbar-width: thin; scrollbar-color: var(--border-strong) transparent; }
-
-  code, kbd, pre, samp {
-    font-family: var(--font-mono);
-    font-size: 0.875em;
-  }
 }
 
 @layer components {
