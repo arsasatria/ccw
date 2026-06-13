@@ -811,3 +811,76 @@ test("drops tool_use that has tool_result in a later (non-adjacent) user message
     "non-adjacent tool_use must not produce a tool_call",
   );
 });
+
+test("closes open content block before emitting mid-stream error event (Anthropic SDK reframe fix)", async () => {
+  // When the OpenAI-compatible provider returns chunk.error mid-stream
+  // (e.g. TokenRouter/MiniMax-M3 returning an upstream error after some
+  // content has already streamed), the previous code emitted
+  //   content_block_start (text)
+  //   content_block_delta
+  //   event: error        <-- no preceding content_block_stop
+  // The Anthropic SDK reframes that as
+  //   "API Error: Content block is not a text block"
+  // because the error event arrived while the text block was still open.
+  //
+  // The fix: close any open content block BEFORE emitting the error event.
+  const upstreamChunks: string[] = [
+    `data: ${JSON.stringify({
+      id: "cmpl-err", model: "test-model",
+      choices: [{ index: 0, delta: { role: "assistant", content: "Let me think" }, finish_reason: null }],
+    })}\n\n`,
+    // Some providers stream a content delta or two, then a final error chunk.
+    `data: ${JSON.stringify({
+      id: "cmpl-err", model: "test-model",
+      choices: [{ index: 0, delta: { content: " about this..." }, finish_reason: null }],
+    })}\n\n`,
+    // Mid-stream error chunk (real TokenRouter 5xx responses surface here).
+    `data: ${JSON.stringify({
+      id: "cmpl-err", model: "test-model",
+      error: {
+        message: "upstream provider error",
+        type: "api_error",
+        code: "internal_error",
+      },
+    })}\n\n`,
+    `data: [DONE]\n\n`,
+  ];
+
+  const response = new Response(
+    buildReadableStreamFromChunks(upstreamChunks),
+    { headers: { "Content-Type": "text/event-stream" } },
+  );
+
+  const transformer = new AnthropicTransformer();
+  transformer.logger = logger;
+  const out = await transformer.transformResponseIn(response, { req: { id: "test-err" } });
+  const events = await collectEvents(out!);
+
+  // Find the indices of the last content_block_stop, the error event, and
+  // the first content_block_start to assert ordering.
+  const firstStart = events.findIndex((e) => e.event === "content_block_start");
+  const lastStop = events
+    .map((e, i) => ({ e, i }))
+    .filter((x) => x.e.event === "content_block_stop")
+    .pop();
+  const errorIdx = events.findIndex((e) => e.event === "error");
+
+  assert.ok(firstStart >= 0, "expected a content_block_start event");
+  assert.ok(lastStop && lastStop.i >= 0, "expected at least one content_block_stop");
+  assert.ok(errorIdx >= 0, "expected an error event");
+
+  assert.ok(
+    lastStop!.i < errorIdx,
+    `error event must come AFTER the last content_block_stop, ` +
+    `got stop at ${lastStop!.i}, error at ${errorIdx}; ` +
+    `events: ${JSON.stringify(events.map((e) => e.event))}`,
+  );
+
+  // The error event itself must carry the provider's error message.
+  const errorEvent = events[errorIdx];
+  assert.equal(errorEvent.data.type, "error");
+  assert.ok(
+    JSON.stringify(errorEvent.data).includes("upstream provider error"),
+    `error event should include provider error message, got: ${JSON.stringify(errorEvent.data)}`,
+  );
+});

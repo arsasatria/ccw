@@ -482,6 +482,37 @@ export class AnthropicTransformer implements Transformer {
                   tppe: "Original Response",
                 });
                 if (chunk.error) {
+                  // Log at error level so the actual provider error appears in
+                  // the ccw server log, not just inside the SSE stream where
+                  // the Anthropic SDK may reframe it as a generic
+                  // "Content block is not a text block".
+                  this.logger?.error({
+                    reqId: context.req.id,
+                    model,
+                    providerError: chunk.error,
+                    msg: "provider returned chunk.error mid-stream",
+                  });
+
+                  // Close any open content block first. The Anthropic SDK
+                  // reframes mid-stream errors as "Content block is not a text
+                  // block" when the error event arrives while a content block
+                  // is still open (no preceding content_block_stop).
+                  if (currentContentBlockIndex >= 0) {
+                    const contentBlockStop = {
+                      type: "content_block_stop",
+                      index: currentContentBlockIndex,
+                    };
+                    safeEnqueue(
+                      encoder.encode(
+                        `event: content_block_stop\ndata: ${JSON.stringify(
+                          contentBlockStop
+                        )}\n\n`
+                      )
+                    );
+                    currentContentBlockIndex = -1;
+                    currentContentBlockType = null;
+                  }
+
                   const errorMessage = {
                     type: "error",
                     message: {
@@ -495,6 +526,7 @@ export class AnthropicTransformer implements Transformer {
                       `event: error\ndata: ${JSON.stringify(errorMessage)}\n\n`
                     )
                   );
+                  safeClose();
                   continue;
                 }
 
