@@ -82,8 +82,11 @@ export const createServer = async (config: any): Promise<any> => {
   });
 
   // Add endpoint to read config.json with access control
+  // Pass interpolate: false so the UI sees raw ${VAR} references — otherwise
+  // the user's edits overwrite the env-var reference with a resolved literal
+  // value, breaking env-var-based config (#1373).
   app.get("/api/config", async (req: any, reply: any) => {
-    return await readConfigFile();
+    return await readConfigFile({ interpolate: false });
   });
 
   app.get("/api/transformers", async (req: any, reply: any) => {

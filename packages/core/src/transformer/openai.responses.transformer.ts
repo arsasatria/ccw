@@ -68,6 +68,25 @@ export class OpenAIResponsesTransformer implements Transformer {
   name = "openai-responses";
   endPoint = "/v1/responses";
 
+  /**
+   * Strip non-semantic header lines that Anthropic-format clients (notably
+   * Claude Code) prepend to the system prompt. The most common offender is
+   * `x-anthropic-billing-header: cc_version=...; cch=<hash>;` — its `cch`
+   * portion is unique per request, so forwarding it verbatim into the
+   * upstream Responses API's `instructions` (or per-message system content)
+   * makes the upstream prompt prefix unique on every turn and busts the
+   * upstream prompt cache (issue #1372).
+   */
+  private stripNonSemanticSystemLines(text: string): string {
+    return text
+      .split("\n")
+      .filter(
+        (line) => !line.trim().toLowerCase().startsWith("x-anthropic-billing-header:"),
+      )
+      .join("\n")
+      .trim();
+  }
+
   async transformRequestIn(
     request: UnifiedChatRequest
   ): Promise<UnifiedChatRequest> {
@@ -97,13 +116,18 @@ export class OpenAIResponsesTransformer implements Transformer {
           } else if (item && typeof item === "object" && "text" in item) {
             text = (item as { text: string }).text;
           }
-          input.push({
-            role: "system",
-            content: text,
-          });
+          const cleaned = this.stripNonSemanticSystemLines(text);
+          if (cleaned) {
+            input.push({
+              role: "system",
+              content: cleaned,
+            });
+          }
         });
-      } else {
-        (request as any).instructions = firstSystem.content;
+      } else if (typeof firstSystem.content === "string") {
+        (request as any).instructions = this.stripNonSemanticSystemLines(
+          firstSystem.content
+        );
       }
     }
 

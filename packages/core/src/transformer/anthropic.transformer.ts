@@ -75,10 +75,18 @@ export class AnthropicTransformer implements Transformer {
     requestMessages?.forEach((msg: any) => {
       if (msg.role === "user" || msg.role === "assistant") {
         if (typeof msg.content === "string") {
-          messages.push({
+          // Empty string content is rejected by strict providers (AWS Bedrock
+          // returns "text content blocks must be non-empty" — issue #1329,
+          // #1328). Coerce to null so the field is absent at serialization.
+          // Also preserve any tool_calls/role-bearing fields that came in
+          // alongside the string content.
+          const unified: UnifiedMessage = {
             role: msg.role,
-            content: msg.content,
-          });
+            content: msg.content === "" ? null : msg.content,
+          };
+          if (Array.isArray(msg.tool_calls)) unified.tool_calls = msg.tool_calls;
+          if (msg.thinking) unified.thinking = msg.thinking;
+          messages.push(unified);
           return;
         }
 
@@ -188,11 +196,11 @@ export class AnthropicTransformer implements Transformer {
         : undefined,
       tool_choice: request.tool_choice,
     };
-    if (request.thinking) {
+    if (request.thinking && request.thinking.type === "enabled") {
       result.reasoning = {
         effort: getThinkLevel(request.thinking.budget_tokens),
         // max_tokens: request.thinking.budget_tokens,
-        enabled: request.thinking.type === "enabled",
+        enabled: true,
       };
     }
     if (request.tool_choice) {
@@ -403,7 +411,7 @@ export class AnthropicTransformer implements Transformer {
             buffer = lines.pop() || "";
 
             for (const line of lines) {
-              if (isClosed || hasFinished) break;
+              if (isClosed) break;
 
               if (!line.startsWith("data:")) continue;
               const data = line.slice(5).trim();
@@ -917,7 +925,7 @@ export class AnthropicTransformer implements Transformer {
                     };
                   }
 
-                  break;
+                  hasFinished = true;
                 }
               } catch (parseError: any) {
                 this.logger?.error(

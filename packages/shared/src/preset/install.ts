@@ -346,6 +346,7 @@ export function extractMetadata(manifest: ManifestFile): PresetMetadata {
 export async function saveManifest(presetName: string, manifest: ManifestFile): Promise<void> {
   const presetDir = getPresetDir(presetName);
   const manifestPath = path.join(presetDir, 'manifest.json');
+  await fs.mkdir(presetDir, { recursive: true });
   await fs.writeFile(manifestPath, JSON.stringify(manifest, null, 2), 'utf-8');
 }
 

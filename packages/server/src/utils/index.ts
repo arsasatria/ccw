@@ -65,12 +65,16 @@ const confirm = async (query: string): Promise<boolean> => {
   return answer.toLowerCase() !== "n";
 };
 
-export const readConfigFile = async () => {
+export const readConfigFile = async (opts: { interpolate?: boolean } = {}) => {
+  const interpolate = opts.interpolate !== false;
   try {
     const config = await fs.readFile(CONFIG_FILE, "utf-8");
     try {
       // Try to parse with JSON5 first (which also supports standard JSON)
       const parsedConfig = JSON5.parse(config);
+      if (!interpolate) {
+        return parsedConfig;
+      }
       // Interpolate environment variables in the parsed config
       return interpolateEnvVars(parsedConfig);
     } catch (parseError) {

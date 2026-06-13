@@ -341,3 +341,152 @@ test("joins non-empty assistant text parts and preserves tool_calls and thinking
   ]);
   assert.deepEqual(out.messages[0].thinking, { content: "reasoning", signature: "sig-1" });
 });
+
+test("captures usage when finish_reason and usage arrive in the same stream chunk (issue #1422)", async () => {
+  // Real OpenAI behavior: when stream_options.include_usage is true, OpenAI
+  // sends the usage chunk in the SSE response after the finish_reason chunk.
+  // They often arrive in the same ReadableStream read, so they share a buffer.
+  //
+  // Before the fix, the finish_reason branch `break`ed out of the line loop,
+  // dropping the trailing usage chunk from the same buffer. Result: the
+  // Anthropic-formatted `message_delta` was emitted with usage = 0,0, which
+  // prevents Claude Code from triggering context compression.
+  const textChunk = `data: ${JSON.stringify({
+    id: "cmpl-u", model: "test-model",
+    choices: [{ index: 0, delta: { role: "assistant", content: "hi" }, finish_reason: null }],
+  })}\n\n`;
+  const finishReasonLine = `data: ${JSON.stringify({
+    id: "cmpl-u", model: "test-model",
+    choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+  })}\n\n`;
+  const usageLine = `data: ${JSON.stringify({
+    id: "cmpl-u", model: "test-model",
+    choices: [],
+    usage: {
+      prompt_tokens: 1234,
+      completion_tokens: 56,
+      prompt_tokens_details: { cached_tokens: 7 },
+    },
+  })}\n\n`;
+  const doneLine = `data: [DONE]\n\n`;
+
+  // First push a small content chunk, then a SINGLE buffer holding the
+  // finish_reason + usage + [DONE] all at once. This is what we get from
+  // OpenAI in the common case.
+  const upstream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      const enc = new TextEncoder();
+      controller.enqueue(enc.encode(textChunk));
+      controller.enqueue(enc.encode(finishReasonLine + usageLine + doneLine));
+      controller.close();
+    },
+  });
+
+  const response = new Response(upstream, {
+    headers: { "Content-Type": "text/event-stream" },
+  });
+
+  const transformer = new AnthropicTransformer();
+  transformer.logger = logger;
+  const out = await transformer.transformResponseIn(response, { req: { id: "test" } });
+  const events = await collectEvents(out!);
+
+  // Find the message_delta event and inspect its usage.
+  const messageDelta = events.find((e) => e.data.type === "message_delta");
+  assert.ok(messageDelta, "expected a message_delta event in the stream");
+
+  const usage = (messageDelta.data as any).usage;
+  assert.ok(usage, `expected message_delta to carry usage, got: ${JSON.stringify(messageDelta.data)}`);
+  assert.equal(
+    usage.input_tokens,
+    1234 - 7,
+    "input_tokens should be prompt_tokens - cached_tokens",
+  );
+  assert.equal(usage.output_tokens, 56, "output_tokens should be completion_tokens");
+  assert.equal(usage.cache_read_input_tokens, 7, "cache_read_input_tokens should be cached_tokens");
+});
+
+test("coerces empty-string assistant content to null (issue #1329 Bedrock)", async () => {
+  // AWS Bedrock rejects `messages: text content blocks must be non-empty`
+  // when the assistant message has `content: ""` alongside `tool_calls`.
+  // The transformer's job is to normalize empty string content to null so
+  // the field is absent at serialization.
+  const transformer = new AnthropicTransformer();
+  // @ts-expect-error access private for test
+  const out = await transformer.transformRequestOut({
+    model: "test",
+    messages: [
+      {
+        role: "user",
+        content: "What's the weather in Paris?",
+      },
+      {
+        role: "assistant",
+        content: "",
+        tool_calls: [
+          {
+            id: "t1",
+            type: "function",
+            function: { name: "get_weather", arguments: '{"city":"Paris"}' },
+          },
+        ],
+      },
+      {
+        role: "tool",
+        tool_call_id: "t1",
+        content: "72F, sunny",
+      },
+    ],
+  });
+
+  assert.equal(
+    out.messages[1].content,
+    null,
+    "empty-string assistant content must be coerced to null for Bedrock compatibility",
+  );
+  assert.deepEqual(out.messages[1].tool_calls, [
+    { id: "t1", type: "function", function: { name: "get_weather", arguments: '{"city":"Paris"}' } },
+  ]);
+});
+
+
+test("omits reasoning field when thinking.type is not 'enabled' (issue #1410)", async () => {
+  // Repro: Claude Code sends thinking: { type: "disabled" } on every normal
+  // coding request. The previous code emitted `reasoning: { effort, enabled: false }`
+  // unconditionally whenever `request.thinking` was truthy, which made
+  // providers that don't accept the field (NVIDIA NIM, Qwen3-Coder) crash
+  // with 400/500.
+  const transformer = new AnthropicTransformer();
+  // @ts-expect-error access private for test
+  const disabledOut = await transformer.transformRequestOut({
+    model: "test",
+    messages: [],
+    thinking: { type: "disabled", budget_tokens: 0 },
+  });
+  assert.equal(
+    disabledOut.reasoning,
+    undefined,
+    "reasoning field must be absent when thinking.type='disabled'",
+  );
+
+  // @ts-expect-error access private for test
+  const enabledOut = await transformer.transformRequestOut({
+    model: "test",
+    messages: [],
+    thinking: { type: "enabled", budget_tokens: 8192 },
+  });
+  assert.deepEqual(enabledOut.reasoning, { effort: "medium", enabled: true });
+
+  // truthy thinking with an unknown type — same treatment as disabled
+  // @ts-expect-error access private for test
+  const unknownOut = await transformer.transformRequestOut({
+    model: "test",
+    messages: [],
+    thinking: { type: "adaptive", budget_tokens: 4096 },
+  });
+  assert.equal(
+    unknownOut.reasoning,
+    undefined,
+    "reasoning field must be absent when thinking.type is unknown",
+  );
+});

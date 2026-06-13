@@ -93,7 +93,6 @@ export class ReasoningTransformer implements Transformer {
             if (line.startsWith("data: ") && line.trim() !== "data: [DONE]") {
               try {
                 const data = JSON.parse(line.slice(6));
-                console.log(JSON.stringify(data))
 
                 // Extract reasoning_content from delta
                 if (data.choices?.[0]?.delta?.reasoning_content) {
@@ -106,7 +105,7 @@ export class ReasoningTransformer implements Transformer {
                       {
                         ...data.choices[0],
                         delta: {
-                          ...data.choices[0].delta,
+                          role: data.choices[0].delta.role,
                           thinking: {
                             content: data.choices[0].delta.reasoning_content,
                           },
@@ -114,7 +113,6 @@ export class ReasoningTransformer implements Transformer {
                       },
                     ],
                   };
-                  delete thinkingChunk.choices[0].delta.reasoning_content;
                   const thinkingLine = `data: ${JSON.stringify(
                     thinkingChunk
                   )}\n\n`;
@@ -139,8 +137,7 @@ export class ReasoningTransformer implements Transformer {
                       {
                         ...data.choices[0],
                         delta: {
-                          ...data.choices[0].delta,
-                          content: null,
+                          role: data.choices[0].delta.role,
                           thinking: {
                             content: context.reasoningContent(),
                             signature: signature,
@@ -149,7 +146,6 @@ export class ReasoningTransformer implements Transformer {
                       },
                     ],
                   };
-                  delete thinkingChunk.choices[0].delta.reasoning_content;
                   // Send the thinking chunk
                   const thinkingLine = `data: ${JSON.stringify(
                     thinkingChunk
@@ -166,9 +162,6 @@ export class ReasoningTransformer implements Transformer {
                   data.choices?.[0]?.delta &&
                   Object.keys(data.choices[0].delta).length > 0
                 ) {
-                  if (context.isReasoningComplete()) {
-                    data.choices[0].index++;
-                  }
                   const modifiedLine = `data: ${JSON.stringify(data)}\n\n`;
                   controller.enqueue(encoder.encode(modifiedLine));
                 }
