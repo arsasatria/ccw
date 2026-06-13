@@ -1,6 +1,5 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
-import { Sidebar } from "@/components/shell/Sidebar";
 import { TopBar } from "@/components/shell/TopBar";
 import { CommandPalette } from "@/components/shell/CommandPalette";
 import { ToastHost, useToast } from "@/components/shell/ToastHost";
@@ -140,7 +139,6 @@ function AppShellInner({
   return (
     <>
       <div className="flex h-screen w-full overflow-hidden bg-bg text-fg">
-        <Sidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <TopBar
             onSave={handleSave}
