@@ -195,6 +195,10 @@
     background: linear-gradient(135deg, rgba(45,40,32,0.65), rgba(45,40,32,0.4));
     border-color: oklch(0.7 0.08 75 / 18%);
   }
+  .glass-glow {
+    position: relative;
+    overflow: hidden;
+  }
   .glass-glow::before {
     content: "";
     position: absolute;
