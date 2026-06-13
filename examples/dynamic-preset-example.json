@@ -3,7 +3,7 @@
     "name": "multi-provider-preset",
     "version": "1.0.0",
     "description": "示例预设：支持多provider选择和动态配置",
-    "author": "CCR Team",
+    "author": "ccw Team",
     "keywords": ["example", "multi-provider", "dynamic"],
     "ccwVersion": "2.0.0"
   },

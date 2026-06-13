@@ -230,14 +230,14 @@ export const restartService = async () => {
         // Ignore cleanup errors
       }
     }
-    console.log("claude code router service has been stopped.");
+    console.log("ccw service has been stopped.");
   } catch (e) {
     console.log("Service was not running or failed to stop.");
     cleanupPidFile();
   }
 
   // Start the service again in the background
-  console.log("Starting claude code router service...");
+  console.log("Starting ccw service...");
   const cliPath = path.join(__dirname, "cli.js");
   const startProcess = spawn("node", [cliPath, "start"], {
     detached: true,

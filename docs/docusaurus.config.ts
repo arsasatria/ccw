@@ -3,14 +3,14 @@ import type * as Preset from '@docusaurus/preset-classic';
 import { themes as prismThemes } from 'prism-react-renderer';
 
 const config: Config = {
-  title: 'Claude Code Router',
+  title: 'ccw',
   tagline: 'Use Claude Code without an Anthropics account and route it to another LLM provider',
   favicon: 'img/favicon.ico',
 
-  url: 'https://musistudio.github.io',
+  url: 'https://arsasatria.github.io',
   baseUrl: '/ccw/',
 
-  organizationName: 'musistudio',
+  organizationName: 'arsasatria',
   projectName: 'ccw',
 
   onBrokenLinks: 'warn',
@@ -29,12 +29,12 @@ const config: Config = {
         docs: {
           sidebarPath: './sidebars.ts',
           editUrl:
-            'https://github.com/musistudio/ccw/tree/main/docs',
+            'https://github.com/arsasatria/ccw/tree/main/docs',
         },
         blog: {
           showReadingTime: true,
           editUrl:
-            'https://github.com/musistudio/ccw/tree/main/docs',
+            'https://github.com/arsasatria/ccw/tree/main/docs',
         },
         theme: {
           customCss: './src/css/custom.css',
@@ -53,10 +53,10 @@ const config: Config = {
 
     image: 'img/docusaurus-social-card.jpg',
     navbar: {
-      title: 'Claude Code Router',
+      title: 'ccw',
       logo: {
-        alt: 'Claude Code Router Logo',
-        src: 'img/ccr.svg',
+        alt: 'ccw Logo',
+        src: 'img/ccw.svg',
         width: 32,
         height: 32,
       },
@@ -73,7 +73,7 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://github.com/musistudio/ccw',
+          href: 'https://github.com/arsasatria/ccw',
           label: 'GitHub',
           position: 'right',
         },
@@ -82,7 +82,7 @@ const config: Config = {
     footer: {
       style: 'light',
       links: [],
-      copyright: `Copyright © ${new Date().getFullYear()} Claude Code Router. Built with Docusaurus.`,
+      copyright: `Copyright © ${new Date().getFullYear()} ccw. Built with Docusaurus.`,
     },
     prism: {
       theme: prismThemes.github,

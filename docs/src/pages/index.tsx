@@ -82,7 +82,7 @@ function HomepageHeader() {
             </Link>
             <Link
               className="px-6 sm:px-8 py-3 sm:py-4 bg-white hover:bg-gray-50 text-gray-900 border border-gray-300 rounded-lg text-base sm:text-lg font-semibold transition-all duration-300 hover:border-primary hover:scale-105"
-              to="https://github.com/musistudio/ccw"
+              to="https://github.com/arsasatria/ccw"
             >
               {t.github}
             </Link>
@@ -626,7 +626,7 @@ function CTASection() {
           {/* Secondary links */}
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center text-white/80">
             <a
-              href="https://github.com/musistudio/ccw"
+              href="https://github.com/arsasatria/ccw"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 hover:text-white transition-colors group"
@@ -640,7 +640,7 @@ function CTASection() {
             <div className="hidden sm:block w-px h-4 bg-white/30"></div>
 
             <a
-              href="https://github.com/musistudio/ccw/discussions"
+              href="https://github.com/arsasatria/ccw/discussions"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-2 hover:text-white transition-colors group"

@@ -34,7 +34,7 @@
 - **Multi-Provider Support**: Supports various model providers like OpenRouter, DeepSeek, Ollama, Gemini, Volcengine, and SiliconFlow.
 - **Request/Response Transformation**: Customize requests and responses for different providers using transformers.
 - **Dynamic Model Switching**: Switch models on-the-fly within Claude Code using the `/model` command.
-- **CLI Model Management**: Manage models and providers directly from the terminal with `ccr model`.
+- **CLI Model Management**: Manage models and providers directly from the terminal with `ccw model`.
 - **GitHub Actions Integration**: Trigger Claude Code tasks in your GitHub workflows.
 - **Plugin System**: Extend functionality with custom transformers.
 
@@ -64,7 +64,7 @@ The `config.json` file has several key sections:
 - **`LOG`** (optional): You can enable logging by setting it to `true`. When set to `false`, no log files will be created. Default is `true`.
 - **`LOG_LEVEL`** (optional): Set the logging level. Available options are: `"fatal"`, `"error"`, `"warn"`, `"info"`, `"debug"`, `"trace"`. Default is `"debug"`.
 - **Logging Systems**: The Claude Code Router uses two separate logging systems:
-  - **Server-level logs**: HTTP requests, API calls, and server events are logged using pino in the `~/.ccw/logs/` directory with filenames like `ccr-*.log`
+  - **Server-level logs**: HTTP requests, API calls, and server events are logged using pino in the `~/.ccw/logs/` directory with filenames like `ccw-*.log`
   - **Application-level logs**: Routing decisions and business logic events are logged in `~/.ccw/ccw.log`
 - **`APIKEY`** (optional): You can set a secret key to authenticate requests. When set, clients must provide this key in the `Authorization` header (e.g., `Bearer your-secret-key`) or the `x-api-key` header. Example: `"APIKEY": "your-secret-key"`.
 - **`HOST`** (optional): You can set the host address for the server. If `APIKEY` is not set, the host will be forced to `127.0.0.1` for security reasons to prevent unauthorized access. Example: `"HOST": "0.0.0.0"`.
@@ -219,13 +219,13 @@ Here is a comprehensive example:
 Start Claude Code using the router:
 
 ```shell
-ccr code
+ccw code
 ```
 
 > **Note**: After modifying the configuration file, you need to restart the service for the changes to take effect:
 >
 > ```shell
-> ccr restart
+> ccw restart
 > ```
 
 ### 4. UI Mode
@@ -233,7 +233,7 @@ ccr code
 For a more intuitive experience, you can use the UI mode to manage your configuration:
 
 ```shell
-ccr ui
+ccw ui
 ```
 
 This will open a web-based interface where you can easily view and edit your `config.json` file.
@@ -245,7 +245,7 @@ This will open a web-based interface where you can easily view and edit your `co
 For users who prefer terminal-based workflows, you can use the interactive CLI model selector:
 
 ```shell
-ccr model
+ccw model
 ```
 ![](blog/images/models.gif)
 
@@ -272,22 +272,22 @@ Presets allow you to save, share, and reuse configurations easily. You can expor
 
 ```shell
 # Export current configuration as a preset
-ccr preset export my-preset
+ccw preset export my-preset
 
 # Export with metadata
-ccr preset export my-preset --description "My OpenAI config" --author "Your Name" --tags "openai,production"
+ccw preset export my-preset --description "My OpenAI config" --author "Your Name" --tags "openai,production"
 
 # Install a preset from local directory
-ccr preset install /path/to/preset
+ccw preset install /path/to/preset
 
 # List all installed presets
-ccr preset list
+ccw preset list
 
 # Show preset information
-ccr preset info my-preset
+ccw preset info my-preset
 
 # Delete a preset
-ccr preset delete my-preset
+ccw preset delete my-preset
 ```
 
 **Preset Features:**
@@ -311,12 +311,12 @@ The `activate` command allows you to set up environment variables globally in yo
 To activate the environment variables, run:
 
 ```shell
-eval "$(ccr activate)"
+eval "$(ccw activate)"
 ```
 
 This command outputs the necessary environment variables in shell-friendly format, which are then set in your current shell session. After activation, you can:
 
-- **Use `claude` command directly**: Run `claude` commands without needing to use `ccr code`. The `claude` command will automatically route requests through Claude Code Router.
+- **Use `claude` command directly**: Run `claude` commands without needing to use `ccw code`. The `claude` command will automatically route requests through Claude Code Router.
 - **Integrate with Agent SDK applications**: Applications built with the Anthropic Agent SDK will automatically use the configured router and models.
 
 The `activate` command sets the following environment variables:
@@ -328,7 +328,7 @@ The `activate` command sets the following environment variables:
 - `DISABLE_COST_WARNINGS`: Disables cost warnings
 - `API_TIMEOUT_MS`: API timeout from your configuration
 
-> **Note**: Make sure the Claude Code Router service is running (`ccr start`) before using the activated environment variables. The environment variables are only valid for the current shell session. To make them persistent, you can add `eval "$(ccr activate)"` to your shell configuration file (e.g., `~/.zshrc` or `~/.bashrc`).
+> **Note**: Make sure the Claude Code Router service is running (`ccw start`) before using the activated environment variables. The environment variables are only valid for the current shell session. To make them persistent, you can add `eval "$(ccw activate)"` to your shell configuration file (e.g., `~/.zshrc` or `~/.bashrc`).
 
 #### Providers
 
@@ -456,7 +456,7 @@ The `Router` object defines which model to use for different scenarios:
 - `longContext`: A model for handling long contexts (e.g., > 60K tokens).
 - `longContextThreshold` (optional): The token count threshold for triggering the long context model. Defaults to 60000 if not specified.
 - `webSearch`: Used for handling web search tasks and this requires the model itself to support the feature. If you're using openrouter, you need to add the `:online` suffix after the model name.
-- `image` (beta): Used for handling image-related tasks (supported by CCR’s built-in agent). If the model does not support tool calling, you need to set the `config.forceUseImageAgent` property to `true`.
+- `image` (beta): Used for handling image-related tasks (supported by CCW’s built-in agent). If the model does not support tool calling, you need to set the `config.forceUseImageAgent` property to `true`.
 
 - You can also switch models dynamically in Claude Code with the `/model` command:
 `/model provider_name,model_name`
@@ -565,7 +565,7 @@ jobs:
 
       - name: Start Claude Code Router
         run: |
-          nohup ~/.bun/bin/bunx @arsasatria/ccw@1.0.8 start &
+          nohup ~/.bun/bin/bunx @arsasatria/ccw@1.0.0 start &
         shell: bash
 
       - name: Run Claude Code

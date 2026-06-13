@@ -2,7 +2,7 @@
   "name": "multi-provider-example",
   "version": "1.0.0",
   "description": "多Provider配置示例 - 支持OpenAI和DeepSeek切换",
-  "author": "CCR Team",
+  "author": "ccw Team",
   "keywords": ["openai", "deepseek", "multi-provider"],
   "ccwVersion": "2.0.0",
   "Providers": [

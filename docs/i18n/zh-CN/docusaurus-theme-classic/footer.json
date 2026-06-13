@@ -25,15 +25,15 @@
   },
   "link.item.label.GitHub": {
     "message": "GitHub",
-    "description": "The label of footer link with label=GitHub linking to https://github.com/musistudio/ccw"
+    "description": "The label of footer link with label=GitHub linking to https://github.com/arsasatria/ccw"
   },
   "link.item.label.Issues": {
     "message": "问题反馈",
-    "description": "The label of footer link with label=Issues linking to https://github.com/musistudio/ccw/issues"
+    "description": "The label of footer link with label=Issues linking to https://github.com/arsasatria/ccw/issues"
   },
   "link.item.label.Releases": {
     "message": "发布版本",
-    "description": "The label of footer link with label=Releases linking to https://github.com/musistudio/ccw/releases"
+    "description": "The label of footer link with label=Releases linking to https://github.com/arsasatria/ccw/releases"
   },
   "link.item.label.Blog": {
     "message": "博客",
@@ -44,7 +44,7 @@
     "description": "The label of footer link with label=NPM Package linking to https://www.npmjs.com/package/@arsasatria/ccw"
   },
   "copyright": {
-    "message": "Copyright © 2025 Claude Code Router. 保留所有权利。",
+    "message": "Copyright © 2026 ccw. 保留所有权利。",
     "description": "The footer copyright"
   }
 }
