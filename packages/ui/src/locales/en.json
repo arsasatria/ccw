@@ -93,6 +93,11 @@
     "hero_title_idle": "Set up a provider to bring the gateway online",
     "hero_description": "ccw intelligently routes every request to the right model — fast ones for tool calls, deep ones for reasoning, vision ones for images. Configure providers, tune the router, install presets, all in one place.",
     "status_label": "Service status",
+    "hero": {
+      "title": "Your gateway is online and routing.",
+      "subtitle": "Requests are flowing through the configured routes. Here's the current state.",
+      "reqCount": "{{count}} req/s"
+    },
     "stats": {
       "providers": "Providers",
       "models": "Models",
