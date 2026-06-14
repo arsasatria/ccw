@@ -12,6 +12,9 @@ import { ConfigService } from "@/services/config";
 import { ProviderService } from "@/services/provider";
 import { TransformerService } from "@/services/transformer";
 import { Transformer } from "@/types/transformer";
+import { walkChain } from "@/utils/chainWalker";
+import { AccountPool } from "@/utils/accountPool";
+import type { ChainEntry } from "@/utils/chain";
 
 // Extend FastifyInstance to include custom services
 declare module "fastify" {
@@ -23,13 +26,88 @@ declare module "fastify" {
 
   interface FastifyRequest {
     provider?: string;
+    chain?: ChainEntry[];
   }
+}
+
+/**
+ * Run the upstream flow (request transformers → provider → response
+ * transformers) for a single chain entry. The entry supplies the provider
+ * name, model, and API key. We mutate `req.provider` and `body.model` so
+ * the transformers rebuild for this entry's model. We clone the registered
+ * provider and override `apiKey` with the entry's per-account key — that
+ * avoids any process.env pollution and keeps the registered provider
+ * untouched.
+ */
+async function runUpstreamForEntry(
+  req: FastifyRequest,
+  fastify: FastifyInstance,
+  transformer: any,
+  body: any,
+  entry: { providerName: string; model: string; apiKey: string }
+) {
+  // Update req.provider and req.body.model so the transformers rebuild
+  // for this entry's model.
+  (req as any).provider = entry.providerName;
+  body.model = entry.model;
+
+  // Look up the actual LLMProvider (carries baseUrl + transformers).
+  const provider = fastify.providerService.getProvider(entry.providerName);
+  if (!provider) {
+    throw createApiError(
+      `Provider '${entry.providerName}' not found`,
+      404,
+      "provider_not_found"
+    );
+  }
+  // Clone with the per-entry API key so the request uses the right account.
+  const providerWithKey = { ...provider, apiKey: entry.apiKey };
+
+  const { requestBody, config, bypass } = await processRequestTransformers(
+    body,
+    providerWithKey,
+    transformer,
+    req.headers,
+    {
+      req,
+    }
+  );
+
+  const response = await sendRequestToProvider(
+    requestBody,
+    config,
+    providerWithKey,
+    fastify,
+    bypass,
+    transformer,
+    {
+      req,
+    }
+  );
+
+  const finalResponse = await processResponseTransformers(
+    requestBody,
+    response,
+    providerWithKey,
+    transformer,
+    bypass,
+    {
+      req,
+    }
+  );
+
+  return finalResponse;
 }
 
 /**
  * Main handler for transformer endpoints
  * Coordinates the entire request processing flow: validate provider, handle request transformers,
- * send request, handle response transformers, format response
+ * send request, handle response transformers, format response.
+ *
+ * If the router attached a chain to `req.chain` (Task 6), we walk the chain
+ * on provider failure: each entry is tried with its per-account key. The
+ * error classifier decides advance/stop. On exhaust we surface the last
+ * error to the client.
  */
 async function handleTransformerEndpoint(
   req: FastifyRequest,
@@ -50,49 +128,93 @@ async function handleTransformerEndpoint(
     );
   }
 
+  // Chain attached by the router. Empty array = no chain configured for
+  // this scenario (legacy single-model path).
+  const chain: ChainEntry[] = (req as any).chain || [];
+  const isStream = body.stream === true;
+
   try {
-    // Process request transformer chain
-    const { requestBody, config, bypass } = await processRequestTransformers(
-      body,
-      provider,
-      transformer,
-      req.headers,
-      {
-        req,
-      }
-    );
+    // Non-streaming + chain: walk the chain with account rotation.
+    if (!isStream && chain.length > 0) {
+      const result = await walkChain({
+        chain,
+        newPool: (accounts) => new AccountPool(accounts),
+        exec: async (entry) => {
+          try {
+            const response = await runUpstreamForEntry(
+              req,
+              fastify,
+              transformer,
+              body,
+              {
+                providerName: entry.provider.name,
+                model: entry.model,
+                apiKey: entry.account.apiKey,
+              }
+            );
+            return { ok: true, value: response };
+          } catch (e: any) {
+            // Translate provider-level errors into the chain walker's
+            // ExecResult shape. The classifier decides advance vs stop.
+            if (e?.code === "provider_response_error") {
+              return {
+                ok: false,
+                error: { status: e.statusCode, body: e.message },
+              };
+            }
+            if (e?.code === "provider_not_found") {
+              return {
+                ok: false,
+                error: { status: 404, body: e.message },
+              };
+            }
+            // Non-recoverable error (e.g. transformer crash). Let the
+            // outer catch handle it.
+            throw e;
+          }
+        },
+      });
 
-    // Send request to LLM provider
-    const response = await sendRequestToProvider(
-      requestBody,
-      config,
-      provider,
+      if (result.ok) {
+        return formatResponse(result.value, reply, body);
+      }
+      // Chain exhausted. Surface the last error to the client.
+      throw createApiError(
+        result.error?.body || "All chain entries failed",
+        result.error?.status || 502,
+        "chain_exhausted"
+      );
+    }
+
+    // No chain OR streaming: run the upstream flow once. For streaming with
+    // a chain, we use the first entry's account key (walking a stream
+    // requires aborting an in-flight response, which is not yet supported).
+    const useFirst = isStream && chain.length > 0;
+    const firstEntry = useFirst ? chain[0] : null;
+    const response = await runUpstreamForEntry(
+      req,
       fastify,
-      bypass,
       transformer,
+      body,
       {
-        req,
+        providerName: useFirst ? firstEntry!.provider.name : providerName,
+        model: useFirst ? firstEntry!.model : body.model,
+        apiKey: useFirst
+          ? firstEntry!.provider.accounts[0]?.apiKey ?? provider.apiKey
+          : provider.apiKey,
       }
     );
-
-    // Process response transformer chain
-    const finalResponse = await processResponseTransformers(
-      requestBody,
-      response,
-      provider,
-      transformer,
-      bypass,
-      {
-        req,
-      }
-    );
-
-    // Format and return response
-    return formatResponse(finalResponse, reply, body);
+    return formatResponse(response, reply, body);
   } catch (error: any) {
-    // Handle fallback if error occurs
-    if (error.code === 'provider_response_error') {
-      const fallbackResult = await handleFallback(req, reply, fastify, transformer, error);
+    // Handle fallback if error occurs (legacy `fallbackConfig` path).
+    if (error.code === "provider_response_error") {
+      const fallbackResult = await handleFallback(
+        req,
+        reply,
+        fastify,
+        transformer,
+        error
+      );
       if (fallbackResult) {
         return fallbackResult;
       }
