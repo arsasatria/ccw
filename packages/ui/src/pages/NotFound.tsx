@@ -1,30 +1,20 @@
-import * as React from "react";
 import { Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Compass, ArrowLeft } from "lucide-react";
-import { AppShell } from "@/components/shell/AppShell";
 import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   const { t } = useTranslation();
   return (
-    <AppShell title="404" subtitle="Route not found">
-      <div className="cc-card flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-soft text-brand">
-          <Compass className="h-5 w-5" />
-        </div>
-        <h2 className="text-lg font-semibold text-fg">Page not found</h2>
-        <p className="max-w-sm text-sm text-fg-muted">
-          The route you tried to reach doesn't exist. Head back to the dashboard
-          and pick a section from the sidebar.
+    <div className="flex min-h-screen items-center justify-center bg-paper p-6">
+      <div className="text-center">
+        <div className="font-serif text-[80px] leading-none tracking-[-0.04em] text-ink">404</div>
+        <p className="mt-4 max-w-sm text-[14px] italic text-ink-muted">
+          {t("notFound.message")}
         </p>
-        <Button asChild size="sm" className="mt-2">
-          <Link to="/dashboard">
-            <ArrowLeft className="h-3.5 w-3.5" />
-            {t("app.cancel")}
-          </Link>
+        <Button asChild className="mt-6">
+          <Link to="/dashboard">{t("notFound.cta")}</Link>
         </Button>
       </div>
-    </AppShell>
+    </div>
   );
 }
