@@ -23,8 +23,7 @@ export function classifyError(err: ClassifierError | null | undefined): "advance
       }
       return "stop";
     }
-    if (err.status === 403) return "stop";
-    // Other 4xx (404, 422, etc.) — stop. Let the user see the error.
+    // 4xx (including 403) — stop. Let the user see the error.
     if (err.status >= 400 && err.status < 500) return "stop";
     return "stop";
   }

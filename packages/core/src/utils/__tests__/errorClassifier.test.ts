@@ -47,3 +47,17 @@ test("null/undefined is stop (defensive)", () => {
   assert.equal(classifyError(undefined), "stop");
   assert.equal(classifyError(null), "stop");
 });
+
+test("all four network error codes are advance", () => {
+  for (const code of ["ECONNRESET", "ETIMEDOUT", "ENOTFOUND", "ECONNREFUSED"]) {
+    assert.equal(classifyError({ code }), "advance", `code=${code}`);
+  }
+});
+
+test("unknown error code falls through to stop", () => {
+  assert.equal(classifyError({ code: "WEIRD_ERROR" }), "stop");
+});
+
+test("empty error object is stop", () => {
+  assert.equal(classifyError({}), "stop");
+});
