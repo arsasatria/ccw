@@ -120,6 +120,10 @@
       "presets_description": "One-click install community presets for popular models."
     }
   },
+  "notFound": {
+    "message": "The page you're looking for doesn't exist on this gateway.",
+    "cta": "Go to dashboard"
+  },
   "toplevel": {
     "title": "General Settings",
     "subtitle": "Tune the core behavior of the gateway",

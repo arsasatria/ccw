@@ -120,6 +120,10 @@
       "presets_description": "一键安装社区中流行模型的预设。"
     }
   },
+  "notFound": {
+    "message": "您访问的页面不存在。",
+    "cta": "返回首页"
+  },
   "toplevel": {
     "title": "通用设置",
     "subtitle": "调整网关的核心行为",
