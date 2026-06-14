@@ -11,6 +11,7 @@ import NotFound from "@/pages/NotFound";
 import Login from "@/pages/Login";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicRoute from "@/components/PublicRoute";
+import { AppShell } from "@/components/shell/AppShell";
 
 export const router = createMemoryRouter(
   [
@@ -30,7 +31,9 @@ export const router = createMemoryRouter(
       path: "/dashboard",
       element: (
         <ProtectedRoute>
-          <Dashboard />
+          <AppShell>
+            <Dashboard />
+          </AppShell>
         </ProtectedRoute>
       ),
     },
@@ -38,7 +41,9 @@ export const router = createMemoryRouter(
       path: "/providers",
       element: (
         <ProtectedRoute>
-          <ProvidersPage />
+          <AppShell>
+            <ProvidersPage />
+          </AppShell>
         </ProtectedRoute>
       ),
     },
@@ -46,7 +51,9 @@ export const router = createMemoryRouter(
       path: "/router",
       element: (
         <ProtectedRoute>
-          <RouterPage />
+          <AppShell>
+            <RouterPage />
+          </AppShell>
         </ProtectedRoute>
       ),
     },
@@ -54,7 +61,9 @@ export const router = createMemoryRouter(
       path: "/transformers",
       element: (
         <ProtectedRoute>
-          <TransformersPage />
+          <AppShell>
+            <TransformersPage />
+          </AppShell>
         </ProtectedRoute>
       ),
     },
@@ -62,7 +71,9 @@ export const router = createMemoryRouter(
       path: "/presets",
       element: (
         <ProtectedRoute>
-          <PresetsPage />
+          <AppShell>
+            <PresetsPage />
+          </AppShell>
         </ProtectedRoute>
       ),
     },
@@ -70,7 +81,9 @@ export const router = createMemoryRouter(
       path: "/logs",
       element: (
         <ProtectedRoute>
-          <LogsPage />
+          <AppShell>
+            <LogsPage />
+          </AppShell>
         </ProtectedRoute>
       ),
     },
@@ -78,7 +91,9 @@ export const router = createMemoryRouter(
       path: "/debug",
       element: (
         <ProtectedRoute>
-          <DebugPage />
+          <AppShell>
+            <DebugPage />
+          </AppShell>
         </ProtectedRoute>
       ),
     },
@@ -86,7 +101,9 @@ export const router = createMemoryRouter(
       path: "/settings",
       element: (
         <ProtectedRoute>
-          <SettingsPage />
+          <AppShell>
+            <SettingsPage />
+          </AppShell>
         </ProtectedRoute>
       ),
     },
