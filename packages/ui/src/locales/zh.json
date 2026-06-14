@@ -42,9 +42,10 @@
     "apiKey": "API 密钥",
     "apiKeyPlaceholder": "输入您的 API 密钥",
     "signIn": "登录",
-    "invalidApiKey": "无效的 API 密钥",
+    "invalidApiKey": "API 密钥无效，请检查后重试。",
     "configError": "配置未加载",
-    "validating": "正在验证 API 密钥..."
+    "validating": "正在验证 API 密钥...",
+    "tagline": "ccw 0.5.0 · 路由网关"
   },
   "nav": {
     "dashboard": "仪表板",

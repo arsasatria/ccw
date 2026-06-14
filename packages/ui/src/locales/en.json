@@ -42,9 +42,10 @@
     "apiKey": "API Key",
     "apiKeyPlaceholder": "Enter your API key",
     "signIn": "Sign In",
-    "invalidApiKey": "Invalid API key",
+    "invalidApiKey": "Invalid API key. Please check and try again.",
     "configError": "Configuration not loaded",
-    "validating": "Validating API key..."
+    "validating": "Validating API key...",
+    "tagline": "ccw 0.5.0 · routing gateway"
   },
   "nav": {
     "dashboard": "Dashboard",

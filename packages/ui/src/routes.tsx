@@ -8,7 +8,7 @@ import LogsPage from "@/pages/Logs";
 import DebugPage from "@/pages/Debug";
 import SettingsPage from "@/pages/Settings";
 import NotFound from "@/pages/NotFound";
-import { Login } from "@/components/Login";
+import Login from "@/pages/Login";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import PublicRoute from "@/components/PublicRoute";
 
