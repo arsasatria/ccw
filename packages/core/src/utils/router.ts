@@ -7,6 +7,8 @@ import { CLAUDE_PROJECTS_DIR, HOME_DIR } from "@ccw/shared";
 import { LRUCache } from "lru-cache";
 import { ConfigService } from "../services/config";
 import { TokenizerService } from "../services/tokenizer";
+import { resolveChain } from "./chain";
+import { normalizeProvider, normalizeRouter } from "./configShape";
 
 // Types from @anthropic-ai/sdk
 interface Tool {
@@ -215,6 +217,24 @@ export interface RouterFallbackConfig {
   webSearch?: string[];
 }
 
+/**
+ * Resolve the chain entries for a given scenario. Returns an empty array
+ * if the scenario has no entries or all are invalid.
+ */
+// Note: uses lowercase "providers" to match the existing key used by
+// getUseModel (line 131), provider.ts, and tokenizer.ts — configService
+// keys are case-sensitive.
+export const resolveChainForScenario = (
+  scenarioType: RouterScenarioType,
+  configService: ConfigService
+) => {
+  const routerConfig = normalizeRouter(configService.get("Router"));
+  const rawProviders = (configService.get("providers") || []) as any[];
+  const providers = rawProviders.map(normalizeProvider);
+  const entries = routerConfig[scenarioType] || [];
+  return resolveChain(entries, { providers });
+};
+
 export const router = async (req: any, _res: any, context: RouterContext) => {
   const { configService, event } = context;
   // Parse sessionId from metadata.user_id
@@ -288,6 +308,12 @@ export const router = async (req: any, _res: any, context: RouterContext) => {
       req.scenarioType = 'default';
     }
     req.body.model = model;
+
+    // New: attach the resolved chain so the server can walk it on failure.
+    req.chain = resolveChainForScenario(req.scenarioType, configService);
+    if (req.chain.length > 0) {
+      req.body.model = `${req.chain[0].provider.name},${req.chain[0].model}`;
+    }
   } catch (error: any) {
     req.log.error(`Error in router middleware: ${error.message}`);
     const Router = configService.get("Router");
