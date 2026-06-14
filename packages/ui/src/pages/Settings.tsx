@@ -1,7 +1,6 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Globe,
   KeyRound,
   FileCog,
   ScrollText,
@@ -38,7 +37,7 @@ export default function Settings() {
           subtitle={t("toplevel.subtitle")}
         />
         <div className="rounded-md border border-line bg-surface p-6 text-sm text-ink-muted">
-          Loading…
+          {t("common.loading")}
         </div>
       </div>
     );
@@ -58,22 +57,23 @@ export default function Settings() {
         <SettingCard icon={<ScrollText className="h-4 w-4" />} title={t("toplevel.logging")}>
           <div className="flex items-center justify-between">
             <div>
-              <Label>{t("toplevel.log")}</Label>
+              <Label htmlFor="log-enabled">{t("toplevel.log")}</Label>
               <p className="text-xs text-ink-muted">{t("toplevel.log_hint")}</p>
             </div>
             <Switch
+              id="log-enabled"
               checked={config.LOG}
               onCheckedChange={(v) => update({ LOG: v })}
             />
           </div>
           <Separator />
           <div className="space-y-2">
-            <Label>{t("toplevel.log_level")}</Label>
+            <Label htmlFor="log-level">{t("toplevel.log_level")}</Label>
             <Select
               value={config.LOG_LEVEL}
               onValueChange={(v) => update({ LOG_LEVEL: v })}
             >
-              <SelectTrigger>
+              <SelectTrigger id="log-level">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
