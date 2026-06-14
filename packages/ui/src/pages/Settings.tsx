@@ -1,8 +1,6 @@
 import * as React from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Cog,
-  Globe,
   KeyRound,
   FileCog,
   ScrollText,
@@ -11,7 +9,7 @@ import {
   Code2,
 } from "lucide-react";
 import { useConfig } from "@/components/ConfigProvider";
-import { AppShell } from "@/components/shell/AppShell";
+import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,9 +31,15 @@ export default function Settings() {
 
   if (!config) {
     return (
-      <AppShell title={t("toplevel.title")} subtitle={t("toplevel.subtitle")}>
-        <div className="cc-card p-6 text-sm text-fg-muted">Loading…</div>
-      </AppShell>
+      <div className="space-y-6">
+        <PageHeader
+          title={t("toplevel.title")}
+          subtitle={t("toplevel.subtitle")}
+        />
+        <div className="rounded-md border border-line bg-surface p-6 text-sm text-ink-muted">
+          {t("common.loading")}
+        </div>
+      </div>
     );
   }
 
@@ -44,30 +48,32 @@ export default function Settings() {
   };
 
   return (
-    <AppShell
-      title={t("toplevel.title")}
-      subtitle={t("toplevel.subtitle")}
-    >
+    <div className="space-y-6">
+      <PageHeader
+        title={t("toplevel.title")}
+        subtitle={t("toplevel.subtitle")}
+      />
       <div className="grid gap-4 md:grid-cols-2">
         <SettingCard icon={<ScrollText className="h-4 w-4" />} title={t("toplevel.logging")}>
           <div className="flex items-center justify-between">
             <div>
-              <Label>{t("toplevel.log")}</Label>
-              <p className="text-xs text-fg-muted">{t("toplevel.log_hint")}</p>
+              <Label htmlFor="log-enabled">{t("toplevel.log")}</Label>
+              <p className="text-xs text-ink-muted">{t("toplevel.log_hint")}</p>
             </div>
             <Switch
+              id="log-enabled"
               checked={config.LOG}
               onCheckedChange={(v) => update({ LOG: v })}
             />
           </div>
           <Separator />
           <div className="space-y-2">
-            <Label>{t("toplevel.log_level")}</Label>
+            <Label htmlFor="log-level">{t("toplevel.log_level")}</Label>
             <Select
               value={config.LOG_LEVEL}
               onValueChange={(v) => update({ LOG_LEVEL: v })}
             >
-              <SelectTrigger>
+              <SelectTrigger id="log-level">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -89,7 +95,7 @@ export default function Settings() {
                 id="host"
                 value={config.HOST}
                 onChange={(e) => update({ HOST: e.target.value })}
-                className="cc-text-mono"
+                className="font-mono"
               />
             </div>
             <div className="space-y-2">
@@ -99,7 +105,7 @@ export default function Settings() {
                 type="number"
                 value={config.PORT}
                 onChange={(e) => update({ PORT: Number(e.target.value) })}
-                className="cc-text-mono"
+                className="font-mono"
               />
             </div>
           </div>
@@ -111,7 +117,7 @@ export default function Settings() {
               placeholder="http://127.0.0.1:7890"
               value={config.PROXY_URL}
               onChange={(e) => update({ PROXY_URL: e.target.value })}
-              className="cc-text-mono"
+              className="font-mono"
             />
           </div>
         </SettingCard>
@@ -123,9 +129,9 @@ export default function Settings() {
               id="timeout"
               value={config.API_TIMEOUT_MS}
               onChange={(e) => update({ API_TIMEOUT_MS: e.target.value })}
-              className="cc-text-mono"
+              className="font-mono"
             />
-            <p className="text-xs text-fg-muted">
+            <p className="text-xs text-ink-muted">
               {t("toplevel.timeout_hint")}
             </p>
           </div>
@@ -139,9 +145,9 @@ export default function Settings() {
               type="password"
               value={config.APIKEY}
               onChange={(e) => update({ APIKEY: e.target.value })}
-              className="cc-text-mono"
+              className="font-mono"
             />
-            <p className="text-xs text-fg-muted">
+            <p className="text-xs text-ink-muted">
               {t("toplevel.apikey_hint")}
             </p>
           </div>
@@ -155,7 +161,7 @@ export default function Settings() {
               placeholder="claude"
               value={config.CLAUDE_PATH}
               onChange={(e) => update({ CLAUDE_PATH: e.target.value })}
-              className="cc-text-mono"
+              className="font-mono"
             />
           </div>
         </SettingCard>
@@ -170,15 +176,15 @@ export default function Settings() {
               placeholder="/path/to/custom-router.js"
               value={config.CUSTOM_ROUTER_PATH ?? ""}
               onChange={(e) => update({ CUSTOM_ROUTER_PATH: e.target.value })}
-              className="cc-text-mono"
+              className="font-mono"
             />
-            <p className="text-xs text-fg-muted">
+            <p className="text-xs text-ink-muted">
               {t("toplevel.custom_router_path_placeholder")}
             </p>
           </div>
         </SettingCard>
       </div>
-    </AppShell>
+    </div>
   );
 }
 
@@ -194,7 +200,7 @@ function SettingCard({
   return (
     <Card>
       <CardHeader className="flex flex-row items-center gap-2.5 space-y-0 pb-2">
-        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-brand-soft text-brand">
+        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-surface-2 text-accent-1">
           {icon}
         </div>
         <CardTitle className="text-sm">{title}</CardTitle>
