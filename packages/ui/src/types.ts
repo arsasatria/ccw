@@ -3,22 +3,29 @@ export interface ProviderTransformer {
   [key: string]: any; // Allow for model-specific transformers
 }
 
+export interface ProviderAccount {
+  apiKey: string;
+  label?: string;
+}
+
 export interface Provider {
   name: string;
   api_base_url: string;
   api_key: string;
   models: string[];
   transformer?: ProviderTransformer;
+  accounts?: ProviderAccount[]; // new — multi-key pool
+  rotation?: "error" | "quota"; // new — default "error"
 }
 
 export interface RouterConfig {
-    default: string;
-    background: string;
-    think: string;
-    longContext: string;
+    default: string[];
+    background: string[];
+    think: string[];
+    longContext: string[];
     longContextThreshold: number;
-    webSearch: string;
-    image: string;
+    webSearch: string[];
+    image: string[];
     custom?: any;
 }
 
@@ -65,6 +72,11 @@ export interface Config {
   API_TIMEOUT_MS: string;
   PROXY_URL: string;
   CUSTOM_ROUTER_PATH?: string;
+  // Global token-efficiency toggles. Optional; default-on/off semantics
+  // are applied in the consumer (see Settings.tsx and the transformer
+  // service).
+  tokenSaver?: boolean;
+  terseMode?: boolean;
 }
 
 export type AccessLevel = 'restricted' | 'full';

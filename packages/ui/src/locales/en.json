@@ -177,7 +177,12 @@
     "claude_path": "Claude Path",
     "advanced": "Advanced",
     "custom_router_path": "Custom Router Script Path",
-    "custom_router_path_placeholder": "Enter absolute path to custom router script file"
+    "custom_router_path_placeholder": "Enter absolute path to custom router script file",
+    "token_efficiency": "Token efficiency",
+    "token_saver": "Token saver",
+    "token_saver_hint": "Compress large tool outputs (git diffs, log dumps, file lists) before they reach the model.",
+    "terse_mode": "Terse mode",
+    "terse_mode_hint": "Append a terse-output instruction to the system prompt. Reduces preamble, summaries, and pleasantries."
   },
   "transformers": {
     "title": "Custom Transformers",
@@ -272,7 +277,18 @@
       "description": "Start by connecting a model provider. The gateway will route requests to it.",
       "cta": "Add provider"
     },
-    "unnamed": "untitled"
+    "unnamed": "untitled",
+    "account_pool": "Account pool",
+    "account_pool_hint": "Multiple API keys for the same provider are tried in order when one fails.",
+    "account_api_key": "Account API key",
+    "account_label": "Account label",
+    "add_account": "Add account",
+    "account_label_placeholder": "Label (optional, e.g. \"personal\")",
+    "account_remove_aria": "Remove account",
+    "rotation": "Rotation strategy",
+    "rotation_error": "On error (default)",
+    "rotation_quota": "On quota",
+    "rotation_hint": "Error: advance to the next account on 401/429/5xx. Quota: also advance when a quota tracker reports exhaustion."
   },
   "router": {
     "title": "Router",
@@ -289,6 +305,13 @@
     "searchModel": "Search model…",
     "noModelFound": "No model found.",
     "unassigned": "Unassigned",
+    "chain": "Chain",
+    "chain_hint": "Models are tried in order. If the first fails (rate limit, quota, transient error), the next is used.",
+    "add_entry": "Add model",
+    "entry_placeholder": "provider,model",
+    "entry_remove_aria": "Remove entry",
+    "entry_move_up_aria": "Move up",
+    "entry_move_down_aria": "Move down",
     "threshold": {
       "title": "Long-context threshold",
       "description": "Prompts with more tokens than this get routed to the long-context model."

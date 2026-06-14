@@ -9,6 +9,7 @@ import {
   Code2,
   Save,
   RotateCcw,
+  Zap,
 } from "lucide-react";
 import { useConfig } from "@/components/ConfigProvider";
 import { useToast } from "@/components/shell/ToastHost";
@@ -218,6 +219,40 @@ export default function Settings() {
             </p>
           </div>
         </SettingCard>
+
+        <SettingCard
+          icon={<Zap className="h-4 w-4" />}
+          title={t("toplevel.token_efficiency")}
+          className="md:col-span-2"
+        >
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label htmlFor="token-saver">{t("toplevel.token_saver")}</Label>
+              <p className="text-xs text-ink-muted">
+                {t("toplevel.token_saver_hint")}
+              </p>
+            </div>
+            <Switch
+              id="token-saver"
+              checked={draft.tokenSaver ?? true}
+              onCheckedChange={(v) => update({ tokenSaver: v })}
+            />
+          </div>
+          <Separator />
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <Label htmlFor="terse-mode">{t("toplevel.terse_mode")}</Label>
+              <p className="text-xs text-ink-muted">
+                {t("toplevel.terse_mode_hint")}
+              </p>
+            </div>
+            <Switch
+              id="terse-mode"
+              checked={draft.terseMode ?? false}
+              onCheckedChange={(v) => update({ terseMode: v })}
+            />
+          </div>
+        </SettingCard>
       </div>
 
       {isDirty && (
@@ -253,13 +288,15 @@ function SettingCard({
   icon,
   title,
   children,
+  className,
 }: {
   icon: React.ReactNode;
   title: string;
   children: React.ReactNode;
+  className?: string;
 }) {
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader className="flex flex-row items-center gap-2.5 space-y-0 pb-2">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-surface-2 text-accent-1">
           {icon}

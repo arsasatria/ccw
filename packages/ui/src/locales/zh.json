@@ -176,7 +176,12 @@
     "claude_path": "Claude 路径",
     "advanced": "高级",
     "custom_router_path": "自定义路由脚本路径",
-    "custom_router_path_placeholder": "输入自定义路由脚本文件的绝对路径"
+    "custom_router_path_placeholder": "输入自定义路由脚本文件的绝对路径",
+    "token_efficiency": "Token 效率",
+    "token_saver": "Token 节省",
+    "token_saver_hint": "压缩大体积工具输出（git diff、日志转储、文件列表）后再发送给模型。",
+    "terse_mode": "简洁模式",
+    "terse_mode_hint": "向系统提示追加简洁输出指令。减少开场白、总结和客套话。"
   },
   "transformers": {
     "title": "自定义转换器",
@@ -271,7 +276,18 @@
       "description": "首先连接一个模型提供商。网关会将请求路由到它。",
       "cta": "添加提供商"
     },
-    "unnamed": "未命名"
+    "unnamed": "未命名",
+    "account_pool": "账户池",
+    "account_pool_hint": "同一 provider 的多个 API key 在某个失败时按顺序尝试。",
+    "account_api_key": "账户 API 密钥",
+    "account_label": "账户标签",
+    "add_account": "新增账户",
+    "account_label_placeholder": "标签（可选，如 \"personal\")",
+    "account_remove_aria": "删除账户",
+    "rotation": "轮转策略",
+    "rotation_error": "错误时（默认）",
+    "rotation_quota": "配额耗尽时",
+    "rotation_hint": "错误：401/429/5xx 时切换到下一个账户。配额：配额耗尽时也切换。"
   },
   "router": {
     "title": "路由器",
@@ -288,6 +304,13 @@
     "searchModel": "搜索模型…",
     "noModelFound": "未找到模型。",
     "unassigned": "未分配",
+    "chain": "回退链",
+    "chain_hint": "按顺序尝试模型。若首个失败（限流、配额、瞬时错误），则使用下一个。",
+    "add_entry": "新增模型",
+    "entry_placeholder": "provider,model",
+    "entry_remove_aria": "删除条目",
+    "entry_move_up_aria": "上移",
+    "entry_move_down_aria": "下移",
     "threshold": {
       "title": "长上下文阈值",
       "description": "超过此 token 数的提示将被路由到长上下文模型。"

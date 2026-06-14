@@ -3,6 +3,29 @@
 All notable changes to **ccw** are documented in this file. ccw is a fork of
 [musistudio/claude-code-router](https://github.com/musistudio/claude-code-router).
 
+## [2.2.0] - 2026-06-14
+
+### Added
+
+- **Chain fallback.** `Router` values accept a `string[]` of
+  `provider,model` refs. On a recoverable error (401, 429, 5xx,
+  quota, mid-stream 400), ccw advances to the next entry. The
+  single-string form is still accepted.
+- **Account pool.** Providers accept an `accounts[]` field. Multiple
+  API keys are tried in order when one fails, before advancing the
+  chain. The legacy `api_key` field is still accepted.
+- **Token saver.** A new transformer compresses large `tool_result`
+  blocks (git diffs, log dumps, file listings) before they reach the
+  model. On by default; toggle with `tokenSaver: false` at the
+  config root.
+- **Terse mode.** A new transformer appends a terse-output
+  instruction to the system prompt. Off by default; toggle with
+  `terseMode: true`.
+
+### Notes
+
+- No breaking changes. Old configs load unchanged.
+
 ## [2.1.0] - 2026-06-14
 
 ### Added

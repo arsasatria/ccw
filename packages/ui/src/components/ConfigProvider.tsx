@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode, Dispatch, SetStateAction } from 'react';
 import { api } from '@/lib/api';
 import type { Config, StatusLineConfig } from '@/types';
+import { coerceChain } from '@/lib/utils';
 
 interface ConfigContextType {
   config: Config | null;
@@ -114,25 +115,27 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
             powerline: { modules: [] }
           },
           Router: data.Router && typeof data.Router === 'object' ? {
-            default: typeof data.Router.default === 'string' ? data.Router.default : '',
-            background: typeof data.Router.background === 'string' ? data.Router.background : '',
-            think: typeof data.Router.think === 'string' ? data.Router.think : '',
-            longContext: typeof data.Router.longContext === 'string' ? data.Router.longContext : '',
+            default: coerceChain(data.Router.default),
+            background: coerceChain(data.Router.background),
+            think: coerceChain(data.Router.think),
+            longContext: coerceChain(data.Router.longContext),
             longContextThreshold: typeof data.Router.longContextThreshold === 'number' ? data.Router.longContextThreshold : 60000,
-            webSearch: typeof data.Router.webSearch === 'string' ? data.Router.webSearch : '',
-            image: typeof data.Router.image === 'string' ? data.Router.image : ''
+            webSearch: coerceChain(data.Router.webSearch),
+            image: coerceChain(data.Router.image)
           } : {
-            default: '',
-            background: '',
-            think: '',
-            longContext: '',
+            default: [],
+            background: [],
+            think: [],
+            longContext: [],
             longContextThreshold: 60000,
-            webSearch: '',
-            image: ''
+            webSearch: [],
+            image: []
           },
-          CUSTOM_ROUTER_PATH: typeof data.CUSTOM_ROUTER_PATH === 'string' ? data.CUSTOM_ROUTER_PATH : ''
+          CUSTOM_ROUTER_PATH: typeof data.CUSTOM_ROUTER_PATH === 'string' ? data.CUSTOM_ROUTER_PATH : '',
+          tokenSaver: typeof data.tokenSaver === 'boolean' ? data.tokenSaver : true,
+          terseMode: typeof data.terseMode === 'boolean' ? data.terseMode : false
         };
-        
+
         setConfig(validConfig);
       } catch (err) {
         console.error('Failed to fetch config:', err);
@@ -153,15 +156,17 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
             Providers: [],
             StatusLine: undefined,
             Router: {
-              default: '',
-              background: '',
-              think: '',
-              longContext: '',
+              default: [],
+              background: [],
+              think: [],
+              longContext: [],
               longContextThreshold: 60000,
-              webSearch: '',
-              image: ''
+              webSearch: [],
+              image: []
             },
-            CUSTOM_ROUTER_PATH: ''
+            CUSTOM_ROUTER_PATH: '',
+            tokenSaver: true,
+            terseMode: false
           });
           setError(err as Error);
         }

@@ -127,6 +127,68 @@ ccw classifies each request as one of five kinds and routes it independently:
 
 You can override any of these per model id, per provider, or per request.
 
+### Chain fallback
+
+`Router` values can be a single `provider,model` string (legacy) or an
+ordered list. When a list, the first entry is tried; on a recoverable
+error (401, 429, 5xx, quota, mid-stream 400 from the Anthropic SDK),
+the next entry is used. This is the easiest way to add resilience
+without managing multiple presets.
+
+```json
+{
+  "Router": {
+    "default": [
+      "anthropic,claude-sonnet-4-6",
+      "openai,gpt-4o-mini",
+      "groq,llama-3.3-70b-versatile"
+    ]
+  }
+}
+```
+
+### Account pool
+
+A provider can carry multiple API keys. On a recoverable error against
+the active key, ccw rotates to the next one in the pool before
+advancing the chain.
+
+```json
+{
+  "Providers": [
+    {
+      "name": "anthropic",
+      "api_base_url": "https://api.anthropic.com",
+      "accounts": [
+        { "apiKey": "$ANTHROPIC_KEY_1", "label": "personal" },
+        { "apiKey": "$ANTHROPIC_KEY_2", "label": "work", "priority": 10 }
+      ],
+      "models": ["claude-sonnet-4-6"]
+    }
+  ]
+}
+```
+
+### Token saver
+
+On by default. Compresses large `tool_result` blocks (git diffs, log
+dumps, file listings) before they reach the model. Filters: run
+collapse, log truncation, character cap. Safe by design — if a filter
+makes the output bigger, the original is kept. Disable per config:
+
+```json
+{ "tokenSaver": false }
+```
+
+### Terse mode
+
+Off by default. Appends a terse-output instruction to the system
+prompt. Reduces preamble, summaries, and pleasantries.
+
+```json
+{ "terseMode": true }
+```
+
 ### Distributable presets
 
 A preset is a folder containing a `manifest.json`. It can carry:

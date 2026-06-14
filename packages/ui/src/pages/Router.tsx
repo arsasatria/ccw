@@ -9,17 +9,25 @@ import {
   Image as ImageIcon,
   Save,
   RotateCcw,
+  Plus,
+  X,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { useConfig } from "@/components/ConfigProvider";
 import { useToast } from "@/components/shell/ToastHost";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatusPill } from "@/components/common/StatusPill";
 import { Button } from "@/components/ui/button";
-import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { cn, deepEqual, providerModelFromRouter } from "@/lib/utils";
+import {
+  cn,
+  coerceChain,
+  deepEqual,
+  providerModelFromRouter,
+} from "@/lib/utils";
 
 const ROUTE_KINDS: Array<{
   key: keyof RouterFields;
@@ -59,12 +67,13 @@ const ROUTE_KINDS: Array<{
 ];
 
 interface RouterFields {
-  default: string;
-  background: string;
-  think: string;
-  longContext: string;
-  webSearch: string;
-  image: string;
+  default: string[];
+  background: string[];
+  think: string[];
+  longContext: string[];
+  longContextThreshold: number;
+  webSearch: string[];
+  image: string[];
 }
 
 export default function RouterPage() {
@@ -87,12 +96,44 @@ export default function RouterPage() {
   const draftRouter = draft?.Router;
   const isDirty = !deepEqual(draft, config);
 
-  const update = (key: keyof RouterFields, value: string) => {
+  const update = (key: keyof RouterFields, value: string[]) => {
     if (!draftRouter || !draft) return;
     setDraft({
       ...draft,
       Router: { ...draftRouter, [key]: value },
     });
+  };
+
+  const updateEntry = (key: keyof RouterFields, idx: number, value: string) => {
+    if (!draftRouter) return;
+    const chain = coerceChain(draftRouter[key]);
+    const next = chain.slice();
+    next[idx] = value;
+    update(key, next);
+  };
+
+  const removeEntry = (key: keyof RouterFields, idx: number) => {
+    if (!draftRouter) return;
+    const chain = coerceChain(draftRouter[key]);
+    update(
+      key,
+      chain.filter((_, i) => i !== idx)
+    );
+  };
+
+  const addEntry = (key: keyof RouterFields) => {
+    if (!draftRouter) return;
+    update(key, [...coerceChain(draftRouter[key]), ""]);
+  };
+
+  const moveEntry = (key: keyof RouterFields, idx: number, delta: number) => {
+    if (!draftRouter) return;
+    const chain = coerceChain(draftRouter[key]);
+    const target = idx + delta;
+    if (target < 0 || target >= chain.length) return;
+    const next = chain.slice();
+    [next[idx], next[target]] = [next[target], next[idx]];
+    update(key, next);
   };
 
   const updateThreshold = (n: number) => {
@@ -104,8 +145,22 @@ export default function RouterPage() {
   };
 
   const handleSave = async () => {
-    if (!draft) return;
-    setConfig(draft);
+    if (!draft || !draft.Router) return;
+    // Defensive client-side normalization: server already normalizes on read,
+    // but we strip empty / non-string entries here so the wire format is
+    // consistent regardless of what ends up in `draft`.
+    const router = draft.Router;
+    const normalizedRouter: RouterFields = {
+      default: coerceChain(router.default),
+      background: coerceChain(router.background),
+      think: coerceChain(router.think),
+      longContext: coerceChain(router.longContext),
+      longContextThreshold: router.longContextThreshold,
+      webSearch: coerceChain(router.webSearch),
+      image: coerceChain(router.image),
+    };
+    const normalized = { ...draft, Router: normalizedRouter };
+    setConfig(normalized);
     try {
       await save();
       show(`${t("app.save")} ✓`, "success");
@@ -117,16 +172,6 @@ export default function RouterPage() {
   const handleReset = () => {
     setDraft(config);
   };
-
-  const modelOptions = React.useMemo(() => {
-    const opts: { label: string; value: string }[] = [];
-    (config?.Providers ?? []).forEach((p) => {
-      (p.models ?? []).forEach((m) => {
-        opts.push({ label: `${p.name} / ${m}`, value: `${p.name},${m}` });
-      });
-    });
-    return opts;
-  }, [config?.Providers]);
 
   if (!routerConfig || !draftRouter || !draft) {
     return (
@@ -177,8 +222,9 @@ export default function RouterPage() {
 
       <div className="grid gap-4 md:grid-cols-2">
         {ROUTE_KINDS.map((route) => {
-          const value = draftRouter[route.key] ?? "";
-          const parsed = providerModelFromRouter(value);
+          const chain = coerceChain(draftRouter[route.key]);
+          const firstEntry = chain[0] ?? "";
+          const firstParsed = providerModelFromRouter(firstEntry);
           const Icon = route.icon;
           return (
             <div
@@ -197,12 +243,12 @@ export default function RouterPage() {
                     <h3 className="font-serif text-[16px] italic text-ink">
                       {t(`router.${route.key}`)}
                     </h3>
-                    {parsed ? (
+                    {firstParsed ? (
                       <Badge
                         variant="outline"
                         className="font-mono text-[10px]"
                       >
-                        {parsed.provider}
+                        {firstParsed.provider}
                       </Badge>
                     ) : (
                       <StatusPill
@@ -216,15 +262,78 @@ export default function RouterPage() {
                   </p>
                 </div>
               </div>
-              <div className="mt-4">
-                <Combobox
-                  options={modelOptions}
-                  value={value}
-                  onChange={(v) => update(route.key, v)}
-                  placeholder={t("router.selectModel")}
-                  searchPlaceholder={t("router.searchModel")}
-                  emptyPlaceholder={t("router.noModelFound")}
-                />
+
+              <div className="mt-4 space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
+                    {t("router.chain")}
+                  </div>
+                  {chain.length > 1 && (
+                    <div className="text-[10px] text-ink-subtle">
+                      {chain.length}
+                    </div>
+                  )}
+                </div>
+                {chain.length === 0 && (
+                  <p className="text-xs text-ink-muted italic">
+                    {t("router.chain_hint")}
+                  </p>
+                )}
+                {chain.map((entry, idx) => (
+                  <div key={idx} className="flex items-center gap-1">
+                    <span className="w-5 shrink-0 text-right font-mono text-[11px] text-ink-subtle">
+                      {idx + 1}.
+                    </span>
+                    <Input
+                      value={entry}
+                      placeholder={t("router.entry_placeholder")}
+                      onChange={(e) =>
+                        updateEntry(route.key, idx, e.target.value)
+                      }
+                      aria-label={`${t("router.chain")} ${idx + 1}`}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => moveEntry(route.key, idx, -1)}
+                      disabled={idx === 0}
+                      aria-label={t("router.entry_move_up_aria")}
+                    >
+                      <ChevronUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => moveEntry(route.key, idx, 1)}
+                      disabled={idx === chain.length - 1}
+                      aria-label={t("router.entry_move_down_aria")}
+                    >
+                      <ChevronDown className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => removeEntry(route.key, idx)}
+                      aria-label={t("router.entry_remove_aria")}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ))}
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => addEntry(route.key)}
+                  className="mt-1"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  {t("router.add_entry")}
+                </Button>
               </div>
             </div>
           );

@@ -30,9 +30,16 @@ import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
 import { ComboInput } from "@/components/ui/combo-input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { api, fetchProviderModels, FetchProviderModelsError } from "@/lib/api";
-import { cn, hostnameFromUrl, maskKey } from "@/lib/utils";
-import type { Provider, ProviderTransformer } from "@/types";
+import { cn, hostnameFromUrl, maskKey, normalizeAccounts } from "@/lib/utils";
+import type { Provider, ProviderAccount, ProviderTransformer } from "@/types";
 
 interface ProviderTemplate {
   name: string;
@@ -107,6 +114,8 @@ export default function ProvidersPage() {
       api_base_url: "",
       api_key: "",
       models: [],
+      accounts: [],
+      rotation: "error",
     };
     setEditingIdx(providers.length);
     setEditingData(data);
@@ -117,8 +126,27 @@ export default function ProvidersPage() {
   };
 
   const handleEdit = (idx: number) => {
+    const source = providers[idx];
+    const cloned = JSON.parse(JSON.stringify(source)) as Provider;
+    // Back-compat migration: if the saved provider has the legacy single
+    // `api_key` but no `accounts`, pre-seed the pool with one row so the
+    // Account-pool editor shows the existing key. If `accounts` already
+    // exists, leave it alone. (Trimming happens in normalizeAccounts at
+    // save time, not here.)
+    if (
+      (!cloned.accounts || cloned.accounts.length === 0) &&
+      cloned.api_key &&
+      cloned.api_key.trim().length > 0
+    ) {
+      cloned.accounts = [{ apiKey: cloned.api_key, label: "" }];
+    } else if (!cloned.accounts) {
+      cloned.accounts = [];
+    }
+    if (!cloned.rotation) {
+      cloned.rotation = "error";
+    }
     setEditingIdx(idx);
-    setEditingData(JSON.parse(JSON.stringify(providers[idx])));
+    setEditingData(cloned);
     setIsNew(false);
     setShowKey(false);
     setNameError(null);
@@ -143,16 +171,34 @@ export default function ProvidersPage() {
       return;
     }
 
-    if (!editingData.api_key || !editingData.api_key.trim()) {
+    const hasLegacyKey = !!(editingData.api_key && editingData.api_key.trim());
+    const hasAccountKeys = (editingData.accounts ?? []).some(
+      (a) => a.apiKey && a.apiKey.trim().length > 0
+    );
+    if (!hasLegacyKey && !hasAccountKeys) {
       setKeyError(t("providers.api_key_required"));
       return;
     }
 
+    // Normalize the account pool + legacy key before persisting. See
+    // normalizeAccounts for the collapse rules.
+    const normalized = normalizeAccounts({
+      api_key: editingData.api_key,
+      accounts: editingData.accounts,
+      rotation: editingData.rotation,
+    });
+    const toSave: Provider = {
+      ...editingData,
+      api_key: normalized.api_key,
+      accounts: normalized.accounts,
+      rotation: normalized.rotation,
+    };
+
     const list = [...providers];
     if (isNew) {
-      list.push(editingData);
+      list.push(toSave);
     } else if (editingIdx !== null) {
-      list[editingIdx] = editingData;
+      list[editingIdx] = toSave;
     }
     if (!config) return;
     setConfig({ ...config, Providers: list });
@@ -711,6 +757,13 @@ function ProviderEditDialog({
               )}
             </div>
 
+            <AccountPoolSection
+              accounts={data.accounts ?? []}
+              rotation={data.rotation ?? "error"}
+              onChangeAccounts={(accounts) => set({ accounts })}
+              onChangeRotation={(rotation) => set({ rotation })}
+            />
+
             <div className="space-y-2">
               <div className="flex items-center justify-between gap-2">
                 <Label>{t("providers.models")}</Label>
@@ -1118,6 +1171,142 @@ function TransformerRow({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+interface AccountPoolSectionProps {
+  accounts: ProviderAccount[];
+  rotation: "error" | "quota";
+  onChangeAccounts: (next: ProviderAccount[]) => void;
+  onChangeRotation: (next: "error" | "quota") => void;
+}
+
+/**
+ * Account pool editor. Renders one row per `ProviderAccount` (an
+ * `apiKey` + optional `label`) plus an "Add account" button. A
+ * `<select>` below the rows lets the user pick the rotation strategy.
+ *
+ * The legacy `api_key` field on the provider itself (rendered above
+ * this section) acts as the first/legacy entry; this section is for
+ * additional accounts. Save-time normalization in `handleSave`
+ * collapses a single account that matches the legacy key back to the
+ * legacy shape, and clears the legacy key when 2+ accounts remain.
+ */
+function AccountPoolSection({
+  accounts,
+  rotation,
+  onChangeAccounts,
+  onChangeRotation,
+}: AccountPoolSectionProps) {
+  const { t } = useTranslation();
+  const count = accounts.length;
+
+  const updateAt = (i: number, patch: Partial<ProviderAccount>) => {
+    const next = accounts.map((a, idx) => (idx === i ? { ...a, ...patch } : a));
+    onChangeAccounts(next);
+  };
+
+  const removeAt = (i: number) => {
+    onChangeAccounts(accounts.filter((_, idx) => idx !== i));
+  };
+
+  const addRow = () => {
+    onChangeAccounts([...accounts, { apiKey: "" }]);
+  };
+
+  return (
+    <div className="space-y-2">
+      <details
+        className="rounded-md border border-line bg-surface-2/40 group"
+        open={count > 0}
+      >
+        <summary className="flex cursor-pointer items-center justify-between gap-2 px-3 py-2 text-[13px] font-medium text-ink select-none list-none [&::-webkit-details-marker]:hidden">
+          <span className="flex items-center gap-2">
+            <KeyRound className="h-3.5 w-3.5 text-ink-subtle" />
+            {t("providers.account_pool")}
+            {count > 0 && (
+              <span className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[10.5px] text-ink-muted ring-1 ring-inset ring-line">
+                {count}
+              </span>
+            )}
+          </span>
+          <span className="text-[11px] text-ink-subtle group-open:rotate-90 transition-transform">
+            ›
+          </span>
+        </summary>
+        <div className="space-y-3 px-3 pb-3 pt-1">
+          <p className="text-[11px] leading-relaxed text-ink-muted">
+            {t("providers.account_pool_hint")}
+          </p>
+          <div className="space-y-2">
+            {accounts.map((acct, i) => (
+              <div
+                key={i}
+                className="grid grid-cols-1 gap-2 rounded border border-line bg-surface p-2 sm:grid-cols-[1fr_180px_auto]"
+              >
+                <Input
+                  type="password"
+                  value={acct.apiKey}
+                  onChange={(e) => updateAt(i, { apiKey: e.target.value })}
+                  placeholder="sk-…"
+                  className="font-mono"
+                  aria-label={t("providers.account_api_key")}
+                />
+                <Input
+                  value={acct.label ?? ""}
+                  onChange={(e) => updateAt(i, { label: e.target.value })}
+                  placeholder={t("providers.account_label_placeholder")}
+                  className="text-xs"
+                  aria-label={t("providers.account_label")}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  onClick={() => removeAt(i)}
+                  aria-label={t("providers.account_remove_aria")}
+                  className="justify-self-end"
+                >
+                  <X className="h-3.5 w-3.5 text-danger" />
+                </Button>
+              </div>
+            ))}
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={addRow}
+            className="w-full"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            {t("providers.add_account")}
+          </Button>
+        </div>
+      </details>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="rotation" className="flex items-center gap-1.5">
+          <RefreshCw className="h-3 w-3" />
+          {t("providers.rotation")}
+        </Label>
+        <Select
+          value={rotation}
+          onValueChange={(v) => onChangeRotation(v as "error" | "quota")}
+        >
+          <SelectTrigger id="rotation" className="max-w-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="error">{t("providers.rotation_error")}</SelectItem>
+            <SelectItem value="quota">{t("providers.rotation_quota")}</SelectItem>
+          </SelectContent>
+        </Select>
+        <p className="text-[11px] leading-relaxed text-ink-muted">
+          {t("providers.rotation_hint")}
+        </p>
+      </div>
     </div>
   );
 }
