@@ -117,6 +117,12 @@ export const createServer = async (config: any): Promise<any> => {
 
   // Fetch available models from a provider's OpenAI-compatible /v1/models endpoint.
   // Used by the Add/Edit Provider dialog to populate the model list with one click.
+  //
+  // The user's `api_base_url` may either be the bare origin ("https://api.openai.com")
+  // or include the /v1 prefix ("https://api.openai.com/v1"). We try a small set of
+  // candidate URLs in order and return the first one that yields a valid models
+  // response. The list of URLs we tried is included in error responses so the UI
+  // can show what actually failed.
   app.post("/api/providers/models", async (req: any, reply: any) => {
     const { base_url, api_key } = (req.body || {}) as {
       base_url?: string;
@@ -128,55 +134,85 @@ export const createServer = async (config: any): Promise<any> => {
       return;
     }
 
-    // Strip trailing slashes so we don't end up with "//v1/models".
-    const trimmedBase = base_url.replace(/\/+$/, "");
-    const url = `${trimmedBase}/v1/models`;
+    // Normalize: strip trailing slashes and a trailing /v1 (if present) so we
+    // don't construct "…/v1/v1/models" when the user already included /v1.
+    const normalized = base_url
+      .replace(/\/+$/, "")
+      .replace(/\/v1$/, "");
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    const candidates = [`${normalized}/v1/models`, `${normalized}/models`];
 
-    try {
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${api_key}`,
-        },
-        signal: controller.signal,
-      });
+    let lastDetail: string | null = null;
+    for (const url of candidates) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10_000);
 
-      if (!response.ok) {
-        const detail = `${response.status} ${response.statusText}`;
-        console.error(`Failed to fetch models from ${url}: ${detail}`);
-        reply.status(502).send({ error: "fetch_failed", message: detail });
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${api_key}`,
+          },
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          lastDetail = `${response.status} ${response.statusText} at ${url}`;
+          console.error(`Failed to fetch models from ${url}: ${lastDetail}`);
+          // 404 = wrong path; try the next candidate. Other statuses = bail.
+          if (response.status === 404) continue;
+          reply.status(502).send({
+            error: "fetch_failed",
+            message: lastDetail,
+            tried: candidates,
+          });
+          return;
+        }
+
+        const body = (await response.json()) as {
+          data?: Array<{ id?: unknown }>;
+        };
+        if (!body || !Array.isArray(body.data)) {
+          lastDetail = `Unexpected response shape at ${url}`;
+          console.error(`Unexpected /v1/models response shape from ${url}:`, body);
+          continue;
+        }
+
+        const models = body.data
+          .map((m) => (m && typeof m.id === "string" ? m.id : null))
+          .filter((id): id is string => id !== null);
+
+        return { models, source: url };
+      } catch (err: any) {
+        if (err?.name === "AbortError") {
+          console.error(`Fetching models from ${url} timed out after 10s`);
+          reply.status(502).send({
+            error: "fetch_failed",
+            message: `Request to ${url} timed out after 10s`,
+            tried: candidates,
+          });
+          return;
+        }
+        console.error(`Failed to fetch models from ${url}:`, err);
+        reply.status(502).send({
+          error: "fetch_failed",
+          message: `${err?.message ?? "Unknown error"} (at ${url})`,
+          tried: candidates,
+        });
         return;
+      } finally {
+        clearTimeout(timeoutId);
       }
-
-      const body = (await response.json()) as { data?: Array<{ id?: unknown }> };
-      if (!body || !Array.isArray(body.data)) {
-        console.error(`Unexpected /v1/models response shape from ${url}:`, body);
-        reply.status(500).send({ error: "invalid_response" });
-        return;
-      }
-
-      const models = body.data
-        .map((m) => (m && typeof m.id === "string" ? m.id : null))
-        .filter((id): id is string => id !== null);
-
-      return { models };
-    } catch (err: any) {
-      if (err?.name === "AbortError") {
-        console.error(`Fetching models from ${url} timed out after 10s`);
-        reply.status(502).send({ error: "fetch_failed", message: "Request timed out" });
-        return;
-      }
-      console.error(`Failed to fetch models from ${url}:`, err);
-      reply.status(502).send({
-        error: "fetch_failed",
-        message: err?.message ?? "Unknown error",
-      });
-    } finally {
-      clearTimeout(timeoutId);
     }
+
+    // All candidates returned 404 or wrong shape.
+    reply.status(404).send({
+      error: "fetch_failed",
+      message: lastDetail
+        ? `${lastDetail}. The provider may not expose a /v1/models endpoint — enter models manually.`
+        : `No candidate URL returned a valid models list. Tried: ${candidates.join(", ")}`,
+      tried: candidates,
+    });
   });
 
   // Register static file serving with caching
