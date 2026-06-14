@@ -130,9 +130,11 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
             webSearch: '',
             image: ''
           },
-          CUSTOM_ROUTER_PATH: typeof data.CUSTOM_ROUTER_PATH === 'string' ? data.CUSTOM_ROUTER_PATH : ''
+          CUSTOM_ROUTER_PATH: typeof data.CUSTOM_ROUTER_PATH === 'string' ? data.CUSTOM_ROUTER_PATH : '',
+          tokenSaver: typeof data.tokenSaver === 'boolean' ? data.tokenSaver : true,
+          terseMode: typeof data.terseMode === 'boolean' ? data.terseMode : false
         };
-        
+
         setConfig(validConfig);
       } catch (err) {
         console.error('Failed to fetch config:', err);
@@ -161,7 +163,9 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
               webSearch: '',
               image: ''
             },
-            CUSTOM_ROUTER_PATH: ''
+            CUSTOM_ROUTER_PATH: '',
+            tokenSaver: true,
+            terseMode: false
           });
           setError(err as Error);
         }

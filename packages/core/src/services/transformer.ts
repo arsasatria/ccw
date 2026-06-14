@@ -129,11 +129,18 @@ export class TransformerService {
       const tokenSaverEnabled = this.configService.get("tokenSaver") !== false;
       const terseModeEnabled = this.configService.get("terseMode") === true;
 
+      // Hoist the cast: each comparison below only needs TokenSaver / TerseMode
+      // entries, not the full Transformers table.
+      const T = Transformers as {
+        TokenSaverTransformer: any;
+        TerseModeTransformer: any;
+      };
+
       Object.values(Transformers).forEach(
         (TransformerStatic: any) => {
           // Skip the TokenSaverTransformer when the user has disabled it.
           if (
-            TransformerStatic === (Transformers as any).TokenSaverTransformer &&
+            TransformerStatic === T.TokenSaverTransformer &&
             !tokenSaverEnabled
           ) {
             return;
@@ -142,7 +149,7 @@ export class TransformerService {
           // enabled it. The transformer is a no-op when disabled, so there
           // is no value in registering a dormant instance.
           if (
-            TransformerStatic === (Transformers as any).TerseModeTransformer &&
+            TransformerStatic === T.TerseModeTransformer &&
             !terseModeEnabled
           ) {
             return;

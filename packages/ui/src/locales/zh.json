@@ -179,7 +179,7 @@
     "custom_router_path_placeholder": "输入自定义路由脚本文件的绝对路径",
     "token_efficiency": "Token 效率",
     "token_saver": "Token 节省",
-    "token_saver_hint": "在到达模型前压缩大体积工具输出（git diff、日志转储、文件列表）。",
+    "token_saver_hint": "压缩大体积工具输出（git diff、日志转储、文件列表）后再发送给模型。",
     "terse_mode": "简洁模式",
     "terse_mode_hint": "向系统提示追加简洁输出指令。减少开场白、总结和客套话。"
   },
