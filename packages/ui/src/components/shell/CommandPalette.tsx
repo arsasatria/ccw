@@ -128,6 +128,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
 CommandPalette.Trigger = function Trigger() {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
   React.useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       const isMod = e.metaKey || e.ctrlKey;
@@ -144,9 +145,9 @@ CommandPalette.Trigger = function Trigger() {
       <button
         onClick={() => setOpen(true)}
         className="flex h-8 items-center gap-2 rounded-sm border border-line bg-surface px-2.5 text-[12px] text-ink-muted hover:bg-surface-2 focus-warm"
-        aria-label="Open command palette"
+        aria-label={t("common.open_command_palette")}
       >
-        <span>Search</span>
+        <span>{t("common.search")}</span>
         <kbd className="rounded-sm border border-line bg-paper px-1 text-[10px]">⌘K</kbd>
       </button>
       <CommandPalette open={open} onOpenChange={setOpen} />

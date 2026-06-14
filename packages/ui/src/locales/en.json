@@ -4,7 +4,12 @@
     "no": "No",
     "loading": "Loading…",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "account": "Account",
+    "close": "Close",
+    "open_command_palette": "Open command palette",
+    "primary_navigation": "Primary navigation",
+    "search": "Search"
   },
   "app": {
     "title": "ccw",
@@ -223,6 +228,8 @@
     "add_parameter": "Add parameter",
     "parameter_name": "Parameter name",
     "parameter_value": "Parameter value",
+    "param_placeholder": "param",
+    "value_placeholder": "value",
     "selected_transformers": "Selected Transformers",
     "import_from_template": "Import from template",
     "no_templates_found": "No templates found",
