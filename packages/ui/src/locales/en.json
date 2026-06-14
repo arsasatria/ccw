@@ -401,11 +401,39 @@
   },
   "presets": {
     "title": "Presets",
+    "subtitle": "Reusable transformer & route bundles.",
+    "tabs": {
+      "installed": "Installed",
+      "market": "Market"
+    },
+    "featured": {
+      "label": "Featured",
+      "title": "Anthropic bundle",
+      "description": "Recommended transformers for Claude providers — install in one click.",
+      "install": "Install",
+      "installed": "Installed"
+    },
+    "empty": {
+      "installed": {
+        "title": "No presets installed",
+        "description": "Install a preset to get started, or browse the market for community presets."
+      },
+      "market": {
+        "title": "No presets found",
+        "description": "Try adjusting your search terms."
+      },
+      "market_empty": {
+        "title": "No community presets available",
+        "description": "Check back later for new community presets."
+      }
+    },
     "market_title": "Preset Market",
     "market_description": "Browse and install presets from the community marketplace",
     "no_presets": "No presets installed",
     "no_presets_hint": "Install a preset to get started",
     "search_placeholder": "Search presets by name, description, author, or keywords...",
+    "search_installed_placeholder": "Search installed presets…",
+    "search_market_placeholder": "Search market presets…",
     "no_presets_found": "No presets found",
     "no_presets_found_hint": "Try adjusting your search terms",
     "loading": "Loading...",
@@ -413,6 +441,8 @@
     "downloads": "{{count}} downloads",
     "github_repository": "GitHub Repository",
     "view_details": "View Details",
+    "view": "View",
+    "repo": "repo",
     "install": "Install",
     "installing": "Installing...",
     "installed_label": "Installed",
@@ -430,6 +460,14 @@
     "preset_name_placeholder": "Auto-generated from repository",
     "github_url_hint": "Enter GitHub repository URL (e.g., https://github.com/owner/repo)",
     "detail_dialog_title": "Preset Details",
+    "detail": {
+      "author": "Author",
+      "homepage": "Homepage",
+      "repository": "Repository",
+      "license": "License",
+      "keywords": "Keywords",
+      "version": "Version"
+    },
     "required_information": "Required Information",
     "delete_dialog_title": "Delete Preset",
     "delete_dialog_description": "Are you sure you want to delete preset \"{{name}}\"? This action cannot be undone.",
@@ -447,6 +485,7 @@
     "preset_installed_config_required": "Preset installed, please complete configuration",
     "please_provide_file": "Please provide a preset directory",
     "please_provide_url": "Please provide a valid GitHub repository URL",
+    "count": "{{count}} of {{total}}",
     "form": {
       "field_required": "{{field}} is required",
       "must_be_number": "{{field}} must be a number",

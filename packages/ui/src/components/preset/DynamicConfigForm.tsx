@@ -51,6 +51,8 @@ interface RequiredInput {
   dependsOn?: string[];
 }
 
+export type { RequiredInput };
+
 interface PresetConfigSection {
   Providers?: Array<{
     name: string;
