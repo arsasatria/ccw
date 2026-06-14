@@ -1,7 +1,7 @@
 # ccw × 9Router — Adoption Analysis
 
 **Date:** 2026-06-14
-**Status:** Exploratory. No commitment to implement. Read, discuss, decide per feature.
+**Status:** Approved direction. Open questions resolved (see §8). Ready to plan.
 **Source:** [decolua/9router](https://github.com/decolua/9router) (MIT, ~17k stars, Next.js + better-sqlite3 + React 19)
 
 ## 1. Context
@@ -181,21 +181,45 @@ A major bump (3.0.0) is only justified if a breaking change is required (e.g., r
 - **The Caveman prompt injection system.** Out of scope; trivial to add as a `ccw settings` flag if asked.
 - **Docker images as a first-class install path.** The installer works. Defer.
 
-## 8. Open questions for the user
+## 8. Decisions
 
-1. **Multi-account rotation: error-based or quota-based?** Error-based (401/429/5xx → next account) is ~80% of the value at 10% of the code. Quota-based needs per-provider quota adapters and a tracker. I'd start with error-based and add quota-aware rotation later if needed.
-2. **Should the fallback chain also rotate accounts within a single model ref?** I.e., `["anthropic,claude-sonnet-4-6", "openai,gpt-4o-mini"]` — if the first is in cooldown, do we try `anthropic` with another account, or jump straight to the second entry? I'd say: try the next account on the same provider first (cheaper, same quality), then move to the next entry. This matches 9router's behavior.
-3. **RTK on by default?** I'd say yes, with a per-provider opt-out and a global `ccw settings → toolResultCompressor: bool` toggle. Users on tight token budgets (TokenRouter, free tiers) want it; users on Anthropic Pro might not care.
-4. **Caveman mode?** Trivial. Worth shipping alongside RTK or as a separate small PR?
-5. **Branding.** 9router's "router" framing (combos, multi-account) leans into the metaphor harder than ccw's. We should pick our own words. My current lean: "fallback chain" for combos, "account pool" for multi-account, "token saver" for RTK, "terse mode" for Caveman.
+Resolved after discussion with the user. The implementation plan keys off these.
+
+1. **Both rotation strategies are in.** Error-based failover (401 / 429 / 5xx → next account) is always on — it's a free 80% win. Quota-based rotation is opt-in per provider, behind a per-provider `rotation: "error" | "quota"` flag (default `"error"`). Quota mode piggybacks on the eventual per-provider quota tracker (§3.4).
+
+2. **Same-provider account first, then next chain entry.** The walker tries the next account on the same provider before advancing to the next entry. This is the cheapest interpretation: `["anthropic,claude-sonnet-4-6", "openai,gpt-4o-mini"]` with two Anthropic accounts tries `anthropic#account-2` before `openai#default`. No configuration needed — it's just the natural order.
+
+3. **Token saver on by default.** Opt-out per provider, plus a global `ccw settings → tokenSaver: bool` toggle that wins over per-provider settings. Strict OpenAI-spec providers and tight-budget users want it on; power users on Anthropic Pro can flip it off.
+
+4. **Terse mode ships in the same release as token saver.** Both are small transformers / setting changes. Bundling keeps the release count low and lets users tune both at once.
+
+5. **Custom naming.** 9router's terms (combo, RTK, Caveman, multi-account) are not reused. ccw's vocabulary:
+
+   | 9router term     | ccw term            |
+   |------------------|---------------------|
+   | combo            | **chain**           |
+   | multi-account    | **account pool**    |
+   | RTK token saver  | **token saver**     |
+   | Caveman mode     | **terse mode**      |
+   | OAuth provider   | _(out of scope)_    |
+
+   "Chain" is the noun (`Router.default = ["anthropic,sonnet", "openai,gpt-4o-mini"]` is a chain of two). The verb is "fall through" or "advance". "Account pool" replaces both "multi-account" and "credentials" — one provider can have N accounts in its pool. "Token saver" is the feature; the transformer is `toolResultCompressor`. "Terse mode" replaces "Caveman" and is a boolean setting.
 
 ## 9. Suggested next step
 
-If the user wants to proceed:
+Plan the implementation in bite-sized tasks per the `superpowers:writing-plans` skill. The plan covers:
 
-1. Pick P0 features to adopt (recommend: 3.1, 3.2, 3.5).
-2. Resolve the five open questions above.
-3. Write a follow-up spec (one file per feature) that nails down config shape, error classifier, and UI.
-4. Plan the implementation in bite-sized tasks per the `superpowers:writing-plans` skill.
+- Task 1: `Router` schema accepts `string | string[]` (backward-compat)
+- Task 2: chain walker with same-provider-account-first semantics
+- Task 3: `Provider.accounts` field, account pool, account selection
+- Task 4: error-classifier + same-provider failover
+- Task 5: per-provider `rotation: "error" | "quota"` flag (quota mode stubbed for now)
+- Task 6: `tokenSaver` transformer + filters + safe fallback
+- Task 7: `terseMode` setting + system-prompt injection
+- Task 8: UI — chain editor on Router page
+- Task 9: UI — account pool editor on Providers page
+- Task 10: i18n keys (en + zh)
+- Task 11: regression tests
+- Task 12: README + CHANGELOG
 
-If the user wants to defer: this doc stays as a reference. The P0 list is short enough to act on in a single sprint.
+If the user wants to defer: this doc stays as a reference.
