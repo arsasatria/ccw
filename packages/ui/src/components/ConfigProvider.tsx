@@ -6,6 +6,9 @@ import type { Config, StatusLineConfig } from '@/types';
 interface ConfigContextType {
   config: Config | null;
   setConfig: Dispatch<SetStateAction<Config | null>>;
+  save: () => Promise<void>;
+  isSaving: boolean;
+  saveError: Error | null;
   error: Error | null;
 }
 
@@ -27,8 +30,29 @@ interface ConfigProviderProps {
 export function ConfigProvider({ children }: ConfigProviderProps) {
   const [config, setConfig] = useState<Config | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [saveError, setSaveError] = useState<Error | null>(null);
+  const [isSaving, setIsSaving] = useState<boolean>(false);
   const [hasFetched, setHasFetched] = useState<boolean>(false);
   const [apiKey, setApiKey] = useState<string | null>(localStorage.getItem('apiKey'));
+
+  // Persist the current `config` snapshot to the server via POST /api/config.
+  // This is the explicit-Save contract: callers update local state via
+  // `setConfig` and then invoke `save()` to commit. Returns a rejected
+  // promise on failure so callers can surface errors.
+  const save = async (): Promise<void> => {
+    if (!config) return;
+    setIsSaving(true);
+    try {
+      await api.saveConfig(config);
+      setSaveError(null);
+    } catch (e) {
+      const err = e instanceof Error ? e : new Error(String(e));
+      setSaveError(err);
+      throw err;
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Listen for localStorage changes
   useEffect(() => {
@@ -148,7 +172,7 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
   }, [hasFetched, apiKey]);
 
   return (
-    <ConfigContext.Provider value={{ config, setConfig, error }}>
+    <ConfigContext.Provider value={{ config, setConfig, save, isSaving, saveError, error }}>
       {children}
     </ConfigContext.Provider>
   );

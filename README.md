@@ -212,7 +212,39 @@ Config lives at `~/.ccw/config.json`. Edit by hand, edit in the UI, or `ccw mode
 
 Environment variables are interpolated into string values with `$VAR` syntax. After any change, run `ccw restart`.
 
-Full reference: see `docs/cli/config/` in this repo.
+## What's new in 0.5.0
+
+### Explicit save buttons on every edit page
+
+Every page that mutates the gateway config now has an explicit Save affordance. Drafts are kept in component state until the user clicks Save; `POST /api/config` only fires on commit. If the server rejects the save (validation, network), the local state stays dirty and the toast surfaces the reason.
+
+- **Settings** & **Router**: a sticky save bar appears whenever the draft diverges from the persisted config, with a Reset button to discard and a Save button that disables itself while the request is in flight.
+- **Providers** & **Transformers**: the existing in-dialog Save now actually persists. A green toast confirms, a red one carries the server's error message.
+
+### Server-side validation
+
+`POST /api/config` now refuses to write a config with duplicate provider names. The check is case-insensitive and ignores whitespace, so `"openai"` and `"OpenAI"` collide. On rejection the server returns 400 with `{ error: "duplicate_provider_names", duplicates: [...] }`; the UI toasts the message verbatim.
+
+### Log viewer: real download, real button
+
+Two long-standing bugs in the log page are fixed:
+
+- The refresh button now reads `Refresh` / `刷新` instead of leaking the raw i18n key.
+- Downloading the log file writes the actual log lines, one per line. The previous code tried to destructure each line into `{ timestamp, level, message }` and produced `[undefined] [undefined] undefined` spam.
+
+### Dashboard: real request count
+
+The hero stat now reflects reality. Instead of a hardcoded `142 req/s`, the dashboard counts the non-empty lines in `~/.ccw/logs/app.log` and renders something honest like `1,284 requests served`. It has loading, error, and zero states, and a manual refresh button.
+
+### Provider model picker
+
+`Fetch available models` no longer dumps the entire provider catalog into the selected list. It now populates a selector; the user picks which models to add, and the previously-selected ones are filtered out. Manual entry (`type a name, press Enter`) still works for models that don't appear in the fetched list.
+
+A real-time duplicate-name check is wired into the provider name field — the inline error appears the moment you type a name that already exists (case-insensitive).
+
+### Debug page
+
+The history modal lost its duplicate X icon (Radix's `DialogContent` already provides one).
 
 ## CLI
 

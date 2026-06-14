@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Plus,
@@ -45,7 +45,7 @@ interface ProviderTemplate {
 
 export default function ProvidersPage() {
   const { t } = useTranslation();
-  const { config, setConfig } = useConfig();
+  const { config, setConfig, save } = useConfig();
   const { show } = useToast();
 
   const [search, setSearch] = useState("");
@@ -89,6 +89,18 @@ export default function ProvidersPage() {
 
   const providers = config?.Providers ?? [];
 
+  // Returns true when `name` (case-insensitive) matches a different
+  // existing provider. The currently-edited provider is excluded so
+  // saving without renaming the existing one stays a no-op.
+  const isProviderNameDuplicate = (name: string): boolean => {
+    const trimmed = name.trim();
+    if (!trimmed) return false;
+    return providers.some((p, i) => {
+      if (!isNew && i === editingIdx) return false;
+      return p.name.toLowerCase() === trimmed.toLowerCase();
+    });
+  };
+
   const handleAdd = () => {
     const data: Provider = {
       name: "",
@@ -113,7 +125,7 @@ export default function ProvidersPage() {
     setKeyError(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editingData) return;
 
     if (!editingData.name || !editingData.name.trim()) {
@@ -144,10 +156,15 @@ export default function ProvidersPage() {
     }
     if (!config) return;
     setConfig({ ...config, Providers: list });
-    setEditingIdx(null);
-    setEditingData(null);
-    setIsNew(false);
-    show(t("app.save") + " ✓", "success");
+    try {
+      await save();
+      setEditingIdx(null);
+      setEditingData(null);
+      setIsNew(false);
+      show(t("app.save") + " ✓", "success");
+    } catch (e) {
+      show(`Save failed: ${(e as Error).message}`, "error");
+    }
   };
 
   const handleCancel = () => {
@@ -162,13 +179,18 @@ export default function ProvidersPage() {
     setDeletingIdx(idx);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (deletingIdx === null) return;
     if (!config) return;
     const list = providers.filter((_, i) => i !== deletingIdx);
     setConfig({ ...config, Providers: list });
-    setDeletingIdx(null);
-    show(t("providers.delete") + " ✓", "success");
+    try {
+      await save();
+      setDeletingIdx(null);
+      show(t("providers.delete") + " ✓", "success");
+    } catch (e) {
+      show(`Save failed: ${(e as Error).message}`, "error");
+    }
   };
 
   const filtered = providers.filter((p) => {
@@ -349,7 +371,9 @@ export default function ProvidersPage() {
         showKey={showKey}
         setShowKey={setShowKey}
         nameError={nameError}
+        setNameError={setNameError}
         keyError={keyError}
+        isNameDuplicate={isProviderNameDuplicate}
         onSave={handleSave}
         onCancel={handleCancel}
       />
@@ -386,7 +410,9 @@ interface EditDialogProps {
   showKey: boolean;
   setShowKey: (v: boolean) => void;
   nameError: string | null;
+  setNameError: (e: string | null) => void;
   keyError: string | null;
+  isNameDuplicate?: (name: string) => boolean;
   onSave: () => void;
   onCancel: () => void;
 }
@@ -406,18 +432,26 @@ function ProviderEditDialog({
   showKey,
   setShowKey,
   nameError,
+  setNameError,
   keyError,
+  isNameDuplicate,
   onSave,
   onCancel,
 }: EditDialogProps) {
   const { t } = useTranslation();
   const { show } = useToast();
   const [isFetchingModels, setIsFetchingModels] = useState(false);
+  // Fetched models from the provider's /v1/models endpoint. These are
+  // shown in the ComboInput selector so the user can pick which ones
+  // to add — fetched models are NOT auto-added to the selected list.
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
 
-  // Reset the spinner state when the dialog is opened for a different provider
-  // (or a new one) so the button doesn't carry over a stale "fetching" UI.
+  // Reset transient state when the dialog is opened for a different
+  // provider (or a new one) so the spinner and fetched list don't
+  // carry over from the previous provider.
   useEffect(() => {
     setIsFetchingModels(false);
+    setAvailableModels([]);
   }, [open]);
 
   if (!data) return null;
@@ -449,11 +483,12 @@ function ProviderEditDialog({
         data.api_base_url.trim(),
         data.api_key.trim()
       );
-      // Merge with any models the user has already entered — de-dupe, preserve order.
-      const merged = Array.from(
-        new Set([...(data.models ?? []), ...models])
-      );
-      set({ models: merged });
+      // Store the fetched models in `availableModels` so the user can
+      // pick which ones to add via the ComboInput selector. We do NOT
+      // auto-merge them into `data.models` — the user explicitly opts
+      // in to each model so the saved list reflects what they actually
+      // want routed, not the entire provider catalog.
+      setAvailableModels(models);
       const suffix = models.length === 1 ? "" : "s";
       show(
         `${t("providers.fetch_available_models")} (${models.length} model${suffix})`,
@@ -469,6 +504,20 @@ function ProviderEditDialog({
       setIsFetchingModels(false);
     }
   };
+
+  // Options for the model selector: fetched models that the user has
+  // not already selected. Selected models are hidden from the dropdown
+  // because clicking them would be a no-op (handleAddModel dedupes).
+  // The text input is always available for entering a name that's
+  // missing from the fetched list.
+  const selectorOptions = useMemo(() => {
+    const selected = new Set(
+      (data.models ?? []).map((m) => m.toLowerCase())
+    );
+    return availableModels
+      .filter((m) => !selected.has(m.toLowerCase()))
+      .map((m) => ({ label: m, value: m }));
+  }, [availableModels, data.models]);
 
   const handleTemplateImport = (raw: string) => {
     if (!raw) return;
@@ -582,7 +631,19 @@ function ProviderEditDialog({
                 <Input
                   id="name"
                   value={data.name}
-                  onChange={(e) => set({ name: e.target.value })}
+                  onChange={(e) => {
+                    const newName = e.target.value;
+                    set({ name: newName });
+                    // Real-time duplicate-name check. We only show the
+                    // duplicate error here (not the "required" error,
+                    // which is reserved for the save attempt) so the
+                    // user gets immediate feedback while typing.
+                    if (newName.trim() && isNameDuplicate?.(newName)) {
+                      setNameError(t("providers.name_duplicate"));
+                    } else {
+                      setNameError(null);
+                    }
+                  }}
                   className={cn(
                     nameError && "border-danger focus-visible:ring-danger/40"
                   )}
@@ -675,12 +736,21 @@ function ProviderEditDialog({
                 </Button>
               </div>
               <ComboInput
-                options={(data.models ?? []).map((m) => ({ label: m, value: m }))}
+                options={selectorOptions}
                 value=""
                 onChange={() => undefined /* required by ComboInput; model is added via onEnter, not via controlled value */}
                 onEnter={handleAddModel}
                 inputPlaceholder={t("providers.models_placeholder")}
+                emptyPlaceholder={
+                  availableModels.length === 0
+                    ? t("providers.models_selector_empty_no_fetch")
+                    : t("providers.models_selector_empty_all_added")
+                }
+                searchPlaceholder={t("providers.models_selector_search")}
               />
+              <p className="text-[11px] leading-relaxed text-ink-muted">
+                {t("providers.models_selector_hint")}
+              </p>
               {data.models && data.models.length > 0 && (
                 <div className="flex flex-wrap gap-1.5 pt-1">
                   {data.models.map((m, i) => (

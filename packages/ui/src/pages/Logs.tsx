@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/shell/ToastHost";
@@ -25,23 +24,6 @@ interface LogFile {
   lastModified: string;
 }
 
-interface LogEntry {
-  timestamp: string;
-  level: string;
-  message: string;
-  source?: string;
-  reqId?: string;
-}
-
-const LEVEL_STYLES: Record<string, string> = {
-  error: "text-danger",
-  warn: "text-warning",
-  warning: "text-warning",
-  info: "text-info",
-  debug: "text-ink-subtle",
-  trace: "text-ink-subtle",
-};
-
 function formatBytes(b: number) {
   if (b < 1024) return `${b} B`;
   if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
@@ -54,7 +36,7 @@ export default function Logs() {
 
   const [files, setFiles] = React.useState<LogFile[]>([]);
   const [active, setActive] = React.useState<LogFile | null>(null);
-  const [entries, setEntries] = React.useState<LogEntry[]>([]);
+  const [entries, setEntries] = React.useState<string[]>([]);
   const [loading, setLoading] = React.useState(false);
   const [autoRefresh, setAutoRefresh] = React.useState(true);
   const [loadingFiles, setLoadingFiles] = React.useState(true);
@@ -75,7 +57,7 @@ export default function Logs() {
     setLoading(true);
     try {
       const list = await api.getLogs(file.path);
-      setEntries(list as unknown as LogEntry[]);
+      setEntries(list);
       setActive(file);
     } catch (err) {
       show(t("log_viewer.load_failed"), "error");
@@ -107,7 +89,7 @@ export default function Logs() {
 
   const handleDownload = () => {
     if (!active) return;
-    const blob = new Blob([entries.map((e) => `[${e.timestamp}] [${e.level}] ${e.message}`).join("\n")], {
+    const blob = new Blob([entries.join("\n")], {
       type: "text/plain",
     });
     const url = URL.createObjectURL(blob);
@@ -228,23 +210,9 @@ export default function Logs() {
               </div>
             ) : (
               <div className="space-y-0.5">
-                {entries.map((entry, i) => (
-                  <div key={i} className="flex items-start gap-2">
-                    <span className="text-ink-subtle tabular-nums">
-                      {entry.timestamp}
-                    </span>
-                    <Badge
-                      variant="outline"
-                      className={cn(
-                        "h-5 min-w-[3rem] justify-center font-mono text-[10px]",
-                        LEVEL_STYLES[entry.level?.toLowerCase()] ?? "text-ink-muted"
-                      )}
-                    >
-                      {entry.level}
-                    </Badge>
-                    <span className="text-ink break-all whitespace-pre-wrap">
-                      {entry.message}
-                    </span>
+                {entries.map((line, i) => (
+                  <div key={i} className="text-ink break-all whitespace-pre-wrap">
+                    {line}
                   </div>
                 ))}
               </div>

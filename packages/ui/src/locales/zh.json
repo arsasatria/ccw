@@ -102,7 +102,11 @@
     "hero": {
       "title": "网关已上线并正常路由。",
       "subtitle": "请求正通过配置的路由流转。以下是当前状态。",
-      "reqCount": "{{count}} 请求/秒"
+      "reqCount": "已处理 {{count}} 条请求",
+      "lifetime_requests": "累计请求",
+      "loading": "统计中…",
+      "error": "加载失败",
+      "empty": "暂无请求"
     },
     "stats": {
       "providers": "提供商",
@@ -146,8 +150,7 @@
         "description": "自定义请求/响应处理。"
       }
     },
-    "gateway_online": "网关在线",
-    "requests_per_sec": "请求/秒"
+    "gateway_online": "网关在线"
   },
   "notFound": {
     "message": "您访问的页面不存在。",
@@ -202,6 +205,10 @@
     "api_key_hide": "隐藏密钥",
     "models": "模型",
     "models_placeholder": "输入模型名称并按 Enter 添加",
+    "models_selector_hint": "输入模型名称后按 Enter 添加（用于不在列表中的模型），或点击「获取可用模型」从提供商加载。",
+    "models_selector_search": "搜索模型…",
+    "models_selector_empty_no_fetch": "尚未加载模型。点击「获取可用模型」或在上方输入名称。",
+    "models_selector_empty_all_added": "所有获取到的模型都已添加。",
     "add_model": "添加模型",
     "select_models": "选择模型",
     "remove": "移除",
@@ -378,6 +385,7 @@
   },
   "log_viewer": {
     "title": "日志查看器",
+    "refresh": "刷新",
     "close": "关闭",
     "download": "下载",
     "clear": "清空",

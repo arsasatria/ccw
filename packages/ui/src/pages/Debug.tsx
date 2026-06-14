@@ -11,7 +11,6 @@ import {
   Timer,
   Search,
   Trash2,
-  X,
   CheckCircle2,
   AlertCircle,
   Sparkles,
@@ -695,24 +694,13 @@ function HistoryDrawer({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="flex max-h-[80vh] max-w-2xl flex-col overflow-hidden p-0">
         <DialogHeader className="border-b border-line px-4 py-3">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="flex items-center gap-2 font-serif italic">
-              <History className="h-4 w-4" />
-              {t("debug.history")}
-              <Badge variant="default" className="font-mono text-[10px]">
-                {items.length}
-              </Badge>
-            </DialogTitle>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => onOpenChange(false)}
-              aria-label={t("debug.close")}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="flex items-center gap-2 font-serif italic">
+            <History className="h-4 w-4" />
+            {t("debug.history")}
+            <Badge variant="default" className="font-mono text-[10px]">
+              {items.length}
+            </Badge>
+          </DialogTitle>
         </DialogHeader>
 
         <div className="border-b border-line p-3">

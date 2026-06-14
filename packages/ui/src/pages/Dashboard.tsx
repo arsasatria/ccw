@@ -1,12 +1,23 @@
+import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import { RefreshCw } from "lucide-react";
 import { useConfig } from "@/components/ConfigProvider";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatCard } from "@/components/common/StatCard";
 import { StatusPill } from "@/components/common/StatusPill";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
+import { api } from "@/lib/api";
 import { providerModelFromRouter } from "@/lib/utils";
+
+const APP_LOG_NAME = "app.log";
+
+type ReqCountState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | { status: "ready"; count: number };
 
 const ROUTE_KINDS = [
   "default",
@@ -20,6 +31,7 @@ const ROUTE_KINDS = [
 export default function Dashboard() {
   const { t } = useTranslation();
   const { config } = useConfig();
+  const [reqCount, setReqCount] = React.useState<ReqCountState>({ status: "idle" });
 
   const providers = config?.Providers ?? [];
   const totalModels = providers.reduce(
@@ -50,6 +62,60 @@ export default function Dashboard() {
   const transformerFootnote =
     transformerCount > 0 ? t("dashboard.stats.transformers_hint") : "—";
 
+  const refreshRequestCount = React.useCallback(async () => {
+    setReqCount({ status: "loading" });
+    try {
+      const files = await api.getLogFiles();
+      const appLog = files.find((f) => f.name === APP_LOG_NAME);
+      if (!appLog) {
+        // No app.log yet — gateway has served zero requests.
+        setReqCount({ status: "ready", count: 0 });
+        return;
+      }
+      const lines = await api.getLogs(appLog.path);
+      const nonEmpty = lines.filter((line) => line.trim().length > 0);
+      setReqCount({ status: "ready", count: nonEmpty.length });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setReqCount({ status: "error", message });
+    }
+  }, []);
+
+  React.useEffect(() => {
+    refreshRequestCount();
+  }, [refreshRequestCount]);
+
+  const formattedCount = (count: number) => count.toLocaleString();
+
+  const heroStat = (() => {
+    switch (reqCount.status) {
+      case "idle":
+      case "loading":
+        return {
+          value: t("dashboard.hero.loading"),
+          toneClass: "text-ink-muted",
+        };
+      case "error":
+        return {
+          value: t("dashboard.hero.error"),
+          toneClass: "text-danger",
+        };
+      case "ready":
+        if (reqCount.count === 0) {
+          return {
+            value: t("dashboard.hero.empty"),
+            toneClass: "text-ink-muted",
+          };
+        }
+        return {
+          value: t("dashboard.hero.reqCount", {
+            count: formattedCount(reqCount.count),
+          } as Record<string, unknown>),
+          toneClass: "text-ink",
+        };
+    }
+  })();
+
   return (
     <div className="space-y-12">
       {/* HERO */}
@@ -68,12 +134,30 @@ export default function Dashboard() {
               {t("dashboard.hero.subtitle")}
             </p>
           </div>
-          <div className="text-right">
-            <div className="font-serif text-[36px] leading-none tracking-[-0.02em] text-ink">
-              {t("dashboard.hero.reqCount", { count: 142 })}
+          <div className="flex flex-col items-end gap-2">
+            <div
+              className={`font-serif text-[28px] leading-none tracking-[-0.02em] ${heroStat.toneClass}`}
+            >
+              {heroStat.value}
             </div>
-            <div className="mt-1 text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
-              {t("dashboard.requests_per_sec")}
+            <div className="flex items-center gap-2">
+              <div className="text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
+                {t("dashboard.hero.lifetime_requests")}
+              </div>
+              <button
+                type="button"
+                onClick={refreshRequestCount}
+                disabled={reqCount.status === "loading"}
+                className="inline-flex h-5 w-5 items-center justify-center rounded text-ink-subtle transition-colors hover:bg-surface-2 hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                aria-label="Refresh"
+                title="Refresh"
+              >
+                <RefreshCw
+                  className={`h-3 w-3 ${
+                    reqCount.status === "loading" ? "animate-spin" : ""
+                  }`}
+                />
+              </button>
             </div>
           </div>
         </div>

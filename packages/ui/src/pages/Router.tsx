@@ -7,15 +7,19 @@ import {
   Clock,
   Globe,
   Image as ImageIcon,
+  Save,
+  RotateCcw,
 } from "lucide-react";
 import { useConfig } from "@/components/ConfigProvider";
+import { useToast } from "@/components/shell/ToastHost";
 import { PageHeader } from "@/components/common/PageHeader";
 import { StatusPill } from "@/components/common/StatusPill";
+import { Button } from "@/components/ui/button";
 import { Combobox } from "@/components/ui/combobox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { cn, providerModelFromRouter } from "@/lib/utils";
+import { cn, deepEqual, providerModelFromRouter } from "@/lib/utils";
 
 const ROUTE_KINDS: Array<{
   key: keyof RouterFields;
@@ -65,24 +69,53 @@ interface RouterFields {
 
 export default function RouterPage() {
   const { t } = useTranslation();
-  const { config, setConfig } = useConfig();
+  const { config, setConfig, save, isSaving } = useConfig();
+  const { show } = useToast();
+
+  // Draft copy of the persisted config. Edits live in `draft` until the
+  // user explicitly hits Save; `isDirty` is true when the two diverge.
+  const [draft, setDraft] = React.useState<typeof config>(config);
+
+  // Keep the draft in sync with the server-side config (initial load,
+  // post-save round-trip, etc.). This intentionally resets unsaved edits
+  // when the persisted snapshot changes — explicit Save is the contract.
+  React.useEffect(() => {
+    setDraft(config);
+  }, [config]);
 
   const routerConfig = config?.Router;
+  const draftRouter = draft?.Router;
+  const isDirty = !deepEqual(draft, config);
 
   const update = (key: keyof RouterFields, value: string) => {
-    if (!routerConfig) return;
-    setConfig({
-      ...config!,
-      Router: { ...routerConfig, [key]: value },
+    if (!draftRouter || !draft) return;
+    setDraft({
+      ...draft,
+      Router: { ...draftRouter, [key]: value },
     });
   };
 
   const updateThreshold = (n: number) => {
-    if (!routerConfig) return;
-    setConfig({
-      ...config!,
-      Router: { ...routerConfig, longContextThreshold: n },
+    if (!draftRouter || !draft) return;
+    setDraft({
+      ...draft,
+      Router: { ...draftRouter, longContextThreshold: n },
     });
+  };
+
+  const handleSave = async () => {
+    if (!draft) return;
+    setConfig(draft);
+    try {
+      await save();
+      show(`${t("app.save")} ✓`, "success");
+    } catch (e) {
+      show(`Save failed: ${(e as Error).message}`, "error");
+    }
+  };
+
+  const handleReset = () => {
+    setDraft(config);
   };
 
   const modelOptions = React.useMemo(() => {
@@ -95,7 +128,7 @@ export default function RouterPage() {
     return opts;
   }, [config?.Providers]);
 
-  if (!routerConfig) {
+  if (!routerConfig || !draftRouter || !draft) {
     return (
       <div className="space-y-8">
         <PageHeader
@@ -116,9 +149,35 @@ export default function RouterPage() {
         subtitle={t("router.subtitle")}
       />
 
+      {isDirty && (
+        <div className="sticky top-4 z-10 flex items-center justify-between gap-3 rounded-md border border-line bg-surface px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-ink-muted">
+            <span className="inline-block h-2 w-2 rounded-full bg-warning" />
+            {t("toplevel.unsaved_changes") ?? "Unsaved changes"}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReset}
+              disabled={isSaving}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              {t("app.reset") ?? "Reset"}
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              <Save className="h-3.5 w-3.5" />
+              {isSaving
+                ? t("app.saving") ?? "Saving…"
+                : t("app.save") ?? "Save"}
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="grid gap-4 md:grid-cols-2">
         {ROUTE_KINDS.map((route) => {
-          const value = routerConfig[route.key] ?? "";
+          const value = draftRouter[route.key] ?? "";
           const parsed = providerModelFromRouter(value);
           const Icon = route.icon;
           return (
@@ -189,7 +248,7 @@ export default function RouterPage() {
             <Input
               id="threshold"
               type="number"
-              value={routerConfig.longContextThreshold ?? 60000}
+              value={draftRouter.longContextThreshold ?? 60000}
               onChange={(e) => updateThreshold(Number(e.target.value))}
               className="w-28"
             />

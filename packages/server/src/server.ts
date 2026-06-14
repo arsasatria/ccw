@@ -105,6 +105,34 @@ export const createServer = async (config: any): Promise<any> => {
   app.post("/api/config", async (req: any, reply: any) => {
     const newConfig = req.body;
 
+    // Reject configs that would create duplicate provider names on
+    // disk. The UI also enforces this on save, but doing it here
+    // keeps the on-disk config valid even if a different client (or
+    // a future CLI) bypasses the UI check. Names are compared
+    // case-insensitively after trimming whitespace.
+    if (Array.isArray(newConfig?.Providers)) {
+      const seen = new Set<string>();
+      const duplicates = new Set<string>();
+      for (const p of newConfig.Providers) {
+        const name = (p?.name ?? "").trim();
+        if (!name) continue;
+        const key = name.toLowerCase();
+        if (seen.has(key)) {
+          duplicates.add(name);
+        } else {
+          seen.add(key);
+        }
+      }
+      if (duplicates.size > 0) {
+        reply.status(400).send({
+          error: "duplicate_provider_names",
+          message: `Duplicate provider names are not allowed: ${Array.from(duplicates).join(", ")}`,
+          duplicates: Array.from(duplicates),
+        });
+        return;
+      }
+    }
+
     // Backup existing config file if it exists
     const backupPath = await backupConfigFile();
     if (backupPath) {
@@ -134,13 +162,43 @@ export const createServer = async (config: any): Promise<any> => {
       return;
     }
 
-    // Normalize: strip trailing slashes and a trailing /v1 (if present) so we
-    // don't construct "…/v1/v1/models" when the user already included /v1.
-    const normalized = base_url
-      .replace(/\/+$/, "")
-      .replace(/\/v1$/, "");
+    // Build candidate base URLs by progressively stripping known OpenAI-compatible
+    // path suffixes. The user may enter either the API base
+    // (https://api.openai.com/v1) or the full chat completions endpoint
+    // (https://api.openai.com/v1/chat/completions) as their api_base_url — we
+    // need to discover the right base from which to query /v1/models.
+    const stripTrailing = (s: string, suffix: string): string | null =>
+      s.endsWith(suffix) ? s.slice(0, -suffix.length) : null;
 
-    const candidates = [`${normalized}/v1/models`, `${normalized}/models`];
+    const trimmed = base_url.replace(/\/+$/, "");
+    const baseCandidates = new Set<string>();
+    baseCandidates.add(trimmed);
+
+    const knownSuffixes = [
+      "/v1/chat/completions",
+      "/v1/completions",
+      "/v1/responses",
+      "/v1/embeddings",
+      "/chat/completions",
+      "/completions",
+      "/responses",
+      "/embeddings",
+    ];
+    for (const suffix of knownSuffixes) {
+      const stripped = stripTrailing(trimmed, suffix);
+      if (stripped) baseCandidates.add(stripped);
+    }
+    // Also strip a bare /v1 at the end (so we don't construct "/v1/v1/models").
+    if (trimmed.endsWith("/v1")) {
+      baseCandidates.add(trimmed.slice(0, -3));
+    }
+
+    // For each candidate base, try /v1/models and /models in order.
+    const candidates: string[] = [];
+    for (const base of baseCandidates) {
+      candidates.push(`${base}/v1/models`);
+      candidates.push(`${base}/models`);
+    }
 
     let lastDetail: string | null = null;
     for (const url of candidates) {

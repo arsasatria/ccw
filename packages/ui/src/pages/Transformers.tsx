@@ -29,7 +29,7 @@ interface EditingState {
 
 export default function Transformers() {
   const { t } = useTranslation();
-  const { config, setConfig } = useConfig();
+  const { config, setConfig, save } = useConfig();
   const { show } = useToast();
 
   const [editing, setEditing] = React.useState<EditingState | null>(null);
@@ -37,7 +37,7 @@ export default function Transformers() {
 
   const transformers = config?.transformers ?? [];
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!editing || !config) return;
     if (!editing.data.path?.trim()) {
       show(t("transformers.path") + " is required", "error");
@@ -50,21 +50,31 @@ export default function Transformers() {
       list[editing.index] = editing.data;
     }
     setConfig({ ...config, transformers: list });
-    setEditing(null);
-    show(
-      editing.isNew
-        ? t("transformers.add") + " ✓"
-        : t("transformers.edit") + " ✓",
-      "success"
-    );
+    try {
+      await save();
+      setEditing(null);
+      show(
+        editing.isNew
+          ? t("transformers.add") + " ✓"
+          : t("transformers.edit") + " ✓",
+        "success"
+      );
+    } catch (e) {
+      show(`Save failed: ${(e as Error).message}`, "error");
+    }
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (deletingIdx === null || !config) return;
     const list = transformers.filter((_, i) => i !== deletingIdx);
     setConfig({ ...config, transformers: list });
-    setDeletingIdx(null);
-    show(t("transformers.delete") + " ✓", "success");
+    try {
+      await save();
+      setDeletingIdx(null);
+      show(t("transformers.delete") + " ✓", "success");
+    } catch (e) {
+      show(`Save failed: ${(e as Error).message}`, "error");
+    }
   };
 
   return (

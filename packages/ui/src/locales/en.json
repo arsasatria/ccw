@@ -102,7 +102,12 @@
     "hero": {
       "title": "Your gateway is online and routing.",
       "subtitle": "Requests are flowing through the configured routes. Here's the current state.",
-      "reqCount": "{{count}} req/s"
+      "reqCount_one": "{{count, number}} request served",
+      "reqCount_other": "{{count, number}} requests served",
+      "lifetime_requests": "Lifetime requests",
+      "loading": "Counting…",
+      "error": "Could not load",
+      "empty": "No requests yet"
     },
     "stats": {
       "providers": "Providers",
@@ -146,8 +151,7 @@
         "description": "Custom request/response shaping."
       }
     },
-    "gateway_online": "Gateway online",
-    "requests_per_sec": "requests / sec"
+    "gateway_online": "Gateway online"
   },
   "notFound": {
     "message": "The page you're looking for doesn't exist on this gateway.",
@@ -202,6 +206,10 @@
     "api_key_hide": "Hide key",
     "models": "Models",
     "models_placeholder": "Enter model name and press Enter to add",
+    "models_selector_hint": "Type a model name and press Enter to add a model not in the list, or click \"Fetch available models\" to load from the provider.",
+    "models_selector_search": "Search models…",
+    "models_selector_empty_no_fetch": "No models loaded yet. Click \"Fetch available models\" or type a name above.",
+    "models_selector_empty_all_added": "All fetched models are already added.",
     "add_model": "Add Model",
     "select_models": "Select Models",
     "remove": "Remove",
@@ -378,6 +386,7 @@
   },
   "log_viewer": {
     "title": "Log Viewer",
+    "refresh": "Refresh",
     "close": "Close",
     "download": "Download",
     "clear": "Clear",

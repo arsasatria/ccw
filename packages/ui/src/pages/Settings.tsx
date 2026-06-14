@@ -7,9 +7,13 @@ import {
   Network,
   Hourglass,
   Code2,
+  Save,
+  RotateCcw,
 } from "lucide-react";
 import { useConfig } from "@/components/ConfigProvider";
+import { useToast } from "@/components/shell/ToastHost";
 import { PageHeader } from "@/components/common/PageHeader";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,14 +26,30 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { deepEqual } from "@/lib/utils";
 
 const LOG_LEVELS = ["debug", "info", "warn", "error"] as const;
 
 export default function Settings() {
   const { t } = useTranslation();
-  const { config, setConfig } = useConfig();
+  const { config, setConfig, save, isSaving } = useConfig();
+  const { show } = useToast();
 
-  if (!config) {
+  // Draft copy of the config so that edits are explicit-Save. We keep
+  // `config` as the persisted (server) snapshot and `draft` as the
+  // in-flight edits. `isDirty` is true when the two diverge.
+  const [draft, setDraft] = React.useState<typeof config>(config);
+
+  // Reset the draft when the server-side config changes (e.g. on initial
+  // load, or after a successful save round-trip). This keeps the form
+  // in sync with persisted state without clobbering local edits mid-edit.
+  React.useEffect(() => {
+    setDraft(config);
+  }, [config]);
+
+  const isDirty = !deepEqual(draft, config);
+
+  if (!config || !draft) {
     return (
       <div className="space-y-6">
         <PageHeader
@@ -44,7 +64,22 @@ export default function Settings() {
   }
 
   const update = (patch: Partial<typeof config>) => {
-    setConfig({ ...config, ...patch });
+    setDraft((prev) => (prev ? { ...prev, ...patch } : prev));
+  };
+
+  const handleSave = async () => {
+    if (!draft) return;
+    setConfig(draft);
+    try {
+      await save();
+      show(`${t("app.save")} ✓`, "success");
+    } catch (e) {
+      show(`Save failed: ${(e as Error).message}`, "error");
+    }
+  };
+
+  const handleReset = () => {
+    setDraft(config);
   };
 
   return (
@@ -62,7 +97,7 @@ export default function Settings() {
             </div>
             <Switch
               id="log-enabled"
-              checked={config.LOG}
+              checked={draft.LOG}
               onCheckedChange={(v) => update({ LOG: v })}
             />
           </div>
@@ -70,7 +105,7 @@ export default function Settings() {
           <div className="space-y-2">
             <Label htmlFor="log-level">{t("toplevel.log_level")}</Label>
             <Select
-              value={config.LOG_LEVEL}
+              value={draft.LOG_LEVEL}
               onValueChange={(v) => update({ LOG_LEVEL: v })}
             >
               <SelectTrigger id="log-level">
@@ -93,7 +128,7 @@ export default function Settings() {
               <Label htmlFor="host">{t("toplevel.host")}</Label>
               <Input
                 id="host"
-                value={config.HOST}
+                value={draft.HOST}
                 onChange={(e) => update({ HOST: e.target.value })}
                 className="font-mono"
               />
@@ -103,7 +138,7 @@ export default function Settings() {
               <Input
                 id="port"
                 type="number"
-                value={config.PORT}
+                value={draft.PORT}
                 onChange={(e) => update({ PORT: Number(e.target.value) })}
                 className="font-mono"
               />
@@ -115,7 +150,7 @@ export default function Settings() {
             <Input
               id="proxy"
               placeholder="http://127.0.0.1:7890"
-              value={config.PROXY_URL}
+              value={draft.PROXY_URL}
               onChange={(e) => update({ PROXY_URL: e.target.value })}
               className="font-mono"
             />
@@ -127,7 +162,7 @@ export default function Settings() {
             <Label htmlFor="timeout">{t("toplevel.timeout")}</Label>
             <Input
               id="timeout"
-              value={config.API_TIMEOUT_MS}
+              value={draft.API_TIMEOUT_MS}
               onChange={(e) => update({ API_TIMEOUT_MS: e.target.value })}
               className="font-mono"
             />
@@ -143,7 +178,7 @@ export default function Settings() {
             <Input
               id="apikey"
               type="password"
-              value={config.APIKEY}
+              value={draft.APIKEY}
               onChange={(e) => update({ APIKEY: e.target.value })}
               className="font-mono"
             />
@@ -159,7 +194,7 @@ export default function Settings() {
             <Input
               id="claude-path"
               placeholder="claude"
-              value={config.CLAUDE_PATH}
+              value={draft.CLAUDE_PATH}
               onChange={(e) => update({ CLAUDE_PATH: e.target.value })}
               className="font-mono"
             />
@@ -174,7 +209,7 @@ export default function Settings() {
             <Input
               id="custom-router"
               placeholder="/path/to/custom-router.js"
-              value={config.CUSTOM_ROUTER_PATH ?? ""}
+              value={draft.CUSTOM_ROUTER_PATH ?? ""}
               onChange={(e) => update({ CUSTOM_ROUTER_PATH: e.target.value })}
               className="font-mono"
             />
@@ -184,6 +219,32 @@ export default function Settings() {
           </div>
         </SettingCard>
       </div>
+
+      {isDirty && (
+        <div className="sticky bottom-4 z-10 flex items-center justify-between gap-3 rounded-md border border-line bg-surface px-4 py-3 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-ink-muted">
+            <span className="inline-block h-2 w-2 rounded-full bg-warning" />
+            {t("toplevel.unsaved_changes") ?? "Unsaved changes"}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleReset}
+              disabled={isSaving}
+            >
+              <RotateCcw className="h-3.5 w-3.5" />
+              {t("app.reset") ?? "Reset"}
+            </Button>
+            <Button size="sm" onClick={handleSave} disabled={isSaving}>
+              <Save className="h-3.5 w-3.5" />
+              {isSaving
+                ? t("app.saving") ?? "Saving…"
+                : t("app.save") ?? "Save"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
