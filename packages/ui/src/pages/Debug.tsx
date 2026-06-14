@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/common/EmptyState";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import {
   Dialog,
   DialogContent,
@@ -54,6 +55,7 @@ interface ResponseData {
   responseTime: number;
   body: string;
   headers: string;
+  lastError: string | null;
 }
 
 function statusTone(status: number): "success" | "warning" | "danger" {
@@ -93,6 +95,7 @@ export default function DebugPage() {
     responseTime: 0,
     body: "",
     headers: "{}",
+    lastError: null,
   });
 
   const [isLoading, setIsLoading] = React.useState(false);
@@ -188,23 +191,6 @@ export default function DebugPage() {
     }
   }, [location.search]);
 
-  const layoutEditor = (which: "headers" | "body" | "response") => {
-    const ref =
-      which === "headers" ? headersRef : which === "body" ? bodyRef : responseRef;
-    const editor = ref.current as { layout?: () => void } | null;
-    editor?.layout?.();
-  };
-
-  React.useEffect(() => {
-    // Trigger Monaco relayout whenever tabs or panes change size.
-    const id = window.setTimeout(() => {
-      layoutEditor("headers");
-      layoutEditor("body");
-      layoutEditor("response");
-    }, 0);
-    return () => window.clearTimeout(id);
-  });
-
   const sendRequest = async () => {
     if (!requestData.url.trim()) return;
     try {
@@ -259,6 +245,7 @@ export default function DebugPage() {
         responseTime: ms,
         body: responseBody,
         headers: headersStr,
+        lastError: null,
       });
 
       await requestHistoryDB.saveRequest({
@@ -279,6 +266,7 @@ export default function DebugPage() {
         responseTime: 0,
         body: t("debug.request_failed", { message }),
         headers: "{}",
+        lastError: message,
       });
     } finally {
       setIsLoading(false);
@@ -325,11 +313,13 @@ export default function DebugPage() {
       responseTime: req.responseTime,
       body: req.responseBody,
       headers: req.responseHeaders,
+      lastError: null,
     });
     setHistoryOpen(false);
   };
 
-  const showResponsePanel = responseData.status > 0 || isLoading;
+  const showResponsePanel =
+    responseData.status > 0 || isLoading || !!responseData.lastError;
 
   return (
     <div className="flex h-[calc(100vh-180px)] min-h-[640px] flex-col gap-6">
@@ -340,10 +330,26 @@ export default function DebugPage() {
           <div className="flex items-center gap-2">
             <Button
               type="button"
+              onClick={sendRequest}
+              disabled={isLoading || !requestData.url.trim()}
+            >
+              {isLoading ? (
+                <>
+                  <Timer className="h-3.5 w-3.5 animate-pulse" />
+                  {t("debug.sending")}
+                </>
+              ) : (
+                <>
+                  <Send className="h-3.5 w-3.5" />
+                  {t("debug.send")}
+                </>
+              )}
+            </Button>
+            <Button
+              type="button"
               variant="outline"
               size="sm"
               onClick={() => setHistoryOpen(true)}
-              aria-label={t("debug.history")}
             >
               <History className="h-3.5 w-3.5" />
               {t("debug.history")}
@@ -353,7 +359,6 @@ export default function DebugPage() {
               variant="outline"
               size="sm"
               onClick={copyCurl}
-              aria-label={t("debug.curl")}
             >
               <Copy className="h-3.5 w-3.5" />
               {t("debug.curl")}
@@ -422,23 +427,6 @@ export default function DebugPage() {
                 className="font-mono"
               />
             </div>
-            <Button
-              type="button"
-              onClick={sendRequest}
-              disabled={isLoading || !requestData.url.trim()}
-            >
-              {isLoading ? (
-                <>
-                  <Timer className="h-3.5 w-3.5 animate-pulse" />
-                  {t("debug.sending")}
-                </>
-              ) : (
-                <>
-                  <Send className="h-3.5 w-3.5" />
-                  {t("debug.send")}
-                </>
-              )}
-            </Button>
           </div>
 
           <Tabs
@@ -572,7 +560,9 @@ export default function DebugPage() {
                 <MonacoPane
                   value={responseData.headers}
                   onChange={() => undefined}
-                  onMount={() => undefined}
+                  onMount={(e) => {
+                    responseRef.current = e;
+                  }}
                   language="json"
                   readOnly
                   ariaLabel={t("debug.response_headers")}
@@ -670,6 +660,7 @@ function HistoryDrawer({
   const [items, setItems] = React.useState<RequestHistoryItem[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [search, setSearch] = React.useState("");
+  const [confirmClearOpen, setConfirmClearOpen] = React.useState(false);
 
   const load = React.useCallback(async () => {
     setLoading(true);
@@ -691,9 +682,9 @@ function HistoryDrawer({
   };
 
   const handleClearAll = async () => {
-    if (!window.confirm(t("debug.clear_all_confirm"))) return;
     await requestHistoryDB.clearAllRequests();
     setItems([]);
+    setConfirmClearOpen(false);
   };
 
   const filtered = items.filter((i) =>
@@ -801,7 +792,7 @@ function HistoryDrawer({
               type="button"
               variant="outline"
               size="sm"
-              onClick={handleClearAll}
+              onClick={() => setConfirmClearOpen(true)}
               className="w-full"
             >
               <Trash2 className="h-3.5 w-3.5" />
@@ -810,6 +801,16 @@ function HistoryDrawer({
           </div>
         )}
       </DialogContent>
+
+      <ConfirmDialog
+        open={confirmClearOpen}
+        onOpenChange={setConfirmClearOpen}
+        title={t("debug.clear_all")}
+        description={t("debug.clear_all_confirm")}
+        confirmLabel={t("debug.clear_all")}
+        destructive
+        onConfirm={handleClearAll}
+      />
     </Dialog>
   );
 }
