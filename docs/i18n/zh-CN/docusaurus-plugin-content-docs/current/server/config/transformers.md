@@ -772,8 +772,8 @@ async transformRequestIn(request, provider, context) {
 ### 手动测试
 
 1. 将转换器添加到配置
-2. 启动服务器：`ccr restart`
-3. 检查日志：`tail -f ~/.ccw/logs/ccr-*.log`
+2. 启动服务器：`ccw restart`
+3. 检查日志：`tail -f ~/.ccw/logs/ccw-*.log`
 4. 发出测试请求
 5. 验证输出
 

@@ -1,7 +1,7 @@
 {
   "name": "ccw",
   "version": "1.0.0",
-  "description": "Claude Code Router — fixed fork (interleaved text+tool_use streaming bug)",
+  "description": "Claude Code Wrapper — fixed fork (interleaved text+tool_use streaming bug)",
   "scripts": {
     "build": "pnpm build:shared && pnpm build:core && pnpm build:server && pnpm build:cli && pnpm build:ui",
     "build:core": "pnpm --filter @musistudio/llms build",

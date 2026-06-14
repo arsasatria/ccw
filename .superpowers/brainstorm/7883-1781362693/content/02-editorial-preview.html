@@ -1,0 +1,198 @@
+<h2>Editorial · Design Preview</h2>
+<p class="subtitle">Tiga bagian dalam satu layar: fondasi (tipografi, warna, ritme), shell (masthead + nav), lalu Dashboard sebagai bukti. Klik apa saja di kartu untuk tandai sudah oke.</p>
+
+<!-- SECTION 1 · FOUNDATIONS -->
+<div class="section">
+  <div class="label">01 · Foundations</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+    <!-- Typography -->
+    <div style="border:1px solid var(--border);padding:18px;background:var(--surface)">
+      <div class="label" style="margin-bottom:8px">Typography</div>
+      <div style="font-family:Georgia,'Times New Roman',serif;font-size:30px;line-height:1.05;letter-spacing:-0.01em;margin-bottom:6px">Your gateway is online.</div>
+      <div style="font-size:11px;color:var(--fg-muted);margin-bottom:14px">Display · Serif · 30/36 · tight tracking</div>
+      <div style="font-family:system-ui,-apple-system,sans-serif;font-size:13px;line-height:1.55;color:var(--fg);margin-bottom:4px">Body text in sans. Calm, readable, 13/20.</div>
+      <div style="font-family:system-ui,-apple-system,sans-serif;font-size:11px;line-height:1.4;color:var(--fg-muted)">Secondary · muted · for metadata and footnotes</div>
+    </div>
+    <!-- Color -->
+    <div style="border:1px solid var(--border);padding:18px;background:var(--surface)">
+      <div class="label" style="margin-bottom:8px">Color</div>
+      <div style="display:flex;gap:6px;margin-bottom:10px">
+        <div style="flex:1;background:#fafaf7;height:36px;border:1px solid var(--border)"></div>
+        <div style="flex:1;background:#1a1a1a;height:36px"></div>
+        <div style="flex:1;background:#7a3a2a;height:36px"></div>
+        <div style="flex:1;background:#1f4d3a;height:36px"></div>
+      </div>
+      <div style="font-size:10px;color:var(--fg-muted);line-height:1.5">paper · ink · accent · success</div>
+      <div style="margin-top:10px;height:1px;background:var(--border)"></div>
+      <div style="font-size:10px;color:var(--fg-muted);margin-top:8px;line-height:1.5">Light by default. Dark = inverted paper, not a new mode.</div>
+    </div>
+    <!-- Spacing & rhythm -->
+    <div style="border:1px solid var(--border);padding:18px;background:var(--surface)">
+      <div class="label" style="margin-bottom:8px">Rhythm</div>
+      <div style="display:flex;align-items:flex-end;gap:4px;height:50px;margin-bottom:6px">
+        <div style="width:14px;height:8px;background:var(--fg-subtle)"></div>
+        <div style="width:14px;height:16px;background:var(--fg-subtle)"></div>
+        <div style="width:14px;height:24px;background:var(--fg-subtle)"></div>
+        <div style="width:14px;height:36px;background:var(--fg-subtle)"></div>
+        <div style="width:14px;height:50px;background:var(--fg-subtle)"></div>
+      </div>
+      <div style="font-size:10px;color:var(--fg-muted);line-height:1.5">4 · 8 · 12 · 18 · 24 · 36 · 48 · 72 px<br/>Vertical rhythm: 8px baseline. No shadows.</div>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 2 · SHELL -->
+<div class="section">
+  <div class="label">02 · Shell · Masthead</div>
+  <div style="border:1px solid var(--border);background:var(--surface);padding:0">
+    <!-- The masthead -->
+    <div style="padding:20px 28px 16px;display:flex;align-items:flex-end;justify-content:space-between;border-bottom:1px solid var(--border)">
+      <div style="font-family:Georgia,serif;font-style:italic;font-size:30px;letter-spacing:-0.02em"><span style="color:var(--brand)">ccw</span></div>
+      <div style="text-align:right">
+        <div style="font-size:9px;color:var(--fg-muted);letter-spacing:0.12em;text-transform:uppercase">Issue 04 · Dashboard</div>
+        <div style="font-size:10px;color:var(--fg-subtle);font-style:italic;margin-top:2px">Tuesday, 13 June 2026</div>
+      </div>
+    </div>
+    <!-- Nav row -->
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 28px;border-bottom:1px solid var(--border)">
+      <div style="display:flex;gap:18px">
+        <span style="font-size:11px;color:var(--brand);font-style:italic">Dashboard</span>
+        <span style="font-size:11px;color:var(--fg-muted)">Providers</span>
+        <span style="font-size:11px;color:var(--fg-muted)">Router</span>
+        <span style="font-size:11px;color:var(--fg-muted)">Transformers</span>
+        <span style="font-size:11px;color:var(--fg-muted)">Presets</span>
+        <span style="font-size:11px;color:var(--fg-muted)">Logs</span>
+        <span style="font-size:11px;color:var(--fg-muted)">Settings</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <span style="font-size:10px;color:var(--fg-subtle)">⌘K</span>
+        <span style="font-size:10px;color:var(--fg-subtle)">Theme</span>
+      </div>
+    </div>
+    <div style="padding:8px 28px;background:var(--bg);font-size:10px;color:var(--fg-muted)">
+      ↑ Single horizontal masthead, italic brand on the left, "issue" label on the right. Nav is inline text, current page in italic brand color. No icons, no sidebar, no top app bar.
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 3 · DASHBOARD -->
+<div class="section">
+  <div class="label">03 · Dashboard · proof of concept</div>
+  <div class="mockup">
+    <div class="mockup-header">Preview · Dashboard route</div>
+    <div class="mockup-body" style="background:#fafaf7;padding:36px 48px;font-family:Georgia,serif;color:#1a1a1a;max-height:none">
+      <!-- Hero -->
+      <div style="max-width:720px;margin:0 auto">
+        <div style="font-family:system-ui,sans-serif;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#888;margin-bottom:14px">— Tuesday Edition</div>
+        <h1 style="font-family:Georgia,serif;font-weight:400;font-size:42px;line-height:1.05;letter-spacing:-0.02em;margin:0 0 12px">Your gateway is online and routing.</h1>
+        <p style="font-family:Georgia,serif;font-style:italic;font-size:16px;line-height:1.5;color:#666;margin:0 0 32px;max-width:560px">Last 24 hours: 142 requests, 0 errors. ccw delivered each to the model that fit best — tool calls to fast ones, reasoning to deep ones, images to vision ones.</p>
+
+        <!-- Stats as a single rule-separated strip -->
+        <div style="border-top:1px solid #1a1a1a;border-bottom:1px solid #1a1a1a;display:grid;grid-template-columns:repeat(4,1fr);margin-bottom:40px">
+          <div style="padding:14px 0;border-right:1px solid #ccc">
+            <div style="font-family:system-ui,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#888">Providers</div>
+            <div style="font-family:Georgia,serif;font-size:32px;line-height:1.1;margin:4px 0 2px">04</div>
+            <div style="font-family:system-ui,sans-serif;font-size:10px;color:#666;font-style:italic">anthropic · openai · google · custom</div>
+          </div>
+          <div style="padding:14px 0;border-right:1px solid #ccc">
+            <div style="font-family:system-ui,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#888">Models</div>
+            <div style="font-family:Georgia,serif;font-size:32px;line-height:1.1;margin:4px 0 2px">12</div>
+            <div style="font-family:system-ui,sans-serif;font-size:10px;color:#666;font-style:italic">across all providers</div>
+          </div>
+          <div style="padding:14px 0;border-right:1px solid #ccc">
+            <div style="font-family:system-ui,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#888">Routes</div>
+            <div style="font-family:Georgia,serif;font-size:32px;line-height:1.1;margin:4px 0 2px">12</div>
+            <div style="font-family:system-ui,sans-serif;font-size:10px;color:#666;font-style:italic">active rules</div>
+          </div>
+          <div style="padding:14px 0">
+            <div style="font-family:system-ui,sans-serif;font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:#888">Transformers</div>
+            <div style="font-family:Georgia,serif;font-size:32px;line-height:1.1;margin:4px 0 2px">02</div>
+            <div style="font-family:system-ui,sans-serif;font-size:10px;color:#666;font-style:italic">request hooks</div>
+          </div>
+        </div>
+
+        <!-- Router map as a list -->
+        <div style="margin-bottom:36px">
+          <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px">
+            <h2 style="font-family:Georgia,serif;font-weight:400;font-size:22px;margin:0">Router map</h2>
+            <span style="font-family:system-ui,sans-serif;font-size:10px;color:#7a3a2a;text-transform:uppercase;letter-spacing:0.1em;border-bottom:1px solid #7a3a2a;padding-bottom:1px">Edit routes →</span>
+          </div>
+          <div style="border-top:1px solid #ccc">
+            <div style="display:grid;grid-template-columns:120px 1fr 140px;padding:10px 0;border-bottom:1px solid #ccc;align-items:baseline">
+              <span style="font-family:system-ui,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#888">Default</span>
+              <span style="font-family:Georgia,serif;font-size:15px">claude-opus-4.7</span>
+              <span style="font-family:system-ui,sans-serif;font-size:10px;color:#888;text-align:right">anthropic</span>
+            </div>
+            <div style="display:grid;grid-template-columns:120px 1fr 140px;padding:10px 0;border-bottom:1px solid #ccc;align-items:baseline">
+              <span style="font-family:system-ui,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#888">Background</span>
+              <span style="font-family:Georgia,serif;font-size:15px">claude-haiku-4.5</span>
+              <span style="font-family:system-ui,sans-serif;font-size:10px;color:#888;text-align:right">anthropic</span>
+            </div>
+            <div style="display:grid;grid-template-columns:120px 1fr 140px;padding:10px 0;border-bottom:1px solid #ccc;align-items:baseline">
+              <span style="font-family:system-ui,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#888">Think</span>
+              <span style="font-family:Georgia,serif;font-size:15px">o3-pro</span>
+              <span style="font-family:system-ui,sans-serif;font-size:10px;color:#888;text-align:right">openai</span>
+            </div>
+            <div style="display:grid;grid-template-columns:120px 1fr 140px;padding:10px 0;border-bottom:1px solid #ccc;align-items:baseline">
+              <span style="font-family:system-ui,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#888">Long context</span>
+              <span style="font-family:Georgia,serif;font-size:15px">gemini-2.5-pro</span>
+              <span style="font-family:system-ui,sans-serif;font-size:10px;color:#888;text-align:right">google</span>
+            </div>
+            <div style="display:grid;grid-template-columns:120px 1fr 140px;padding:10px 0;align-items:baseline">
+              <span style="font-family:system-ui,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#888">Image</span>
+              <span style="font-family:Georgia,serif;font-size:15px;font-style:italic;color:#888">— unassigned</span>
+              <span style="font-family:system-ui,sans-serif;font-size:10px;color:#888;text-align:right"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick actions as text -->
+        <div style="display:flex;gap:32px;margin-bottom:32px;padding-bottom:24px;border-bottom:1px solid #ccc">
+          <div>
+            <div style="font-family:system-ui,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#888;margin-bottom:4px">→ Manage providers</div>
+            <div style="font-family:Georgia,serif;font-size:14px;color:#666;font-style:italic">Add an API endpoint, list its models.</div>
+          </div>
+          <div>
+            <div style="font-family:system-ui,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#888;margin-bottom:4px">→ Install a preset</div>
+            <div style="font-family:Georgia,serif;font-size:14px;color:#666;font-style:italic">One-click setup from the community.</div>
+          </div>
+          <div>
+            <div style="font-family:system-ui,sans-serif;font-size:10px;text-transform:uppercase;letter-spacing:0.1em;color:#888;margin-bottom:4px">→ Write a transformer</div>
+            <div style="font-family:Georgia,serif;font-size:14px;color:#666;font-style:italic">Hook into request and response.</div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="display:flex;justify-content:space-between;font-family:system-ui,sans-serif;font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:#999">
+          <span>ccw · v0.7.2</span>
+          <span>last sync 3 minutes ago</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Validation -->
+<div class="options" style="margin-top:24px">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Vibe-nya oke, lanjutkan ke spec</h3>
+      <p>Saya turunkan ini jadi spec yang merinci 8 halaman + komponen + perilaku, lalu implementasi.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="tweak" onclick="toggleSelect(this)">
+    <div class="letter">↻</div>
+    <div class="content">
+      <h3>Vibe oke, ada tweak tertentu</h3>
+      <p>Saya kasih tahu apa yang perlu disesuaikan (warna, tipografi, layout Dashboard, dll).</p>
+    </div>
+  </div>
+  <div class="option" data-choice="redesign" onclick="toggleSelect(this)">
+    <div class="letter">↺</div>
+    <div class="content">
+      <h3>Belum pas, rancang ulang</h3>
+      <p>Arah ini kurang tepat, mari kita eksplorasi ulang dengan fokus yang berbeda.</p>
+    </div>
+  </div>
+</div>

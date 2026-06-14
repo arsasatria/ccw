@@ -8,11 +8,11 @@
     "description": "The label for category 'Server' in sidebar 'tutorialSidebar'"
   },
   "sidebar.tutorialSidebar.category.Server.link.generated-index.title": {
-    "message": "Claude Code Router Server",
+    "message": "Claude Code Wrapper Server",
     "description": "The generated-index page title for category 'Server' in sidebar 'tutorialSidebar'"
   },
   "sidebar.tutorialSidebar.category.Server.link.generated-index.description": {
-    "message": "Deploy and manage Claude Code Router server",
+    "message": "Deploy and manage Claude Code Wrapper server",
     "description": "The generated-index page description for category 'Server' in sidebar 'tutorialSidebar'"
   },
   "sidebar.tutorialSidebar.category.API Reference": {
@@ -56,7 +56,7 @@
     "description": "The label for category 'CLI' in sidebar 'tutorialSidebar'"
   },
   "sidebar.tutorialSidebar.category.CLI.link.generated-index.title": {
-    "message": "Claude Code Router CLI",
+    "message": "Claude Code Wrapper CLI",
     "description": "The generated-index page title for category 'CLI' in sidebar 'tutorialSidebar'"
   },
   "sidebar.tutorialSidebar.category.CLI.link.generated-index.description": {

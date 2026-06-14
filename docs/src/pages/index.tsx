@@ -174,7 +174,7 @@ function FeatureSection() {
 
   const content = {
     en: {
-      title: 'Why Claude Code Router?',
+      title: 'Why Claude Code Wrapper?',
       features: [
         {
           emoji: '⚡',
@@ -209,7 +209,7 @@ function FeatureSection() {
       ]
     },
     'zh-CN': {
-      title: '为什么选择 Claude Code Router？',
+      title: '为什么选择 Claude Code Wrapper？',
       features: [
         {
           emoji: '⚡',
@@ -422,7 +422,7 @@ function UseCases() {
   const content = {
     en: {
       title: 'Perfect For',
-      subtitle: 'See how Claude Code Router fits your workflow',
+      subtitle: 'See how Claude Code Wrapper fits your workflow',
       cases: [
         {
           icon: '💰',
@@ -448,7 +448,7 @@ function UseCases() {
     },
     'zh-CN': {
       title: '适用场景',
-      subtitle: '看看 Claude Code Router 如何融入您的工作流程',
+      subtitle: '看看 Claude Code Wrapper 如何融入您的工作流程',
       cases: [
         {
           icon: '💰',
@@ -550,7 +550,7 @@ function CTASection() {
   const content = {
     en: {
       title: 'Ready to Get Started?',
-      subtitle: 'Join thousands of developers using Claude Code Router to build better software.',
+      subtitle: 'Join thousands of developers using Claude Code Wrapper to build better software.',
       getStarted: 'Get Started',
       docs: 'Read the Docs',
       github: 'Star on GitHub',
@@ -558,7 +558,7 @@ function CTASection() {
     },
     'zh-CN': {
       title: '准备开始了吗？',
-      subtitle: '加入数千名使用 Claude Code Router 的开发者，构建更好的软件。',
+      subtitle: '加入数千名使用 Claude Code Wrapper 的开发者，构建更好的软件。',
       getStarted: '开始使用',
       docs: '阅读文档',
       github: '在 GitHub 上点赞',

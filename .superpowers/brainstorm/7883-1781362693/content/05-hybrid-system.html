@@ -1,0 +1,278 @@
+<h2>Hybrid · system + 2 page previews</h2>
+<p class="subtitle">Struktur dan surface dari Atelier (krem, rounded, hangat) untuk semua halaman. Glass (frosted + gradient) hanya di area fokus: hero Dashboard, key callouts, success states. Tidak pernah di form atau tabel — supaya tetap readable.</p>
+
+<!-- 01 SYSTEM -->
+<div class="section">
+  <div class="label">01 · Aturan hybrid</div>
+  <div style="border:1px solid var(--border);background:var(--surface);padding:18px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+      <div>
+        <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#7a6a52;margin-bottom:10px;font-weight:500">Atelier · 90% halaman</div>
+        <div style="font-size:12px;line-height:1.65;color:var(--fg)">
+          • Background: krem hangat <code style="background:#faf7f0;padding:1px 5px;border-radius:3px;font-size:11px">#f5f0e8</code> (paper)<br/>
+          • Card: putih <code style="background:#faf7f0;padding:1px 5px;border-radius:3px;font-size:11px">#ffffff</code> dengan <em>double shadow</em> halus<br/>
+          • Corner: 10–14px (md–lg)<br/>
+          • Border: 1px <code style="background:#faf7f0;padding:1px 5px;border-radius:3px;font-size:11px">#e8e0d0</code><br/>
+          • Type: Inter / system-ui, 12–14px body, 24–32px display<br/>
+          • Accent: warm tan <code style="background:#faf7f0;padding:1px 5px;border-radius:3px;font-size:11px">#b8825a</code> untuk link &amp; highlight
+        </div>
+      </div>
+      <div>
+        <div style="font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#5a6ad9;margin-bottom:10px;font-weight:500">Glass · 10% permukaan</div>
+        <div style="font-size:12px;line-height:1.65;color:var(--fg)">
+          • Hero Dashboard, success toast, key stats (4 angka utama)<br/>
+          • Background: <code style="background:#faf7f0;padding:1px 5px;border-radius:3px;font-size:11px">rgba(255,255,255,0.6)</code> + <code style="background:#faf7f0;padding:1px 5px;border-radius:3px;font-size:11px">backdrop-blur(20px)</code><br/>
+          • Border: 1px <code style="background:#faf7f0;padding:1px 5px;border-radius:3px;font-size:11px">rgba(120,140,255,0.2)</code><br/>
+          • Gradient overlay: radial ungu-biru di pojok<br/>
+          • Text: dark slate <code style="background:#faf7f0;padding:1px 5px;border-radius:3px;font-size:11px">#1a1d2e</code> (warna Glass pindah ke dark-on-glass, bukan light-on-dark)<br/>
+          • TIDAK pernah untuk body text panjang, form input, tabel
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border);font-size:11px;color:var(--fg-muted);line-height:1.5">
+      <strong>Prinsip:</strong> Glass adalah <em>momen</em>, bukan tema. Kalau sebuah halaman penuh glass, itu kembali jadi murahan. Kalau hanya hero + 4 stats, ia terasa premium.
+    </div>
+  </div>
+</div>
+
+<!-- 02 SHELL -->
+<div class="section">
+  <div class="label">02 · Shell (hybrid)</div>
+  <div style="border:1px solid var(--border);background:#f5f0e8;padding:18px">
+    <div style="background:#fff;border-radius:12px;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 2px rgba(0,0,0,0.03),0 4px 12px rgba(0,0,0,0.04)">
+      <div style="display:flex;align-items:center;gap:24px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:22px;height:22px;border-radius:6px;background:linear-gradient(135deg,#d4a574,#b8825a);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600">c</div>
+          <span style="font-weight:500;font-size:12px">ccw</span>
+        </div>
+        <div style="display:flex;gap:16px;font-size:11px">
+          <span style="color:#b8825a;font-weight:500">Dashboard</span>
+          <span style="color:#7a6a52">Providers</span>
+          <span style="color:#7a6a52">Router</span>
+          <span style="color:#7a6a52">Transformers</span>
+          <span style="color:#7a6a52">Presets</span>
+          <span style="color:#7a6a52">Logs</span>
+          <span style="color:#7a6a52">Settings</span>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:10px;color:#7a6a52;background:#faf7f0;padding:3px 8px;border-radius:5px;border:1px solid #e8e0d0">⌘K</span>
+        <div style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#d4a574,#b8825a)"></div>
+      </div>
+    </div>
+    <div style="margin-top:8px;font-size:10px;color:var(--fg-muted)">
+      ↑ Single bar (bukan sidebar). Logo + inline nav + search + avatar. Breadcrumb via inline ‹. Glass TIDAK dipakai di shell — ini permukaan utility, harus tenang.
+    </div>
+  </div>
+</div>
+
+<!-- 03 DASHBOARD REFINED -->
+<div class="section">
+  <div class="label">03 · Dashboard · hybrid final</div>
+  <div class="mockup">
+    <div class="mockup-header">Dashboard · glass hero + atelier cards</div>
+    <div class="mockup-body" style="background:#f5f0e8;padding:24px;font-family:system-ui,-apple-system,sans-serif;color:#2b2418;position:relative;overflow:hidden">
+      <!-- Glass hero -->
+      <div style="background:linear-gradient(135deg,rgba(255,255,255,0.7),rgba(255,255,255,0.4));backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(120,140,255,0.18);border-radius:18px;padding:24px 28px;margin-bottom:16px;position:relative;overflow:hidden;box-shadow:0 8px 24px rgba(120,140,255,0.08),0 2px 6px rgba(0,0,0,0.03)">
+        <div style="position:absolute;top:-40px;right:-40px;width:160px;height:160px;border-radius:50%;background:radial-gradient(circle,rgba(120,140,255,0.25),transparent 70%);pointer-events:none"></div>
+        <div style="position:relative">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+            <div style="width:8px;height:8px;border-radius:50%;background:#5a7a4f"></div>
+            <span style="font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#5a6ad9">Gateway online</span>
+            <span style="margin-left:auto;font-size:10px;color:#7a6a52">142 req/s · 0 errors</span>
+          </div>
+          <h1 style="font-size:26px;font-weight:500;letter-spacing:-0.02em;line-height:1.15;margin:0 0 6px;color:#1a1d2e">Your gateway is online and routing.</h1>
+          <p style="font-size:12px;line-height:1.5;color:rgba(26,29,46,0.65);margin:0;max-width:540px">ccw delivers each request to the model that fits best — tool calls to fast ones, reasoning to deep ones, images to vision ones.</p>
+        </div>
+      </div>
+
+      <!-- Atelier stats row -->
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">
+        <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.03),0 4px 12px rgba(0,0,0,0.03)">
+          <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Providers</div>
+          <div style="font-size:24px;font-weight:500;letter-spacing:-0.02em;color:#1a1d2e">04</div>
+          <div style="font-size:9px;color:#7a6a52;margin-top:2px">3 active</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.03),0 4px 12px rgba(0,0,0,0.03)">
+          <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Models</div>
+          <div style="font-size:24px;font-weight:500;letter-spacing:-0.02em;color:#1a1d2e">12</div>
+          <div style="font-size:9px;color:#7a6a52;margin-top:2px">across 4 providers</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.03),0 4px 12px rgba(0,0,0,0.03)">
+          <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Routes</div>
+          <div style="font-size:24px;font-weight:500;letter-spacing:-0.02em;color:#1a1d2e">12</div>
+          <div style="font-size:9px;color:#7a6a52;margin-top:2px">5 active</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.03),0 4px 12px rgba(0,0,0,0.03)">
+          <div style="font-size:9px;color:#999;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:4px">Transformers</div>
+          <div style="font-size:24px;font-weight:500;letter-spacing:-0.02em;color:#1a1d2e">02</div>
+          <div style="font-size:9px;color:#7a6a52;margin-top:2px">hooks</div>
+        </div>
+      </div>
+
+      <!-- Router map (atelier) -->
+      <div style="background:#fff;border-radius:14px;padding:20px 22px;box-shadow:0 1px 2px rgba(0,0,0,0.03),0 6px 18px rgba(0,0,0,0.04);margin-bottom:16px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div>
+            <h2 style="font-size:14px;font-weight:500;margin:0;color:#1a1d2e">Router map</h2>
+            <div style="font-size:10px;color:#7a6a52;margin-top:2px">Where each kind of request is being sent</div>
+          </div>
+          <span style="font-size:11px;color:#b8825a;border-bottom:1px solid #d4a574;padding-bottom:1px">Edit</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#faf7f0;border-radius:8px">
+            <div style="display:flex;align-items:center;gap:14px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:#7a6a52;width:64px">Default</span>
+              <span style="font-size:12px;font-weight:500;color:#1a1d2e">claude-opus-4.7</span>
+            </div>
+            <span style="font-size:10px;color:#999">anthropic</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#faf7f0;border-radius:8px">
+            <div style="display:flex;align-items:center;gap:14px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:#7a6a52;width:64px">Background</span>
+              <span style="font-size:12px;font-weight:500;color:#1a1d2e">claude-haiku-4.5</span>
+            </div>
+            <span style="font-size:10px;color:#999">anthropic</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#faf7f0;border-radius:8px">
+            <div style="display:flex;align-items:center;gap:14px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:#7a6a52;width:64px">Think</span>
+              <span style="font-size:12px;font-weight:500;color:#1a1d2e">o3-pro</span>
+            </div>
+            <span style="font-size:10px;color:#999">openai</span>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#faf7f0;border-radius:8px">
+            <div style="display:flex;align-items:center;gap:14px">
+              <span style="font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:#7a6a52;width:64px">Long ctx</span>
+              <span style="font-size:12px;font-weight:500;color:#1a1d2e">gemini-2.5-pro</span>
+            </div>
+            <span style="font-size:10px;color:#999">google</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick actions (atelier) -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+        <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.03),0 4px 12px rgba(0,0,0,0.03)">
+          <div style="font-size:11px;font-weight:500;margin-bottom:4px;color:#1a1d2e">Manage providers</div>
+          <div style="font-size:10px;color:#7a6a52;line-height:1.4">Add endpoint, list its models.</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.03),0 4px 12px rgba(0,0,0,0.03)">
+          <div style="font-size:11px;font-weight:500;margin-bottom:4px;color:#1a1d2e">Install preset</div>
+          <div style="font-size:10px;color:#7a6a52;line-height:1.4">One-click community setup.</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:14px 16px;box-shadow:0 1px 2px rgba(0,0,0,0.03),0 4px 12px rgba(0,0,0,0.03)">
+          <div style="font-size:11px;font-weight:500;margin-bottom:4px;color:#1a1d2e">Write transformer</div>
+          <div style="font-size:10px;color:#7a6a52;line-height:1.4">Hook request and response.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 04 PROVIDERS -->
+<div class="section">
+  <div class="label">04 · Providers (list + form) · hybrid</div>
+  <div class="split">
+    <!-- Providers list -->
+    <div class="mockup">
+      <div class="mockup-header">Providers · list</div>
+      <div class="mockup-body" style="background:#f5f0e8;padding:18px;font-family:system-ui,sans-serif;color:#2b2418">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <div>
+            <h1 style="font-size:18px;font-weight:500;margin:0;color:#1a1d2e">Providers</h1>
+            <div style="font-size:11px;color:#7a6a52;margin-top:2px">Endpoints that ccw will route requests to</div>
+          </div>
+          <div style="background:linear-gradient(135deg,#d4a574,#b8825a);color:#fff;font-size:11px;padding:6px 12px;border-radius:7px;font-weight:500">+ Add provider</div>
+        </div>
+        <div style="background:#fff;border-radius:12px;padding:6px 8px;box-shadow:0 1px 2px rgba(0,0,0,0.03),0 4px 12px rgba(0,0,0,0.03);margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #f0ebdf">
+            <div style="width:28px;height:28px;border-radius:7px;background:#faf7f0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#b8825a">A</div>
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:500;color:#1a1d2e">anthropic</div>
+              <div style="font-size:10px;color:#7a6a52">3 models · proxy via TokenRouter</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <span style="font-size:9px;color:#5a7a4f;background:#eaf3e8;padding:2px 6px;border-radius:4px">active</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid #f0ebdf">
+            <div style="width:28px;height:28px;border-radius:7px;background:#faf7f0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#b8825a">O</div>
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:500;color:#1a1d2e">openai</div>
+              <div style="font-size:10px;color:#7a6a52">4 models · direct</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <span style="font-size:9px;color:#5a7a4f;background:#eaf3e8;padding:2px 6px;border-radius:4px">active</span>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 10px">
+            <div style="width:28px;height:28px;border-radius:7px;background:#faf7f0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#b8825a">G</div>
+            <div style="flex:1">
+              <div style="font-size:12px;font-weight:500;color:#1a1d2e">google</div>
+              <div style="font-size:10px;color:#7a6a52">2 models · direct</div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <span style="font-size:9px;color:#5a7a4f;background:#eaf3e8;padding:2px 6px;border-radius:4px">active</span>
+            </div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--fg-muted)">↑ Atelier list with avatar + status pill. Glass tidak di sini — list harus readable, bukan cantik.</div>
+      </div>
+    </div>
+    <!-- Form modal -->
+    <div class="mockup">
+      <div class="mockup-header">Providers · form modal</div>
+      <div class="mockup-body" style="background:#f5f0e8;padding:18px;font-family:system-ui,sans-serif;color:#2b2418;position:relative">
+        <!-- Faux page behind -->
+        <div style="opacity:0.3;font-size:10px;color:#7a6a52">page behind modal…</div>
+        <!-- Modal -->
+        <div style="background:#fff;border-radius:14px;padding:22px 24px;box-shadow:0 20px 60px rgba(0,0,0,0.12),0 4px 12px rgba(0,0,0,0.06);position:relative">
+          <h2 style="font-size:16px;font-weight:500;margin:0 0 4px;color:#1a1d2e">Add provider</h2>
+          <div style="font-size:11px;color:#7a6a52;margin-bottom:18px">Configure a new AI endpoint</div>
+          <div style="margin-bottom:14px">
+            <div style="font-size:10px;color:#7a6a52;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">Name</div>
+            <div style="background:#faf7f0;border:1px solid #e8e0d0;border-radius:8px;padding:8px 12px;font-size:12px;color:#1a1d2e">anthropic</div>
+          </div>
+          <div style="margin-bottom:14px">
+            <div style="font-size:10px;color:#7a6a52;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">API URL</div>
+            <div style="background:#faf7f0;border:1px solid #e8e0d0;border-radius:8px;padding:8px 12px;font-size:11px;font-family:ui-monospace,monospace;color:#1a1d2e">https://api.anthropic.com</div>
+          </div>
+          <div style="margin-bottom:18px">
+            <div style="font-size:10px;color:#7a6a52;margin-bottom:4px;text-transform:uppercase;letter-spacing:0.06em">API key</div>
+            <div style="background:#faf7f0;border:1px solid #e8e0d0;border-radius:8px;padding:8px 12px;font-size:11px;font-family:ui-monospace,monospace;color:#1a1d2e;display:flex;justify-content:space-between"><span>sk-ant-•••••••••••••••</span><span style="color:#7a6a52">show</span></div>
+          </div>
+          <div style="display:flex;gap:8px;justify-content:flex-end">
+            <span style="font-size:11px;color:#7a6a52;padding:7px 14px">Cancel</span>
+            <span style="font-size:11px;color:#fff;background:linear-gradient(135deg,#d4a574,#b8825a);padding:7px 16px;border-radius:7px;font-weight:500">Save &amp; test</span>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--fg-muted);margin-top:8px">↑ Modal adalah Atelier. Tidak ada glass. CTA button = brand gradient.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="options" style="margin-top:24px">
+  <div class="option" data-choice="approve" onclick="toggleSelect(this)">
+    <div class="letter">✓</div>
+    <div class="content">
+      <h3>Setuju, tulis spec</h3>
+      <p>Spesifikasi hybrid untuk 8 halaman, semua komponen, dan aturan kapan pakai Atelier vs Glass. Lalu implementasi.</p>
+    </div>
+  </div>
+  <div class="option" data-choice="tweak" onclick="toggleSelect(this)">
+    <div class="letter">↻</div>
+    <div class="content">
+      <h3>Hampir oke, ada tweak</h3>
+      <p>Saya kasih tahu apa yang disesuaikan (proporsi glass, warna, spacing, dll).</p>
+    </div>
+  </div>
+  <div class="option" data-choice="redesign" onclick="toggleSelect(this)">
+    <div class="letter">↺</div>
+    <div class="content">
+      <h3>Belum pas, rancang ulang</h3>
+      <p>Mari eksplorasi ulang dengan fokus berbeda.</p>
+    </div>
+  </div>
+</div>

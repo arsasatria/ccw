@@ -22,13 +22,13 @@ CLI 方式适合开发者通过命令行快速操作。
 **从本地目录安装：**
 
 ```bash
-ccr preset install /path/to/preset-directory
+ccw preset install /path/to/preset-directory
 ```
 
 **重新配置已安装的预设：**
 
 ```bash
-ccr preset install my-preset
+ccw preset install my-preset
 ```
 
 #### 使用预设
@@ -37,7 +37,7 @@ ccr preset install my-preset
 
 ```bash
 # 使用指定预设启动
-ccr my-preset "your prompt"
+ccw my-preset "your prompt"
 ```
 
 预设会：
@@ -48,7 +48,7 @@ ccr my-preset "your prompt"
 #### 列出所有预设
 
 ```bash
-ccr preset list
+ccw preset list
 ```
 
 此命令将显示所有已安装的预设及其名称、版本和描述。
@@ -56,13 +56,13 @@ ccr preset list
 #### 查看预设信息
 
 ```bash
-ccr preset info my-preset
+ccw preset info my-preset
 ```
 
 #### 删除预设
 
 ```bash
-ccr preset delete my-preset
+ccw preset delete my-preset
 ```
 
 ### Web UI 方式
@@ -72,7 +72,7 @@ Web UI 提供更友好的可视化界面，支持更多安装方式。
 #### 访问 Web UI
 
 ```bash
-ccr ui
+ccw ui
 ```
 
 然后在浏览器中打开 `http://localhost:3000`
@@ -112,7 +112,7 @@ ccr ui
 
 ### 动态配置系统
 
-CCR 引入了强大的动态配置系统，支持：
+CCW 引入了强大的动态配置系统，支持：
 
 - **多种输入类型**：选择器、多选、确认框、文本输入、数字输入等
 - **条件逻辑**：根据用户输入动态显示/隐藏配置项
@@ -216,7 +216,7 @@ CCR 引入了强大的动态配置系统，支持：
   "name": "multi-provider-example",
   "version": "1.0.0",
   "description": "多Provider配置示例 - 支持OpenAI和DeepSeek切换",
-  "author": "CCR Team",
+  "author": "CCW Team",
   "keywords": ["openai", "deepseek", "multi-provider"],
   "ccwVersion": "2.0.0",
   "schema": [
@@ -338,7 +338,7 @@ CCR 引入了强大的动态配置系统，支持：
 | `repository` | string | - | 源代码仓库 URL |
 | `license` | string | - | 许可证类型 |
 | `keywords` | string[] | - | 关键词标签 |
-| `ccwVersion` | string | - | 兼容的 CCR 版本 |
+| `ccwVersion` | string | - | 兼容的 CCW 版本 |
 
 示例：
 
@@ -348,8 +348,8 @@ CCR 引入了强大的动态配置系统，支持：
   "version": "1.0.0",
   "description": "我的自定义预设",
   "author": "Your Name",
-  "homepage": "https://github.com/yourname/ccr-presets",
-  "repository": "https://github.com/yourname/ccr-presets.git",
+  "homepage": "https://github.com/yourname/ccw-presets",
+  "repository": "https://github.com/yourname/ccw-presets.git",
   "license": "MIT",
   "keywords": ["openai", "production"],
   "ccwVersion": "2.0.0"
@@ -358,7 +358,7 @@ CCR 引入了强大的动态配置系统，支持：
 
 #### 2. 配置字段（Configuration）
 
-这些字段会直接合并到 CCR 的配置中，所有 `config.json` 支持的字段都可以在这里使用：
+这些字段会直接合并到 CCW 的配置中，所有 `config.json` 支持的字段都可以在这里使用：
 
 | 字段 | 类型 | 说明 |
 |------|------|------|
@@ -488,10 +488,10 @@ cat > ~/.ccw/presets/simple-openai/manifest.json << 'EOF'
 EOF
 
 # 配置预设（输入 API Key）
-ccr preset install simple-openai
+ccw preset install simple-openai
 
 # 使用预设
-ccr simple-openai "your prompt"
+ccw simple-openai "your prompt"
 ```
 
 #### 示例 2：高级预设（动态配置）
@@ -593,19 +593,19 @@ cat > ~/.ccw/presets/advanced-config/manifest.json << 'EOF'
 EOF
 
 # 配置预设（会提示输入）
-ccr preset install advanced-config
+ccw preset install advanced-config
 
 # 使用预设
-ccr advanced-config "your prompt"
+ccw advanced-config "your prompt"
 ```
 
 ### 导出当前配置为预设
 
-如果您已经配置好了 CCR，可以导出当前配置：
+如果您已经配置好了 CCW，可以导出当前配置：
 
 ```bash
 # 导出当前配置
-ccr preset export my-exported-preset
+ccw preset export my-exported-preset
 ```
 
 导出时会自动：
@@ -616,7 +616,7 @@ ccr preset export my-exported-preset
 可选项：
 
 ```bash
-ccr preset export my-exported-preset \
+ccw preset export my-exported-preset \
   --description "导出的配置" \
   --author "Your Name" \
   --tags "production,openai"

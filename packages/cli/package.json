@@ -1,7 +1,7 @@
 {
   "name": "@ccw/cli",
-  "version": "2.0.0",
-  "description": "CLI for Claude Code Router",
+  "version": "2.1.0",
+  "description": "CLI for Claude Code Wrapper",
   "bin": {
     "ccw": "dist/cli.js"
   },

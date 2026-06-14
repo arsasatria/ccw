@@ -22,6 +22,12 @@ i18n
     fallbackLng: "en",
     interpolation: {
       escapeValue: false,
+      format: (value, format, lng) => {
+        if (format === "number") {
+          return new Intl.NumberFormat(lng).format(Number(value));
+        }
+        return value;
+      },
     },
   });
 

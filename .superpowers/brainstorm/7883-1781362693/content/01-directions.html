@@ -1,0 +1,91 @@
+<h2>3 arah desain untuk rework kedua</h2>
+<p class="subtitle">Ketiganya mengganti layout, gaya, dan pola interaksi dari rework pertama. Klik untuk memilih.</p>
+
+<div class="cards">
+  <div class="card" data-choice="A" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#0a0e14;padding:14px;font-family:ui-monospace,monospace;font-size:9px;color:#9aa8b6;line-height:1.4">
+      <div style="color:#00ffd1;text-transform:uppercase;letter-spacing:0.1em;margin-bottom:6px">// ccw › gateway</div>
+      <div style="background:#11161d;border:1px solid #1a2330;padding:6px 8px;margin-bottom:4px">
+        <span style="color:#ff6b4a">●</span> status <span style="color:#fff">online</span> &nbsp; <span style="color:#ff6b4a">●</span> req/s <span style="color:#fff">142</span>
+      </div>
+      <div style="display:flex;gap:4px">
+        <div style="flex:1;background:#11161d;border:1px solid #1a2330;padding:6px">
+          <div style="color:#5c6e80;font-size:8px">PROVIDERS</div>
+          <div style="color:#fff;font-size:14px;font-weight:700">04</div>
+        </div>
+        <div style="flex:1;background:#11161d;border:1px solid #1a2330;padding:6px">
+          <div style="color:#5c6e80;font-size:8px">ROUTES</div>
+          <div style="color:#fff;font-size:14px;font-weight:700">12</div>
+        </div>
+      </div>
+      <div style="margin-top:6px;background:#0a1814;border-left:2px solid #00ffd1;padding:4px 6px;color:#00ffd1">
+        &gt; route default → claude-opus-4.7
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>A · Signal Console</h3>
+      <p style="font-family:ui-monospace,monospace;font-size:10px;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Brutalist · monospace · HUD</p>
+      <p>Semua monospace, sudut tajam, glowing cyan, informasi padat. Terasa seperti network operations console — untuk admin yang ingin lihat segalanya sekaligus.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="B" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#fafaf7;padding:14px;font-family:Georgia,serif;color:#1a1a1a">
+      <div style="font-size:18px;font-weight:400;letter-spacing:-0.02em;margin-bottom:2px">Your gateway.</div>
+      <div style="font-size:10px;color:#888;font-style:italic;margin-bottom:10px">Quietly routing requests since this morning.</div>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1;border-top:1px solid #e5e2da;padding-top:6px">
+          <div style="font-size:8px;color:#999;text-transform:uppercase;letter-spacing:0.1em">Providers</div>
+          <div style="font-size:22px;font-weight:400">4</div>
+        </div>
+        <div style="flex:1;border-top:1px solid #e5e2da;padding-top:6px">
+          <div style="font-size:8px;color:#999;text-transform:uppercase;letter-spacing:0.1em">Models</div>
+          <div style="font-size:22px;font-weight:400">12</div>
+        </div>
+      </div>
+      <div style="background:#fff;border:1px solid #ebe7df;padding:6px 8px;font-size:9px">
+        <span style="color:#2a7a4f">●</span> All systems normal
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>B · Editorial</h3>
+      <p style="font-family:ui-monospace,monospace;font-size:10px;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">Magazine · serif · airy</p>
+      <p>Serif besar, whitespace banyak, kolom sempit, chrome minimal. Terasa seperti membaca artikel yang tenang — untuk orang yang ingin fokus, bukan mengawasi.</p>
+    </div>
+  </div>
+
+  <div class="card" data-choice="C" onclick="toggleSelect(this)">
+    <div class="card-image" style="background:#1e1e1e;padding:0;font-family:system-ui,sans-serif;font-size:9px;color:#ccc">
+      <div style="display:flex;height:140px">
+        <div style="width:24px;background:#181818;padding:3px 2px">
+          <div style="width:14px;height:14px;background:#2d2d2d;margin-bottom:2px"></div>
+          <div style="width:14px;height:14px;background:#007acc;margin-bottom:2px"></div>
+          <div style="width:14px;height:14px;background:#2d2d2d"></div>
+        </div>
+        <div style="flex:1;display:flex;flex-direction:column">
+          <div style="background:#2d2d2d;padding:3px 6px;display:flex;gap:4px">
+            <div style="background:#1e1e1e;padding:2px 6px;color:#fff">providers.json</div>
+            <div style="background:#252526;padding:2px 6px;color:#888">router.ts</div>
+          </div>
+          <div style="flex:1;padding:6px;background:#1e1e1e;font-family:ui-monospace,monospace;font-size:8px">
+            <div><span style="color:#569cd6">name</span>: <span style="color:#ce9178">"openai"</span>,</div>
+            <div><span style="color:#569cd6">models</span>: [</div>
+            <div>&nbsp;&nbsp;<span style="color:#ce9178">"gpt-5"</span>,</div>
+            <div>&nbsp;&nbsp;<span style="color:#ce9178">"o3-pro"</span></div>
+            <div>]</div>
+          </div>
+        </div>
+        <div style="width:60px;background:#252526;padding:4px;font-size:7px">
+          <div style="color:#888;text-transform:uppercase;letter-spacing:0.05em">Properties</div>
+          <div style="color:#fff;margin-top:2px">name</div>
+          <div style="color:#9cdcfe">"openai"</div>
+        </div>
+      </div>
+    </div>
+    <div class="card-body">
+      <h3>C · Workbench</h3>
+      <p style="font-family:ui-monospace,monospace;font-size:10px;color:var(--fg-muted);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px">IDE · multi-pane · power-user</p>
+      <p>Tiga panel: navigasi kiri, editor/canvas tengah, inspektur kanan. Tab untuk resource terbuka. Drag-resize. Terasa seperti VS Code atau Figma — untuk pengguna yang hidup di dalam tool.</p>
+    </div>
+  </div>
+</div>

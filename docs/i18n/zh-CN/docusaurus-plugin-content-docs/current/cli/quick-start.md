@@ -5,12 +5,12 @@ sidebar_position: 3
 
 # 快速开始
 
-5 分钟内启动并运行 Claude Code Router。
+5 分钟内启动并运行 Claude Code Wrapper。
 
 ## 1. 启动路由器
 
 ```bash
-ccr start
+ccw start
 ```
 
 路由器默认将在 `http://localhost:8080` 上启动。
@@ -24,10 +24,10 @@ export ANTHROPIC_API_URL="http://localhost:8080/v1"
 export ANTHROPIC_API_KEY="your-provider-api-key"
 ```
 
-或者使用 `ccr activate` 命令获取环境变量：
+或者使用 `ccw activate` 命令获取环境变量：
 
 ```bash
-eval "$(ccr activate)"
+eval "$(ccw activate)"
 ```
 
 ## 3. 使用 Claude Code
@@ -38,14 +38,14 @@ eval "$(ccr activate)"
 claude code
 ```
 
-您的请求将通过 Claude Code Router 路由到您配置的提供商。
+您的请求将通过 Claude Code Wrapper 路由到您配置的提供商。
 
 ## 4. 配置提供商（可选）
 
 要配置多个提供商或自定义路由，使用：
 
 ```bash
-ccr model
+ccw model
 ```
 
 这将打开一个交互式菜单来选择和配置模型。
@@ -54,7 +54,7 @@ ccr model
 
 ```bash
 # 在默认编辑器中打开配置
-ccr config edit
+ccw config edit
 ```
 
 配置文件示例 (`~/.ccw/config.json`)：

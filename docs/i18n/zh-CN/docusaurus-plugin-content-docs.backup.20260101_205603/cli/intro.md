@@ -1,10 +1,10 @@
 # CLI 简介
 
-Claude Code Router CLI (`ccr`) 是一个命令行工具，用于管理和控制 Claude Code Router 服务。
+Claude Code Wrapper CLI (`ccw`) 是一个命令行工具，用于管理和控制 Claude Code Wrapper 服务。
 
 ## 功能概述
 
-`ccr` 提供以下功能：
+`ccw` 提供以下功能：
 
 - **服务管理**：启动、停止、重启服务
 - **配置管理**：交互式配置模型选择
@@ -12,7 +12,7 @@ Claude Code Router CLI (`ccr`) 是一个命令行工具，用于管理和控制 
 - **代码执行**：直接执行 `claude` 命令
 - **环境集成**：输出环境变量用于 shell 集成
 - **Web UI**：打开 Web 管理界面
-- **状态栏**：使用 `ccr statusline` 显示自定义会话状态
+- **状态栏**：使用 `ccw statusline` 显示自定义会话状态
 
 ## 安装
 
@@ -31,30 +31,30 @@ npm install -g claude-code-router
 ### 启动服务
 
 ```bash
-ccr start
+ccw start
 ```
 
 ### 查看状态
 
 ```bash
-ccr status
+ccw status
 ```
 
 ### 停止服务
 
 ```bash
-ccr stop
+ccw stop
 ```
 
 ### 查看模型
 
 ```bash
-ccr model
+ccw model
 ```
 
 ## 与 Claude Code 集成
 
-`ccr` 可以与 Claude Code 无缝集成，将请求路由到你选择的 LLM 提供商。
+`ccw` 可以与 Claude Code 无缝集成，将请求路由到你选择的 LLM 提供商。
 
 ### 方式一：设置 API 地址
 
@@ -66,12 +66,12 @@ export ANTHROPIC_API_KEY="your-api-key"
 ### 方式二：使用 activate 命令
 
 ```bash
-eval "$(ccr activate)"
+eval "$(ccw activate)"
 ```
 
 ## 配置文件
 
-`ccr` 使用与 Server 相同的配置文件：`~/.claude-code-router/config.json`
+`ccw` 使用与 Server 相同的配置文件：`~/.claude-code-router/config.json`
 
 配置一次，CLI 和 Server 都会使用。
 

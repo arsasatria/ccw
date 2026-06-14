@@ -1,7 +1,7 @@
 {
   "name": "@ccw/shared",
-  "version": "2.0.0",
-  "description": "Shared utilities and constants for Claude Code Router",
+  "version": "2.1.0",
+  "description": "Shared utilities and constants for Claude Code Wrapper",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {

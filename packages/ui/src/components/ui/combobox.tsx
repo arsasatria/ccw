@@ -1,10 +1,8 @@
-"use client"
+import * as React from "react";
+import { Check, ChevronsUpDown } from "lucide-react";
 
-import * as React from "react"
-import { Check, ChevronsUpDown } from "lucide-react"
-
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import {
   Command,
   CommandEmpty,
@@ -12,12 +10,12 @@ import {
   CommandInput,
   CommandItem,
   CommandList,
-} from "@/components/ui/command"
+} from "@/components/ui/command";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/ui/popover"
+} from "@/components/ui/popover";
 
 interface ComboboxProps {
   options: { label: string; value: string }[];
@@ -36,9 +34,9 @@ export function Combobox({
   searchPlaceholder = "Search...",
   emptyPlaceholder = "No options found.",
 }: ComboboxProps) {
-  const [open, setOpen] = React.useState(false)
+  const [open, setOpen] = React.useState(false);
 
-  const selectedOption = options.find((option) => option.value === value)
+  const selectedOption = options.find((option) => option.value === value);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -47,13 +45,15 @@ export function Combobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="w-full justify-between transition-all-ease hover:scale-[1.02] active:scale-[0.98]"
+          className="w-full justify-between font-normal"
         >
-          {selectedOption ? selectedOption.label : placeholder}
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+          <span className="truncate">
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-60" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] p-0 animate-fade-in">
+      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
         <Command>
           <CommandInput placeholder={searchPlaceholder} />
           <CommandList>
@@ -64,14 +64,13 @@ export function Combobox({
                   key={option.value}
                   value={option.value}
                   onSelect={(currentValue) => {
-                    onChange(currentValue === value ? "" : currentValue)
-                    setOpen(false)
+                    onChange(currentValue === value ? "" : currentValue);
+                    setOpen(false);
                   }}
-                  className="transition-all-ease hover:bg-accent hover:text-accent-foreground"
                 >
                   <Check
                     className={cn(
-                      "mr-2 h-4 w-4 transition-opacity",
+                      "h-4 w-4 text-brand transition-opacity",
                       value === option.value ? "opacity-100" : "opacity-0"
                     )}
                   />
@@ -83,5 +82,5 @@ export function Combobox({
         </Command>
       </PopoverContent>
     </Popover>
-  )
+  );
 }

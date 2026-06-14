@@ -7,12 +7,12 @@ set -e
 # - Server 包发布为 Docker 镜像
 
 VERSION=$(node -p "require('../packages/cli/package.json').version")
-IMAGE_NAME="ccr/router"
+IMAGE_NAME="ccw/router"
 IMAGE_TAG="${VERSION}"
 LATEST_TAG="latest"
 
 echo "========================================="
-echo "发布 Claude Code Router v${VERSION}"
+echo "发布 Claude Code Wrapper v${VERSION}"
 echo "========================================="
 
 # 获取发布类型参数

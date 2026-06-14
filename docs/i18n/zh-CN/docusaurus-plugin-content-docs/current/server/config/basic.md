@@ -5,7 +5,7 @@ sidebar_position: 1
 
 # 基础配置
 
-学习如何配置 Claude Code Router 以满足您的需求。
+学习如何配置 Claude Code Wrapper 以满足您的需求。
 
 ## 配置文件位置
 
@@ -129,7 +129,7 @@ sidebar_position: 1
 使用 CLI 编辑配置：
 
 ```bash
-ccr config edit
+ccw config edit
 ```
 
 这将在您的默认编辑器中打开配置文件。
@@ -139,7 +139,7 @@ ccr config edit
 编辑配置后，重启路由器：
 
 ```bash
-ccr restart
+ccw restart
 ```
 
 ## 配置选项说明

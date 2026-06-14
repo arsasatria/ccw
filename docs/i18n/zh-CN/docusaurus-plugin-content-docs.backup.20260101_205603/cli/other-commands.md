@@ -6,46 +6,46 @@ sidebar_position: 4
 
 # 其他命令
 
-管理 Claude Code Router 的其他 CLI 命令。
+管理 Claude Code Wrapper 的其他 CLI 命令。
 
-## ccr stop
+## ccw stop
 
 停止运行中的服务器。
 
 ```bash
-ccr stop
+ccw stop
 ```
 
-## ccr restart
+## ccw restart
 
 重启服务器。
 
 ```bash
-ccr restart
+ccw restart
 ```
 
-## ccr code
+## ccw code
 
 通过路由器执行 claude 命令。
 
 ```bash
-ccr code [参数...]
+ccw code [参数...]
 ```
 
-## ccr ui
+## ccw ui
 
 在浏览器中打开 Web UI。
 
 ```bash
-ccr ui
+ccw ui
 ```
 
-## ccr activate
+## ccw activate
 
 输出用于与外部工具集成的 shell 环境变量。
 
 ```bash
-ccr activate
+ccw activate
 ```
 
 ## 全局选项
@@ -64,22 +64,22 @@ ccr activate
 ### 停止服务器
 
 ```bash
-ccr stop
+ccw stop
 ```
 
 ### 使用自定义配置重启
 
 ```bash
-ccr restart --config /path/to/config.json
+ccw restart --config /path/to/config.json
 ```
 
 ### 打开 Web UI
 
 ```bash
-ccr ui
+ccw ui
 ```
 
 ## 相关文档
 
-- [入门](/zh/docs/intro) - Claude Code Router 简介
+- [入门](/zh/docs/intro) - Claude Code Wrapper 简介
 - [配置](/zh/docs/config/basic) - 配置指南

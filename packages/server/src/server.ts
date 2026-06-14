@@ -105,6 +105,34 @@ export const createServer = async (config: any): Promise<any> => {
   app.post("/api/config", async (req: any, reply: any) => {
     const newConfig = req.body;
 
+    // Reject configs that would create duplicate provider names on
+    // disk. The UI also enforces this on save, but doing it here
+    // keeps the on-disk config valid even if a different client (or
+    // a future CLI) bypasses the UI check. Names are compared
+    // case-insensitively after trimming whitespace.
+    if (Array.isArray(newConfig?.Providers)) {
+      const seen = new Set<string>();
+      const duplicates = new Set<string>();
+      for (const p of newConfig.Providers) {
+        const name = (p?.name ?? "").trim();
+        if (!name) continue;
+        const key = name.toLowerCase();
+        if (seen.has(key)) {
+          duplicates.add(name);
+        } else {
+          seen.add(key);
+        }
+      }
+      if (duplicates.size > 0) {
+        reply.status(400).send({
+          error: "duplicate_provider_names",
+          message: `Duplicate provider names are not allowed: ${Array.from(duplicates).join(", ")}`,
+          duplicates: Array.from(duplicates),
+        });
+        return;
+      }
+    }
+
     // Backup existing config file if it exists
     const backupPath = await backupConfigFile();
     if (backupPath) {
@@ -113,6 +141,136 @@ export const createServer = async (config: any): Promise<any> => {
 
     await writeConfigFile(newConfig);
     return { success: true, message: "Config saved successfully" };
+  });
+
+  // Fetch available models from a provider's OpenAI-compatible /v1/models endpoint.
+  // Used by the Add/Edit Provider dialog to populate the model list with one click.
+  //
+  // The user's `api_base_url` may either be the bare origin ("https://api.openai.com")
+  // or include the /v1 prefix ("https://api.openai.com/v1"). We try a small set of
+  // candidate URLs in order and return the first one that yields a valid models
+  // response. The list of URLs we tried is included in error responses so the UI
+  // can show what actually failed.
+  app.post("/api/providers/models", async (req: any, reply: any) => {
+    const { base_url, api_key } = (req.body || {}) as {
+      base_url?: string;
+      api_key?: string;
+    };
+
+    if (!base_url || !base_url.trim() || !api_key || !api_key.trim()) {
+      reply.status(400).send({ error: "missing_credentials" });
+      return;
+    }
+
+    // Build candidate base URLs by progressively stripping known OpenAI-compatible
+    // path suffixes. The user may enter either the API base
+    // (https://api.openai.com/v1) or the full chat completions endpoint
+    // (https://api.openai.com/v1/chat/completions) as their api_base_url — we
+    // need to discover the right base from which to query /v1/models.
+    const stripTrailing = (s: string, suffix: string): string | null =>
+      s.endsWith(suffix) ? s.slice(0, -suffix.length) : null;
+
+    const trimmed = base_url.replace(/\/+$/, "");
+    const baseCandidates = new Set<string>();
+    baseCandidates.add(trimmed);
+
+    const knownSuffixes = [
+      "/v1/chat/completions",
+      "/v1/completions",
+      "/v1/responses",
+      "/v1/embeddings",
+      "/chat/completions",
+      "/completions",
+      "/responses",
+      "/embeddings",
+    ];
+    for (const suffix of knownSuffixes) {
+      const stripped = stripTrailing(trimmed, suffix);
+      if (stripped) baseCandidates.add(stripped);
+    }
+    // Also strip a bare /v1 at the end (so we don't construct "/v1/v1/models").
+    if (trimmed.endsWith("/v1")) {
+      baseCandidates.add(trimmed.slice(0, -3));
+    }
+
+    // For each candidate base, try /v1/models and /models in order.
+    const candidates: string[] = [];
+    for (const base of baseCandidates) {
+      candidates.push(`${base}/v1/models`);
+      candidates.push(`${base}/models`);
+    }
+
+    let lastDetail: string | null = null;
+    for (const url of candidates) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+      try {
+        const response = await fetch(url, {
+          method: "GET",
+          headers: {
+            Authorization: `Bearer ${api_key}`,
+          },
+          signal: controller.signal,
+        });
+
+        if (!response.ok) {
+          lastDetail = `${response.status} ${response.statusText} at ${url}`;
+          console.error(`Failed to fetch models from ${url}: ${lastDetail}`);
+          // 404 = wrong path; try the next candidate. Other statuses = bail.
+          if (response.status === 404) continue;
+          reply.status(502).send({
+            error: "fetch_failed",
+            message: lastDetail,
+            tried: candidates,
+          });
+          return;
+        }
+
+        const body = (await response.json()) as {
+          data?: Array<{ id?: unknown }>;
+        };
+        if (!body || !Array.isArray(body.data)) {
+          lastDetail = `Unexpected response shape at ${url}`;
+          console.error(`Unexpected /v1/models response shape from ${url}:`, body);
+          continue;
+        }
+
+        const models = body.data
+          .map((m) => (m && typeof m.id === "string" ? m.id : null))
+          .filter((id): id is string => id !== null);
+
+        return { models, source: url };
+      } catch (err: any) {
+        if (err?.name === "AbortError") {
+          console.error(`Fetching models from ${url} timed out after 10s`);
+          reply.status(502).send({
+            error: "fetch_failed",
+            message: `Request to ${url} timed out after 10s`,
+            tried: candidates,
+          });
+          return;
+        }
+        console.error(`Failed to fetch models from ${url}:`, err);
+        reply.status(502).send({
+          error: "fetch_failed",
+          message: `${err?.message ?? "Unknown error"} (at ${url})`,
+          tried: candidates,
+        });
+        return;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
+
+    // All candidates returned 404 or wrong shape.
+    reply.status(404).send({
+      error: "fetch_failed",
+      message: lastDetail
+        ? `${lastDetail}. The provider may not expose a /v1/models endpoint — enter models manually.`
+        : `No candidate URL returned a valid models list. Tried: ${candidates.join(", ")}`,
+      tried: candidates,
+    });
   });
 
   // Register static file serving with caching

@@ -325,6 +325,68 @@ class ApiClient {
   }
 }
 
+// ========== Provider model discovery ==========
+
+export type FetchProviderModelsErrorCode =
+  | "missing_credentials"
+  | "fetch_failed"
+  | "invalid_response";
+
+export class FetchProviderModelsError extends Error {
+  code: FetchProviderModelsErrorCode;
+  constructor(code: FetchProviderModelsErrorCode, message: string) {
+    super(message);
+    this.code = code;
+    this.name = "FetchProviderModelsError";
+  }
+}
+
+/**
+ * Hit the local backend's POST /api/providers/models endpoint, which in turn
+ * calls the provider's OpenAI-compatible /v1/models endpoint and returns
+ * the list of model ids.
+ *
+ * Throws FetchProviderModelsError on failure so callers can branch on `.code`.
+ */
+export async function fetchProviderModels(
+  baseUrl: string,
+  apiKey: string
+): Promise<string[]> {
+  const response = await fetch("/api/providers/models", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ base_url: baseUrl, api_key: apiKey }),
+  });
+
+  if (!response.ok) {
+    let code: FetchProviderModelsErrorCode = "fetch_failed";
+    let message = `Request failed: ${response.status} ${response.statusText}`;
+    try {
+      const body = (await response.json()) as { error?: string; message?: string };
+      if (body?.error === "missing_credentials") {
+        code = "missing_credentials";
+      } else if (body?.error === "invalid_response") {
+        code = "invalid_response";
+      }
+      if (body?.message) {
+        message = body.message;
+      }
+    } catch {
+      // ignore JSON parse errors and keep the default message
+    }
+    throw new FetchProviderModelsError(code, message);
+  }
+
+  const body = (await response.json()) as { models?: unknown };
+  if (!body || !Array.isArray(body.models)) {
+    throw new FetchProviderModelsError(
+      "invalid_response",
+      "Invalid response: missing models array"
+    );
+  }
+  return body.models.filter((m): m is string => typeof m === "string");
+}
+
 // Create a default instance of the API client
 export const api = new ApiClient();
 

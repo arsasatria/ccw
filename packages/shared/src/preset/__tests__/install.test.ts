@@ -1,6 +1,6 @@
 /**
  * Regression test for issue #1278:
- *   `ccr preset install` fails with ENOENT because saveManifest writes to
+ *   `ccw preset install` fails with ENOENT because saveManifest writes to
  *   `~/.claude-code-router/presets/<name>/manifest.json` without first
  *   creating the `<name>/` subdirectory on a fresh install.
  */

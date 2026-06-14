@@ -1,17 +1,17 @@
 ---
 id: cli/start
-title: ccr start
+title: ccw start
 sidebar_position: 1
 ---
 
-# ccr start
+# ccw start
 
-启动 Claude Code Router 服务器。
+启动 Claude Code Wrapper 服务器。
 
 ## 用法
 
 ```bash
-ccr start [选项]
+ccw start [选项]
 ```
 
 ## 选项
@@ -28,31 +28,31 @@ ccr start [选项]
 ### 使用默认设置启动
 
 ```bash
-ccr start
+ccw start
 ```
 
 ### 在自定义端口启动
 
 ```bash
-ccr start --port 3000
+ccw start --port 3000
 ```
 
 ### 使用自定义配置启动
 
 ```bash
-ccr start --config /path/to/config.json
+ccw start --config /path/to/config.json
 ```
 
 ### 作为守护进程启动
 
 ```bash
-ccr start --daemon
+ccw start --daemon
 ```
 
 ### 启用调试日志
 
 ```bash
-ccr start --log-level debug
+ccw start --log-level debug
 ```
 
 ## 环境变量
@@ -72,12 +72,12 @@ ccr start --log-level debug
 启动成功后，您将看到：
 
 ```
-Claude Code Router is running on http://localhost:3456
+Claude Code Wrapper is running on http://localhost:3456
 API endpoint: http://localhost:3456/v1
 ```
 
 ## 相关命令
 
-- [ccr stop](/zh/docs/cli/other-commands#ccr-stop) - 停止服务器
-- [ccr restart](/zh/docs/cli/other-commands#ccr-restart) - 重启服务器
-- [ccr status](/zh/docs/cli/other-commands#ccr-status) - 检查服务器状态
+- [ccw stop](/zh/docs/cli/other-commands#ccw-stop) - 停止服务器
+- [ccw restart](/zh/docs/cli/other-commands#ccw-restart) - 重启服务器
+- [ccw status](/zh/docs/cli/other-commands#ccw-status) - 检查服务器状态

@@ -6,7 +6,7 @@ sidebar_position: 2
 
 # 安装
 
-使用您喜欢的包管理器全局安装 Claude Code Router。
+使用您喜欢的包管理器全局安装 Claude Code Wrapper。
 
 ## 前置要求
 
@@ -34,10 +34,10 @@ yarn global add @musistudio/claude-code-router
 
 ## 验证安装
 
-安装完成后，验证 `ccr` 命令是否可用：
+安装完成后，验证 `ccw` 命令是否可用：
 
 ```bash
-ccr --version
+ccw --version
 ```
 
 您应该看到版本号显示。

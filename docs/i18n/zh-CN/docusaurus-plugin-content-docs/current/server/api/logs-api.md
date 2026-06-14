@@ -147,7 +147,7 @@ curl -X DELETE "http://localhost:3456/api/logs?file=/home/user/.ccw/logs/ccw-202
 
 位置：`~/.ccw/logs/`
 
-文件命名：`ccr-{YYYYMMDD}{HH}{MM}{SS}.log`
+文件命名：`ccw-{YYYYMMDD}{HH}{MM}{SS}.log`
 
 内容：HTTP 请求、API 调用、服务器事件
 
