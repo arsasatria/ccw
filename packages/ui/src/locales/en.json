@@ -280,6 +280,8 @@
     "unnamed": "untitled",
     "account_pool": "Account pool",
     "account_pool_hint": "Multiple API keys for the same provider are tried in order when one fails.",
+    "account_api_key": "Account API key",
+    "account_label": "Account label",
     "add_account": "Add account",
     "account_label_placeholder": "Label (optional, e.g. \"personal\")",
     "account_remove_aria": "Remove account",

@@ -171,7 +171,11 @@ export default function ProvidersPage() {
       return;
     }
 
-    if (!editingData.api_key || !editingData.api_key.trim()) {
+    const hasLegacyKey = !!(editingData.api_key && editingData.api_key.trim());
+    const hasAccountKeys = (editingData.accounts ?? []).some(
+      (a) => a.apiKey && a.apiKey.trim().length > 0
+    );
+    if (!hasLegacyKey && !hasAccountKeys) {
       setKeyError(t("providers.api_key_required"));
       return;
     }
@@ -1247,14 +1251,14 @@ function AccountPoolSection({
                   onChange={(e) => updateAt(i, { apiKey: e.target.value })}
                   placeholder="sk-…"
                   className="font-mono"
-                  aria-label={t("providers.api_key")}
+                  aria-label={t("providers.account_api_key")}
                 />
                 <Input
                   value={acct.label ?? ""}
                   onChange={(e) => updateAt(i, { label: e.target.value })}
                   placeholder={t("providers.account_label_placeholder")}
                   className="text-xs"
-                  aria-label={t("providers.account_label_placeholder")}
+                  aria-label={t("providers.account_label")}
                 />
                 <Button
                   type="button"
