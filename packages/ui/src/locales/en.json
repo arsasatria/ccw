@@ -9,7 +9,8 @@
     "close": "Close",
     "open_command_palette": "Open command palette",
     "primary_navigation": "Primary navigation",
-    "search": "Search"
+    "search": "Search",
+    "skip_to_content": "Skip to content"
   },
   "app": {
     "title": "ccw",

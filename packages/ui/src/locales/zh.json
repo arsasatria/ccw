@@ -9,7 +9,8 @@
     "close": "关闭",
     "open_command_palette": "打开命令面板",
     "primary_navigation": "主导航",
-    "search": "搜索"
+    "search": "搜索",
+    "skip_to_content": "跳到主要内容"
   },
   "app": {
     "title": "ccw",
