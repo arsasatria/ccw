@@ -93,23 +93,29 @@
     "hero_title_idle": "配置提供商以启动网关",
     "hero_description": "ccw 智能地将每个请求路由到合适的模型 —— 工具调用用快速模型，推理用深度模型，图像用视觉模型。配置提供商、调整路由、安装预设，全部在一处完成。",
     "status_label": "服务状态",
+    "hero": {
+      "title": "网关已上线并正常路由。",
+      "subtitle": "请求正通过配置的路由流转。以下是当前状态。",
+      "reqCount": "{{count}} 请求/秒"
+    },
     "stats": {
       "providers": "提供商",
       "models": "模型",
       "routes": "路由",
       "transformers": "转换器",
-      "providers_hint": "已连接的 AI 提供商",
-      "models_hint": "可用的模型端点",
-      "routes_hint": "活跃的路由规则",
-      "transformers_hint": "自定义请求/响应钩子"
+      "providers_hint": "anthropic · openai · google · custom",
+      "models_hint": "所有提供商",
+      "routes_hint": "默认 · 后台 · 思考 · …",
+      "transformers_hint": "请求 · 响应 · 流"
     },
     "router_map": {
       "title": "路由映射",
-      "subtitle": "不同类型的请求被发送到哪里",
+      "subtitle": "每种请求类型对应的模型。",
       "edit": "编辑",
       "empty_title": "未配置路由",
       "empty_description": "告诉 ccw 哪些模型应该处理哪些类型的任务。",
-      "empty_action": "配置路由"
+      "empty_action": "配置路由",
+      "empty": "尚未配置任何路由。"
     },
     "quick": {
       "providers_title": "管理提供商",
@@ -117,8 +123,25 @@
       "transformers_title": "自定义转换器",
       "transformers_description": "使用你自己的脚本挂钩请求和响应周期。",
       "presets_title": "预设市场",
-      "presets_description": "一键安装社区中流行模型的预设。"
-    }
+      "presets_description": "一键安装社区中流行模型的预设。",
+      "manage": "管理",
+      "install": "安装",
+      "configure": "配置",
+      "providers": {
+        "title": "提供商",
+        "description": "添加、编辑或移除模型提供商。"
+      },
+      "presets": {
+        "title": "预设",
+        "description": "一键安装转换器和路由包。"
+      },
+      "transformers": {
+        "title": "转换器",
+        "description": "自定义请求/响应处理。"
+      }
+    },
+    "gateway_online": "网关在线",
+    "requests_per_sec": "请求/秒"
   },
   "notFound": {
     "message": "您访问的页面不存在。",
@@ -212,7 +235,11 @@
     "no_results_description": "尝试不同的搜索词，或添加新的提供商。",
     "empty_title": "尚无提供商",
     "empty_description": "添加你的第一个提供商以开始路由请求。",
-    "no_models": "尚未添加模型"
+    "no_models": "尚未添加模型",
+    "empty": {
+      "title": "添加您的第一个提供方",
+      "description": "首先连接一个模型提供商。网关会将请求路由到它。"
+    }
   },
   "router": {
     "title": "路由器",

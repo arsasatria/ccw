@@ -93,23 +93,29 @@
     "hero_title_idle": "Set up a provider to bring the gateway online",
     "hero_description": "ccw intelligently routes every request to the right model — fast ones for tool calls, deep ones for reasoning, vision ones for images. Configure providers, tune the router, install presets, all in one place.",
     "status_label": "Service status",
+    "hero": {
+      "title": "Your gateway is online and routing.",
+      "subtitle": "Requests are flowing through the configured routes. Here's the current state.",
+      "reqCount": "{{count}} req/s"
+    },
     "stats": {
       "providers": "Providers",
       "models": "Models",
       "routes": "Routes",
       "transformers": "Transformers",
-      "providers_hint": "Connected AI providers",
-      "models_hint": "Available model endpoints",
-      "routes_hint": "Active routing rules",
-      "transformers_hint": "Custom request/response hooks"
+      "providers_hint": "anthropic · openai · google · custom",
+      "models_hint": "across all providers",
+      "routes_hint": "default · background · think · …",
+      "transformers_hint": "request · response · stream"
     },
     "router_map": {
       "title": "Router map",
-      "subtitle": "Where each kind of request is being sent",
+      "subtitle": "Where each request kind lands.",
       "edit": "Edit",
       "empty_title": "No routes configured",
       "empty_description": "Tell ccw which models should handle which kinds of tasks.",
-      "empty_action": "Configure router"
+      "empty_action": "Configure router",
+      "empty": "No routes configured yet."
     },
     "quick": {
       "providers_title": "Manage providers",
@@ -117,8 +123,25 @@
       "transformers_title": "Custom transformers",
       "transformers_description": "Hook into request and response cycles with your own scripts.",
       "presets_title": "Preset marketplace",
-      "presets_description": "One-click install community presets for popular models."
-    }
+      "presets_description": "One-click install community presets for popular models.",
+      "manage": "Manage",
+      "install": "Install",
+      "configure": "Configure",
+      "providers": {
+        "title": "Providers",
+        "description": "Add, edit, or remove your model providers."
+      },
+      "presets": {
+        "title": "Presets",
+        "description": "One-click transformer & route bundles."
+      },
+      "transformers": {
+        "title": "Transformers",
+        "description": "Custom request/response shaping."
+      }
+    },
+    "gateway_online": "Gateway online",
+    "requests_per_sec": "requests / sec"
   },
   "notFound": {
     "message": "The page you're looking for doesn't exist on this gateway.",
@@ -212,7 +235,11 @@
     "no_results_description": "Try a different search term, or add a new provider.",
     "empty_title": "No providers yet",
     "empty_description": "Add your first provider to start routing requests.",
-    "no_models": "No models added yet"
+    "no_models": "No models added yet",
+    "empty": {
+      "title": "Add your first provider",
+      "description": "Start by connecting a model provider. The gateway will route requests to it."
+    }
   },
   "router": {
     "title": "Router",

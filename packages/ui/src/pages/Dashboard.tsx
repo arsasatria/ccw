@@ -1,64 +1,21 @@
-import * as React from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Cpu,
-  GitBranch,
-  Workflow,
-  Layers,
-  Zap,
-  ArrowRight,
-  Plus,
-  Power,
-  Clock,
-  Activity,
-  Sparkles,
-} from "lucide-react";
-import { useConfig } from "@/components/ConfigProvider";
-import { AppShell } from "@/components/shell/AppShell";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { StatusPill } from "@/components/common/StatusPill";
-import { StatCard } from "@/components/common/StatCard";
-import { EmptyState } from "@/components/common/EmptyState";
-import {
-  providerModelFromRouter,
-  hostnameFromUrl,
-} from "@/lib/utils";
-import { cn } from "@/lib/utils";
 import { Link } from "react-router-dom";
+import { useConfig } from "@/components/ConfigProvider";
+import { PageHeader } from "@/components/common/PageHeader";
+import { StatCard } from "@/components/common/StatCard";
+import { StatusPill } from "@/components/common/StatusPill";
+import { EmptyState } from "@/components/common/EmptyState";
+import { Button } from "@/components/ui/button";
+import { providerModelFromRouter } from "@/lib/utils";
 
-const ROUTE_LABELS: Record<string, { key: string; icon: React.ComponentType<{ className?: string }>; tone: string; description: string }> = {
-  default: {
-    key: "router.default",
-    icon: Zap,
-    tone: "from-brand/15 to-brand/0",
-    description: "Regular user prompts",
-  },
-  background: {
-    key: "router.background",
-    icon: Activity,
-    tone: "from-info/15 to-info/0",
-    description: "Sub-tasks, hooks, async",
-  },
-  think: {
-    key: "router.think",
-    icon: Sparkles,
-    tone: "from-warning/15 to-warning/0",
-    description: "Reasoning & chain-of-thought",
-  },
-  longContext: {
-    key: "router.longContext",
-    icon: Clock,
-    tone: "from-success/15 to-success/0",
-    description: "Prompts over the threshold",
-  },
-  webSearch: {
-    key: "router.webSearch",
-    icon: GitBranch,
-    tone: "from-fg-muted/15 to-fg-muted/0",
-    description: "Built-in search tool",
-  },
-};
+const ROUTE_KINDS = [
+  "default",
+  "background",
+  "think",
+  "longContext",
+  "webSearch",
+  "image",
+] as const;
 
 export default function Dashboard() {
   const { t } = useTranslation();
@@ -76,228 +33,183 @@ export default function Dashboard() {
       )
     : [];
 
-  const online = providers.length > 0;
-  const port = config?.PORT ?? 0;
+  const hasProviders = providers.length > 0;
+  const routesCount = routerEntries.length;
+
+  const providerFootnote =
+    providers.length > 0
+      ? providers.map((p) => p.name).join(" · ")
+      : "—";
+  const modelFootnote =
+    providers.length > 0
+      ? t("dashboard.stats.models_hint")
+      : "—";
+  const routeFootnote = hasProviders
+    ? t("dashboard.stats.routes_hint")
+    : "—";
+  const transformerFootnote =
+    transformerCount > 0 ? t("dashboard.stats.transformers_hint") : "—";
 
   return (
-    <AppShell
-      title={t("dashboard.title")}
-      subtitle={t("dashboard.subtitle")}
-      actions={
-        <>
-          <Button variant="outline" asChild size="sm">
-            <Link to="/providers">
-              <Plus className="h-3.5 w-3.5" />
-              {t("dashboard.add_provider")}
-            </Link>
-          </Button>
-          <Button asChild size="sm">
-            <Link to="/router">
-              <GitBranch className="h-3.5 w-3.5" />
-              {t("dashboard.configure_router")}
-            </Link>
-          </Button>
-        </>
-      }
-    >
+    <div className="space-y-12">
       {/* HERO */}
-      <section className="cc-card relative overflow-hidden p-6 mb-6">
-        <div className="absolute inset-0 cc-grid-bg opacity-50" aria-hidden />
-        <div className="relative flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="space-y-2.5">
-            <div className="flex items-center gap-2">
-              <StatusPill
-                status={online ? "online" : "offline"}
-                label={
-                  online
-                    ? t("dashboard.gateway_running")
-                    : t("dashboard.gateway_idle")
-                }
-              />
-              {port > 0 && (
-                <Badge variant="default" className="font-mono">
-                  127.0.0.1:{port}
-                </Badge>
+      <section className="glass relative overflow-hidden rounded-lg p-8">
+        <div className="glass-glow" />
+        <div className="relative flex items-start justify-between gap-6">
+          <div>
+            <StatusPill
+              status={hasProviders ? "online" : "offline"}
+              label={hasProviders ? t("dashboard.gateway_online") : t("dashboard.gateway_idle")}
+            />
+            <h1 className="mt-3 max-w-xl font-serif text-[32px] leading-[1.1] tracking-[-0.02em] text-ink">
+              {t("dashboard.hero.title")}
+            </h1>
+            <p className="mt-3 max-w-md text-[13px] italic text-ink-muted">
+              {t("dashboard.hero.subtitle")}
+            </p>
+          </div>
+          <div className="text-right">
+            <div className="font-serif text-[36px] leading-none tracking-[-0.02em] text-ink">
+              {t("dashboard.hero.reqCount", { count: 142 })}
+            </div>
+            <div className="mt-1 text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
+              {t("dashboard.requests_per_sec")}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* EMPTY STATE when no providers */}
+      {!hasProviders ? (
+        <EmptyState
+          glass
+          title={t("providers.empty.title")}
+          description={t("providers.empty.description")}
+          action={
+            <Button asChild>
+              <Link to="/providers">{t("providers.add")}</Link>
+            </Button>
+          }
+        />
+      ) : (
+        <>
+          {/* STATS */}
+          <section className="grid grid-cols-4 gap-4">
+            <StatCard
+              label={t("dashboard.stats.providers")}
+              value={providers.length}
+              footnote={providerFootnote}
+            />
+            <StatCard
+              label={t("dashboard.stats.models")}
+              value={totalModels}
+              footnote={modelFootnote}
+            />
+            <StatCard
+              label={t("dashboard.stats.routes")}
+              value={routesCount}
+              footnote={routeFootnote}
+            />
+            <StatCard
+              label={t("dashboard.stats.transformers")}
+              value={transformerCount}
+              footnote={transformerFootnote}
+            />
+          </section>
+
+          {/* ROUTER MAP */}
+          <section>
+            <PageHeader
+              title={t("dashboard.router_map.title")}
+              subtitle={t("dashboard.router_map.subtitle")}
+              action={
+                <Link to="/router">
+                  <Button variant="ghost">{t("common.edit")}</Button>
+                </Link>
+              }
+            />
+            <div className="rounded-md border border-line bg-surface">
+              {routerEntries.length === 0 ? (
+                <div className="px-6 py-8 text-center text-[13px] text-ink-muted">
+                  {t("dashboard.router_map.empty")}
+                </div>
+              ) : (
+                routerEntries.map(([kind, value]) => {
+                  const parsed = providerModelFromRouter(value);
+                  const modelLabel = parsed
+                    ? `${parsed.provider} / ${parsed.model}`
+                    : "—";
+                  return (
+                    <div
+                      key={kind}
+                      className="flex items-center justify-between border-b border-line px-6 py-4 last:border-b-0"
+                    >
+                      <div>
+                        <div className="text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
+                          {kind}
+                        </div>
+                        <div className="mt-1 font-serif text-[16px] text-ink">
+                          {modelLabel}
+                        </div>
+                      </div>
+                      <StatusPill
+                        status={parsed ? "active" : "inactive"}
+                        label={parsed ? "active" : "unassigned"}
+                      />
+                    </div>
+                  );
+                })
               )}
             </div>
-            <h2 className="text-2xl font-semibold tracking-tight text-fg">
-              {online
-                ? t("dashboard.hero_title_running")
-                : t("dashboard.hero_title_idle")}
-            </h2>
-            <p className="text-sm text-fg-muted max-w-2xl">
-              {t("dashboard.hero_description")}
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1.5 text-right">
-            <div className="flex items-center gap-1.5 text-xs text-fg-muted">
-              <Power className="h-3 w-3" />
-              {t("dashboard.status_label")}
-            </div>
-            <div className="cc-text-mono text-3xl font-semibold tracking-tight text-fg">
-              {online ? "ONLINE" : "OFFLINE"}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* STATS */}
-      <section className="grid grid-cols-2 gap-3 md:grid-cols-4 mb-6">
-        <StatCard
-          label={t("dashboard.stats.providers")}
-          value={providers.length}
-          footnote={t("dashboard.stats.providers_hint")}
-        />
-        <StatCard
-          label={t("dashboard.stats.models")}
-          value={totalModels}
-          footnote={t("dashboard.stats.models_hint")}
-        />
-        <StatCard
-          label={t("dashboard.stats.routes")}
-          value={routerEntries.length}
-          footnote={t("dashboard.stats.routes_hint")}
-        />
-        <StatCard
-          label={t("dashboard.stats.transformers")}
-          value={transformerCount}
-          footnote={t("dashboard.stats.transformers_hint")}
-        />
-      </section>
-
-      {/* ROUTER VISUAL */}
-      <section className="mb-6">
-        <div className="mb-3 flex items-end justify-between">
-          <div>
-            <h3 className="text-sm font-semibold text-fg">
-              {t("dashboard.router_map.title")}
-            </h3>
-            <p className="text-xs text-fg-muted">
-              {t("dashboard.router_map.subtitle")}
-            </p>
-          </div>
-          <Button variant="ghost" size="sm" asChild>
-            <Link to="/router" className="text-fg-muted">
-              {t("dashboard.router_map.edit")}
-              <ArrowRight className="h-3 w-3" />
-            </Link>
-          </Button>
-        </div>
-
-        {routerEntries.length === 0 ? (
-          <EmptyState
-            title={t("dashboard.router_map.empty_title")}
-            description={t("dashboard.router_map.empty_description")}
-            action={
-              <Button asChild size="sm">
-                <Link to="/router">{t("dashboard.router_map.empty_action")}</Link>
-              </Button>
-            }
-          />
-        ) : (
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-            {routerEntries.map(([kind, value]) => {
-              const meta = ROUTE_LABELS[kind];
-              if (!meta) return null;
-              const parsed = providerModelFromRouter(value as string);
-              const Icon = meta.icon;
-              return (
-                <Link
-                  key={kind}
-                  to="/router"
-                  className={cn(
-                    "cc-card relative overflow-hidden p-4 transition-all hover:border-border-strong hover:translate-y-[-1px]"
-                  )}
-                >
-                  <div
-                    className={cn(
-                      "absolute inset-0 bg-gradient-to-br opacity-40",
-                      meta.tone
-                    )}
-                    aria-hidden
-                  />
-                  <div className="relative flex items-start gap-3">
-                    <div
-                      className={cn(
-                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-surface text-fg ring-1 ring-inset ring-border"
-                      )}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10.5px] font-semibold uppercase tracking-wider text-fg-muted">
-                          {t(`router.${kind}`, kind)}
-                        </span>
-                      </div>
-                      <div className="mt-1 cc-text-mono text-sm font-medium text-fg truncate">
-                        {parsed
-                          ? `${parsed.provider} / ${parsed.model}`
-                          : "—"}
-                      </div>
-                      <div className="mt-0.5 text-[11px] text-fg-subtle">
-                        {meta.description}
-                      </div>
-                    </div>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
-      </section>
+          </section>
+        </>
+      )}
 
       {/* QUICK ACTIONS */}
-      <section className="grid gap-3 md:grid-cols-3">
-        <QuickAction
+      <section className="grid grid-cols-3 gap-4">
+        <Link
           to="/providers"
-          icon={<Cpu className="h-4 w-4" />}
-          title={t("dashboard.quick.providers_title")}
-          description={t("dashboard.quick.providers_description")}
-        />
-        <QuickAction
-          to="/transformers"
-          icon={<Workflow className="h-4 w-4" />}
-          title={t("dashboard.quick.transformers_title")}
-          description={t("dashboard.quick.transformers_description")}
-        />
-        <QuickAction
+          className="rounded-md border border-line bg-surface p-6 hover:bg-surface-2"
+        >
+          <div className="text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
+            {t("dashboard.quick.manage")}
+          </div>
+          <div className="mt-1 font-serif text-[18px] text-ink">
+            {t("dashboard.quick.providers.title")}
+          </div>
+          <p className="mt-2 text-[12px] text-ink-muted">
+            {t("dashboard.quick.providers.description")}
+          </p>
+        </Link>
+        <Link
           to="/presets"
-          icon={<Layers className="h-4 w-4" />}
-          title={t("dashboard.quick.presets_title")}
-          description={t("dashboard.quick.presets_description")}
-        />
+          className="rounded-md border border-line bg-surface p-6 hover:bg-surface-2"
+        >
+          <div className="text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
+            {t("dashboard.quick.install")}
+          </div>
+          <div className="mt-1 font-serif text-[18px] text-ink">
+            {t("dashboard.quick.presets.title")}
+          </div>
+          <p className="mt-2 text-[12px] text-ink-muted">
+            {t("dashboard.quick.presets.description")}
+          </p>
+        </Link>
+        <Link
+          to="/transformers"
+          className="rounded-md border border-line bg-surface p-6 hover:bg-surface-2"
+        >
+          <div className="text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
+            {t("dashboard.quick.configure")}
+          </div>
+          <div className="mt-1 font-serif text-[18px] text-ink">
+            {t("dashboard.quick.transformers.title")}
+          </div>
+          <p className="mt-2 text-[12px] text-ink-muted">
+            {t("dashboard.quick.transformers.description")}
+          </p>
+        </Link>
       </section>
-    </AppShell>
-  );
-}
-
-function QuickAction({
-  to,
-  icon,
-  title,
-  description,
-}: {
-  to: string;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <Link
-      to={to}
-      className="cc-card group flex items-start gap-3 p-4 transition-colors hover:border-border-strong"
-    >
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-soft text-brand">
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-medium text-fg">{title}</span>
-          <ArrowRight className="h-3.5 w-3.5 text-fg-subtle transition-transform group-hover:translate-x-0.5" />
-        </div>
-        <p className="mt-0.5 text-xs text-fg-muted">{description}</p>
-      </div>
-    </Link>
+    </div>
   );
 }
