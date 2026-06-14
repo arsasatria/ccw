@@ -26,6 +26,12 @@ describe("coerceChain", () => {
     ).toEqual(["a,b", "c,d"]);
   });
 
+  it("trims whitespace-padded string entries inside arrays", () => {
+    expect(
+      coerceChain(["  openai,gpt-4o  ", "", "  groq,llama"])
+    ).toEqual(["openai,gpt-4o", "groq,llama"]);
+  });
+
   it("returns an empty array for non-string, non-array inputs", () => {
     expect(coerceChain(42)).toEqual([]);
     expect(coerceChain({})).toEqual([]);

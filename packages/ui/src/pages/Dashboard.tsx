@@ -9,7 +9,7 @@ import { StatusPill } from "@/components/common/StatusPill";
 import { EmptyState } from "@/components/common/EmptyState";
 import { Button } from "@/components/ui/button";
 import { api } from "@/lib/api";
-import { providerModelFromRouter } from "@/lib/utils";
+import { coerceChain, providerModelFromRouter } from "@/lib/utils";
 
 const APP_LOG_NAME = "app.log";
 
@@ -225,11 +225,7 @@ export default function Dashboard() {
                   // Chain-shaped: array of "provider,model" strings. Show the
                   // first entry as the primary model; chain length is a hint
                   // for the badge.
-                  const chain = Array.isArray(value)
-                    ? value
-                    : typeof value === "string" && value
-                      ? [value]
-                      : [];
+                  const chain = coerceChain(value);
                   const primary = chain[0] ?? "";
                   const parsed = providerModelFromRouter(primary);
                   const modelLabel = parsed

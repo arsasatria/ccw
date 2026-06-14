@@ -71,6 +71,7 @@ interface RouterFields {
   background: string[];
   think: string[];
   longContext: string[];
+  longContextThreshold: number;
   webSearch: string[];
   image: string[];
 }
@@ -148,15 +149,15 @@ export default function RouterPage() {
     // Defensive client-side normalization: server already normalizes on read,
     // but we strip empty / non-string entries here so the wire format is
     // consistent regardless of what ends up in `draft`.
-    const draftRouterObj = draft.Router;
-    const normalizedRouter: typeof draftRouterObj = {
-      default: coerceChain(draftRouterObj.default),
-      background: coerceChain(draftRouterObj.background),
-      think: coerceChain(draftRouterObj.think),
-      longContext: coerceChain(draftRouterObj.longContext),
-      longContextThreshold: draftRouterObj.longContextThreshold,
-      webSearch: coerceChain(draftRouterObj.webSearch),
-      image: coerceChain(draftRouterObj.image),
+    const router = draft.Router;
+    const normalizedRouter: RouterFields = {
+      default: coerceChain(router.default),
+      background: coerceChain(router.background),
+      think: coerceChain(router.think),
+      longContext: coerceChain(router.longContext),
+      longContextThreshold: router.longContextThreshold,
+      webSearch: coerceChain(router.webSearch),
+      image: coerceChain(router.image),
     };
     const normalized = { ...draft, Router: normalizedRouter };
     setConfig(normalized);
@@ -289,6 +290,7 @@ export default function RouterPage() {
                       onChange={(e) =>
                         updateEntry(route.key, idx, e.target.value)
                       }
+                      aria-label={`${t("router.chain")} ${idx + 1}`}
                       className="flex-1"
                     />
                     <Button

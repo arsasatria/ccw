@@ -48,9 +48,9 @@ export function providerModelFromRouter(
  */
 export function coerceChain(value: unknown): string[] {
   if (Array.isArray(value)) {
-    return value.filter(
-      (s): s is string => typeof s === "string" && s.trim().length > 0
-    );
+    return value
+      .map((s) => (typeof s === "string" ? s.trim() : ""))
+      .filter((s) => s.length > 0);
   }
   if (typeof value === "string" && value.trim().length > 0) {
     return [value.trim()];
