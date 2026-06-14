@@ -11,9 +11,7 @@ import {
   ScrollText,
   Bug,
   Settings as SettingsIcon,
-  Save,
-  RefreshCw,
-  CircleArrowUp,
+  RotateCw,
   Languages,
   Sun,
   Moon,
@@ -27,34 +25,25 @@ import {
   CommandList,
   CommandShortcut,
 } from "@/components/ui/command";
+import { useTheme } from "@/hooks/useTheme";
 
 interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave?: () => void;
-  onSaveAndRestart?: () => void;
-  onCheckForUpdates?: () => void;
-  onToggleTheme?: () => void;
 }
 
-export function CommandPalette({
-  open,
-  onOpenChange,
-  onSave,
-  onSaveAndRestart,
-  onCheckForUpdates,
-  onToggleTheme,
-}: CommandPaletteProps) {
+export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
   const navigate = useNavigate();
   const { t, i18n } = useTranslation();
+  const { theme, toggle } = useTheme();
 
   const go = (path: string) => {
     navigate(path);
     onOpenChange(false);
   };
 
-  const run = (fn?: () => void) => () => {
-    fn?.();
+  const run = (fn: () => void) => () => {
+    fn();
     onOpenChange(false);
   };
 
@@ -100,43 +89,34 @@ export function CommandPalette({
         </CommandGroup>
 
         <CommandGroup heading={t("palette.heading.actions")}>
-          <CommandItem onSelect={run(onSave)}>
-            <Save className="h-4 w-4" />
-            {t("topbar.save")}
-            <CommandShortcut>⌘S</CommandShortcut>
-          </CommandItem>
-          <CommandItem onSelect={run(onSaveAndRestart)}>
-            <RefreshCw className="h-4 w-4" />
-            {t("topbar.save_restart")}
+          <CommandItem onSelect={run(() => window.location.reload())}>
+            <RotateCw className="h-4 w-4" />
+            Reload gateway
             <CommandShortcut>⌘⇧R</CommandShortcut>
-          </CommandItem>
-          <CommandItem onSelect={run(onCheckForUpdates)}>
-            <CircleArrowUp className="h-4 w-4" />
-            {t("topbar.check_updates")}
           </CommandItem>
         </CommandGroup>
 
         <CommandGroup heading={t("palette.heading.preferences")}>
-          <CommandItem
-            onSelect={run(() => i18n.changeLanguage("en"))}
-          >
+          <CommandItem onSelect={run(() => i18n.changeLanguage("en"))}>
             <Languages className="h-4 w-4" />
             English
             {i18n.language.startsWith("en") && (
-              <span className="ml-auto text-xs text-fg-subtle">active</span>
+              <span className="ml-auto text-xs text-ink-subtle">active</span>
             )}
           </CommandItem>
-          <CommandItem
-            onSelect={run(() => i18n.changeLanguage("zh"))}
-          >
+          <CommandItem onSelect={run(() => i18n.changeLanguage("zh"))}>
             <Languages className="h-4 w-4" />
             中文
             {i18n.language.startsWith("zh") && (
-              <span className="ml-auto text-xs text-fg-subtle">active</span>
+              <span className="ml-auto text-xs text-ink-subtle">active</span>
             )}
           </CommandItem>
-          <CommandItem onSelect={run(onToggleTheme)}>
-            <Sun className="h-4 w-4" />
+          <CommandItem onSelect={run(toggle)}>
+            {theme === "dark" ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
             {t("palette.toggle_theme")}
             <CommandShortcut>⌘⇧L</CommandShortcut>
           </CommandItem>
