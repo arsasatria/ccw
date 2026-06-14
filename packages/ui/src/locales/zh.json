@@ -293,6 +293,13 @@
     "searchModel": "搜索模型…",
     "noModelFound": "未找到模型。",
     "unassigned": "未分配",
+    "chain": "回退链",
+    "chain_hint": "按顺序尝试模型。若首个失败（限流、配额、瞬时错误），则使用下一个。",
+    "add_entry": "新增模型",
+    "entry_placeholder": "provider,model",
+    "entry_remove_aria": "删除条目",
+    "entry_move_up_aria": "上移",
+    "entry_move_down_aria": "下移",
     "threshold": {
       "title": "长上下文阈值",
       "description": "超过此 token 数的提示将被路由到长上下文模型。"

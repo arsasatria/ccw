@@ -40,6 +40,24 @@ export function providerModelFromRouter(
   return { provider, model };
 }
 
+/**
+ * Coerce a value into a chain of `provider,model` strings. Accepts either a
+ * single string (legacy single-string config) or an array of strings, and
+ * filters out empty / non-string entries. Used by the Router page and the
+ * ConfigProvider to defensively normalize server- and client-side data.
+ */
+export function coerceChain(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter(
+      (s): s is string => typeof s === "string" && s.trim().length > 0
+    );
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    return [value.trim()];
+  }
+  return [];
+}
+
 export function maskKey(key: string | undefined | null, visible = 4): string {
   if (!key) return "—";
   if (key.length <= visible) return "•".repeat(key.length);

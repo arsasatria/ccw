@@ -40,9 +40,12 @@ export default function Dashboard() {
   );
   const transformerCount = config?.transformers?.length ?? 0;
   const routerEntries = config?.Router
-    ? Object.entries(config.Router).filter(
-        ([k, v]) => typeof v === "string" && v && k !== "longContextThreshold"
-      )
+    ? Object.entries(config.Router).filter(([k, v]) => {
+        if (k === "longContextThreshold") return false;
+        if (Array.isArray(v)) return v.length > 0;
+        if (typeof v === "string") return v.length > 0;
+        return false;
+      })
     : [];
 
   const hasProviders = providers.length > 0;
@@ -219,9 +222,20 @@ export default function Dashboard() {
                 </div>
               ) : (
                 routerEntries.map(([kind, value]) => {
-                  const parsed = providerModelFromRouter(value);
+                  // Chain-shaped: array of "provider,model" strings. Show the
+                  // first entry as the primary model; chain length is a hint
+                  // for the badge.
+                  const chain = Array.isArray(value)
+                    ? value
+                    : typeof value === "string" && value
+                      ? [value]
+                      : [];
+                  const primary = chain[0] ?? "";
+                  const parsed = providerModelFromRouter(primary);
                   const modelLabel = parsed
-                    ? `${parsed.provider} / ${parsed.model}`
+                    ? chain.length > 1
+                      ? `${parsed.provider} / ${parsed.model} +${chain.length - 1}`
+                      : `${parsed.provider} / ${parsed.model}`
                     : "—";
                   return (
                     <div

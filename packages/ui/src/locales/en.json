@@ -294,6 +294,13 @@
     "searchModel": "Search model…",
     "noModelFound": "No model found.",
     "unassigned": "Unassigned",
+    "chain": "Chain",
+    "chain_hint": "Models are tried in order. If the first fails (rate limit, quota, transient error), the next is used.",
+    "add_entry": "Add model",
+    "entry_placeholder": "provider,model",
+    "entry_remove_aria": "Remove entry",
+    "entry_move_up_aria": "Move up",
+    "entry_move_down_aria": "Move down",
     "threshold": {
       "title": "Long-context threshold",
       "description": "Prompts with more tokens than this get routed to the long-context model."
