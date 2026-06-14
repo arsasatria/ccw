@@ -68,3 +68,45 @@ test("tokenSaver=true, terseMode=false — TokenSaver IS, TerseMode NOT", async 
   assert.equal(hasClassOrInstance(svc, TokenSaverTransformer), true);
   assert.equal(hasClassOrInstance(svc, TerseModeTransformer), false);
 });
+
+test("terseMode=true: retrieved 'terse' transformer is an instance, and it modifies the request", async () => {
+  const svc = await initWithConfig({ terseMode: true });
+  const terse = svc.getTransformer("terse");
+  // The registry must hold an INSTANCE, not the class itself. If this
+  // assertion fails, provider.ts will call `new result()` later, but
+  // that second construction drops the `enabled: true` option and
+  // the transformer silently no-ops.
+  assert.ok(terse, "'terse' transformer should be registered");
+  assert.equal(
+    typeof terse,
+    "object",
+    "'terse' should be registered as an instance, not a class"
+  );
+  assert.notEqual(
+    typeof terse,
+    "function",
+    "'terse' must not be the constructor function itself"
+  );
+  // The instance should expose transformRequestIn directly (no further
+  // `new` required by callers).
+  assert.equal(
+    typeof (terse as any).transformRequestIn,
+    "function",
+    "terse instance should expose transformRequestIn directly"
+  );
+
+  // Behavioral check: calling transformRequestIn must inject the
+  // terse instruction. If the registered value were a class (or an
+  // instance with enabled=false), the system field would be returned
+  // unchanged.
+  const out = await (terse as any).transformRequestIn({ messages: [] });
+  const sys = Array.isArray(out.system) ? out.system : [out.system];
+  const last = sys[sys.length - 1];
+  const text = typeof last === "string" ? last : last?.text;
+  assert.ok(
+    typeof text === "string" && /terse/i.test(text),
+    `expected system to contain terse instruction, got: ${JSON.stringify(
+      out.system
+    )}`
+  );
+});

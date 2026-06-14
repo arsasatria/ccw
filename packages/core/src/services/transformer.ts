@@ -158,9 +158,21 @@ export class TransformerService {
             "TransformerName" in TransformerStatic &&
             typeof TransformerStatic.TransformerName === "string"
           ) {
+            // Some class-registered transformers (TerseModeTransformer)
+            // need options at construction time. Resolve the options
+            // here; fall back to no options for class-registered
+            // transformers that don't have a known config-driven
+            // options shape.
+            const opts = this.buildOptionsFor(TransformerStatic);
+            const instance = opts
+              ? new TransformerStatic(opts)
+              : new TransformerStatic();
+            if (instance && typeof instance === "object") {
+              (instance as any).logger = this.logger;
+            }
             this.registerTransformer(
-              TransformerStatic.TransformerName,
-              TransformerStatic
+              TransformerStatic.TransformerName ?? instance.name!,
+              instance
             );
           } else {
             const transformerInstance = new TransformerStatic();
@@ -190,5 +202,22 @@ export class TransformerService {
     for (const transformer of transformers) {
       await this.registerTransformerFromConfig(transformer);
     }
+  }
+
+  /**
+   * Build constructor options for class-registered transformers whose
+   * behavior depends on the active config. Returns `null` when no
+   * options are needed (the transformer either doesn't take any, or
+   * its options are supplied elsewhere).
+   */
+  private buildOptionsFor(
+    TransformerStatic: any
+  ): Record<string, unknown> | null {
+    if (TransformerStatic === Transformers.TerseModeTransformer) {
+      return { enabled: this.configService.get("terseMode") === true };
+    }
+    // TokenSaver and any other class-registered transformer: no
+    // options needed (or supplied elsewhere).
+    return null;
   }
 }
