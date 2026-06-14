@@ -42,9 +42,12 @@ export default function Login() {
       );
       await api.getConfig();
       nav("/dashboard");
-    } catch (err: any) {
+    } catch (err) {
       api.setApiKey("");
-      const msg = err && typeof err.message === "string" ? err.message : "";
+      const msg =
+        err && typeof err === "object" && "message" in err && typeof err.message === "string"
+          ? err.message
+          : "";
       if (msg.includes("401")) {
         setError(t("login.invalidApiKey"));
       } else {
@@ -72,6 +75,7 @@ export default function Login() {
           </p>
           <form className="mt-6 space-y-3" onSubmit={onSubmit}>
             <Input
+              id="apiKey"
               type="password"
               placeholder={t("login.apiKeyPlaceholder")}
               value={key}
@@ -79,8 +83,14 @@ export default function Login() {
               autoFocus
               required
               disabled={busy}
+              aria-label={t("login.apiKey")}
+              aria-describedby={error ? "login-error" : undefined}
             />
-            {error && <p className="text-[12px] text-danger">{error}</p>}
+            {error && (
+              <p id="login-error" role="alert" className="text-[12px] text-danger">
+                {error}
+              </p>
+            )}
             <Button type="submit" className="w-full" disabled={busy}>
               {t("login.signIn")}
             </Button>
