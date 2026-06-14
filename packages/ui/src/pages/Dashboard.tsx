@@ -1,4 +1,3 @@
-import * as React from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { useConfig } from "@/components/ConfigProvider";
@@ -35,7 +34,7 @@ export default function Dashboard() {
     : [];
 
   const hasProviders = providers.length > 0;
-  const routesCount = hasProviders ? ROUTE_KINDS.length : 0;
+  const routesCount = routerEntries.length;
 
   const providerFootnote =
     providers.length > 0
@@ -43,13 +42,13 @@ export default function Dashboard() {
       : "—";
   const modelFootnote =
     providers.length > 0
-      ? `across ${providers.length} ${providers.length === 1 ? "provider" : "providers"}`
+      ? t("dashboard.stats.models_hint")
       : "—";
   const routeFootnote = hasProviders
-    ? `${ROUTE_KINDS.length} kinds · default · background · think · …`
+    ? t("dashboard.stats.routes_hint")
     : "—";
   const transformerFootnote =
-    transformerCount > 0 ? "request · response · stream" : "—";
+    transformerCount > 0 ? t("dashboard.stats.transformers_hint") : "—";
 
   return (
     <div className="space-y-12">
@@ -60,7 +59,7 @@ export default function Dashboard() {
           <div>
             <StatusPill
               status={hasProviders ? "online" : "offline"}
-              label={hasProviders ? "Gateway online" : "Gateway idle"}
+              label={hasProviders ? t("dashboard.gateway_online") : t("dashboard.gateway_idle")}
             />
             <h1 className="mt-3 max-w-xl font-serif text-[32px] leading-[1.1] tracking-[-0.02em] text-ink">
               {t("dashboard.hero.title")}
@@ -74,7 +73,7 @@ export default function Dashboard() {
               {t("dashboard.hero.reqCount", { count: 142 })}
             </div>
             <div className="mt-1 text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
-              requests / sec
+              {t("dashboard.requests_per_sec")}
             </div>
           </div>
         </div>
@@ -84,11 +83,11 @@ export default function Dashboard() {
       {!hasProviders ? (
         <EmptyState
           glass
-          title="Add your first provider"
-          description="Start by connecting a model provider. The gateway will route requests to it."
+          title={t("providers.empty.title")}
+          description={t("providers.empty.description")}
           action={
             <Button asChild>
-              <Link to="/providers">Add provider</Link>
+              <Link to="/providers">{t("providers.add")}</Link>
             </Button>
           }
         />
@@ -97,22 +96,22 @@ export default function Dashboard() {
           {/* STATS */}
           <section className="grid grid-cols-4 gap-4">
             <StatCard
-              label="Providers"
+              label={t("dashboard.stats.providers")}
               value={providers.length}
               footnote={providerFootnote}
             />
             <StatCard
-              label="Models"
+              label={t("dashboard.stats.models")}
               value={totalModels}
               footnote={modelFootnote}
             />
             <StatCard
-              label="Routes"
+              label={t("dashboard.stats.routes")}
               value={routesCount}
               footnote={routeFootnote}
             />
             <StatCard
-              label="Transformers"
+              label={t("dashboard.stats.transformers")}
               value={transformerCount}
               footnote={transformerFootnote}
             />
@@ -121,24 +120,22 @@ export default function Dashboard() {
           {/* ROUTER MAP */}
           <section>
             <PageHeader
-              title="Router map"
-              subtitle="Where each request kind lands."
+              title={t("dashboard.router_map.title")}
+              subtitle={t("dashboard.router_map.subtitle")}
               action={
                 <Link to="/router">
-                  <Button variant="ghost">Edit</Button>
+                  <Button variant="ghost">{t("common.edit")}</Button>
                 </Link>
               }
             />
             <div className="rounded-md border border-line bg-surface">
               {routerEntries.length === 0 ? (
                 <div className="px-6 py-8 text-center text-[13px] text-ink-muted">
-                  No routes configured yet.
+                  {t("dashboard.router_map.empty")}
                 </div>
               ) : (
                 routerEntries.map(([kind, value]) => {
-                  const parsed = providerModelFromRouter(
-                    value as string
-                  );
+                  const parsed = providerModelFromRouter(value);
                   const modelLabel = parsed
                     ? `${parsed.provider} / ${parsed.model}`
                     : "—";
@@ -175,11 +172,13 @@ export default function Dashboard() {
           className="rounded-md border border-line bg-surface p-6 hover:bg-surface-2"
         >
           <div className="text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
-            Manage
+            {t("dashboard.quick.manage")}
           </div>
-          <div className="mt-1 font-serif text-[18px] text-ink">Providers</div>
+          <div className="mt-1 font-serif text-[18px] text-ink">
+            {t("dashboard.quick.providers.title")}
+          </div>
           <p className="mt-2 text-[12px] text-ink-muted">
-            Add, edit, or remove your model providers.
+            {t("dashboard.quick.providers.description")}
           </p>
         </Link>
         <Link
@@ -187,11 +186,13 @@ export default function Dashboard() {
           className="rounded-md border border-line bg-surface p-6 hover:bg-surface-2"
         >
           <div className="text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
-            Install
+            {t("dashboard.quick.install")}
           </div>
-          <div className="mt-1 font-serif text-[18px] text-ink">Presets</div>
+          <div className="mt-1 font-serif text-[18px] text-ink">
+            {t("dashboard.quick.presets.title")}
+          </div>
           <p className="mt-2 text-[12px] text-ink-muted">
-            One-click transformer & route bundles.
+            {t("dashboard.quick.presets.description")}
           </p>
         </Link>
         <Link
@@ -199,13 +200,13 @@ export default function Dashboard() {
           className="rounded-md border border-line bg-surface p-6 hover:bg-surface-2"
         >
           <div className="text-[10px] uppercase tracking-[0.1em] text-ink-subtle">
-            Configure
+            {t("dashboard.quick.configure")}
           </div>
           <div className="mt-1 font-serif text-[18px] text-ink">
-            Transformers
+            {t("dashboard.quick.transformers.title")}
           </div>
           <p className="mt-2 text-[12px] text-ink-muted">
-            Custom request/response shaping.
+            {t("dashboard.quick.transformers.description")}
           </p>
         </Link>
       </section>
