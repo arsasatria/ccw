@@ -12,6 +12,8 @@ import {
   Server,
   Filter,
   Pencil,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 
 import { useConfig } from "@/components/ConfigProvider";
@@ -28,7 +30,7 @@ import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
 import { ComboInput } from "@/components/ui/combo-input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { api } from "@/lib/api";
+import { api, fetchProviderModels, FetchProviderModelsError } from "@/lib/api";
 import { cn, hostnameFromUrl, maskKey } from "@/lib/utils";
 import type { Provider, ProviderTransformer } from "@/types";
 
@@ -409,6 +411,14 @@ function ProviderEditDialog({
   onCancel,
 }: EditDialogProps) {
   const { t } = useTranslation();
+  const { show } = useToast();
+  const [isFetchingModels, setIsFetchingModels] = useState(false);
+
+  // Reset the spinner state when the dialog is opened for a different provider
+  // (or a new one) so the button doesn't carry over a stale "fetching" UI.
+  useEffect(() => {
+    setIsFetchingModels(false);
+  }, [open]);
 
   if (!data) return null;
 
@@ -426,6 +436,38 @@ function ProviderEditDialog({
     const list = [...(data.models ?? [])];
     list.splice(i, 1);
     set({ models: list });
+  };
+
+  const handleFetchModels = async () => {
+    if (!data.api_base_url.trim() || !data.api_key.trim()) {
+      show(t("providers.missing_credentials"), "error");
+      return;
+    }
+    setIsFetchingModels(true);
+    try {
+      const models = await fetchProviderModels(
+        data.api_base_url.trim(),
+        data.api_key.trim()
+      );
+      // Merge with any models the user has already entered — de-dupe, preserve order.
+      const merged = Array.from(
+        new Set([...(data.models ?? []), ...models])
+      );
+      set({ models: merged });
+      const suffix = models.length === 1 ? "" : "s";
+      show(
+        `${t("providers.fetch_available_models")} (${models.length} model${suffix})`,
+        "success"
+      );
+    } catch (err) {
+      const message =
+        err instanceof FetchProviderModelsError
+          ? err.message
+          : (err as Error)?.message ?? "Unknown error";
+      show(`${t("providers.fetch_models_failed")}: ${message}`, "error");
+    } finally {
+      setIsFetchingModels(false);
+    }
   };
 
   const handleTemplateImport = (raw: string) => {
@@ -609,7 +651,29 @@ function ProviderEditDialog({
             </div>
 
             <div className="space-y-2">
-              <Label>{t("providers.models")}</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label>{t("providers.models")}</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleFetchModels}
+                  disabled={isFetchingModels}
+                  aria-label={t("providers.fetch_available_models")}
+                >
+                  {isFetchingModels ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      {t("providers.fetching_models")}
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      {t("providers.fetch_available_models")}
+                    </>
+                  )}
+                </Button>
+              </div>
               <ComboInput
                 options={(data.models ?? []).map((m) => ({ label: m, value: m }))}
                 value=""

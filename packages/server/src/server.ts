@@ -115,6 +115,70 @@ export const createServer = async (config: any): Promise<any> => {
     return { success: true, message: "Config saved successfully" };
   });
 
+  // Fetch available models from a provider's OpenAI-compatible /v1/models endpoint.
+  // Used by the Add/Edit Provider dialog to populate the model list with one click.
+  app.post("/api/providers/models", async (req: any, reply: any) => {
+    const { base_url, api_key } = (req.body || {}) as {
+      base_url?: string;
+      api_key?: string;
+    };
+
+    if (!base_url || !base_url.trim() || !api_key || !api_key.trim()) {
+      reply.status(400).send({ error: "missing_credentials" });
+      return;
+    }
+
+    // Strip trailing slashes so we don't end up with "//v1/models".
+    const trimmedBase = base_url.replace(/\/+$/, "");
+    const url = `${trimmedBase}/v1/models`;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+
+    try {
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${api_key}`,
+        },
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const detail = `${response.status} ${response.statusText}`;
+        console.error(`Failed to fetch models from ${url}: ${detail}`);
+        reply.status(502).send({ error: "fetch_failed", message: detail });
+        return;
+      }
+
+      const body = (await response.json()) as { data?: Array<{ id?: unknown }> };
+      if (!body || !Array.isArray(body.data)) {
+        console.error(`Unexpected /v1/models response shape from ${url}:`, body);
+        reply.status(500).send({ error: "invalid_response" });
+        return;
+      }
+
+      const models = body.data
+        .map((m) => (m && typeof m.id === "string" ? m.id : null))
+        .filter((id): id is string => id !== null);
+
+      return { models };
+    } catch (err: any) {
+      if (err?.name === "AbortError") {
+        console.error(`Fetching models from ${url} timed out after 10s`);
+        reply.status(502).send({ error: "fetch_failed", message: "Request timed out" });
+        return;
+      }
+      console.error(`Failed to fetch models from ${url}:`, err);
+      reply.status(502).send({
+        error: "fetch_failed",
+        message: err?.message ?? "Unknown error",
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  });
+
   // Register static file serving with caching
   app.register(fastifyStatic, {
     root: join(__dirname, "..", "dist"),
