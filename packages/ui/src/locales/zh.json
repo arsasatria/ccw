@@ -74,6 +74,7 @@
     "placeholder": "输入命令或搜索…",
     "empty": "未找到结果",
     "toggle_theme": "切换主题",
+    "reload_gateway": "重新加载网关",
     "heading": {
       "navigation": "导航",
       "actions": "操作",

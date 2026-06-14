@@ -91,7 +91,7 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
         <CommandGroup heading={t("palette.heading.actions")}>
           <CommandItem onSelect={run(() => window.location.reload())}>
             <RotateCw className="h-4 w-4" />
-            Reload gateway
+            {t("palette.reload_gateway")}
             <CommandShortcut>⌘⇧R</CommandShortcut>
           </CommandItem>
         </CommandGroup>
@@ -128,6 +128,17 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
 
 CommandPalette.Trigger = function Trigger() {
   const [open, setOpen] = useState(false);
+  React.useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (isMod && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setOpen((o) => !o);
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
   return (
     <>
       <button
