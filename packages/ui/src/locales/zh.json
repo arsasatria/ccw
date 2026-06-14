@@ -401,18 +401,46 @@
   },
   "presets": {
     "title": "预设",
+    "subtitle": "可复用的转换器与路由包。",
+    "tabs": {
+      "installed": "已安装",
+      "market": "市场"
+    },
+    "featured": {
+      "label": "开始使用",
+      "title": "浏览社区预设",
+      "description": "探索并安装社区分享的预设。",
+      "browse": "浏览所有预设"
+    },
+    "empty": {
+      "installed": {
+        "title": "尚未安装预设",
+        "description": "安装一个预设开始使用，或浏览市场中的社区预设。"
+      },
+      "market": {
+        "title": "未找到预设",
+        "description": "尝试调整搜索条件。"
+      },
+      "market_empty": {
+        "title": "暂无社区预设",
+        "description": "请稍后再来看看新的社区预设。"
+      }
+    },
     "market_title": "预设市场",
     "market_description": "浏览并安装来自社区市场的预设",
     "no_presets": "未安装任何预设",
     "no_presets_hint": "安装一个预设开始使用",
     "search_placeholder": "按名称、描述、作者或关键词搜索预设...",
+    "search_installed_placeholder": "搜索已安装的预设…",
+    "search_market_placeholder": "搜索市场预设…",
     "no_presets_found": "未找到预设",
     "no_presets_found_hint": "尝试调整搜索条件",
     "loading": "加载中...",
     "by": "由 {{author}} 提供",
     "downloads": "{{count}} 次下载",
-    "github_repository": "GitHub 仓库",
     "view_details": "查看详情",
+    "view": "查看",
+    "repo": "仓库",
     "install": "安装",
     "installing": "安装中...",
     "installed_label": "已安装",
@@ -430,6 +458,15 @@
     "preset_name_placeholder": "从仓库自动生成",
     "github_url_hint": "输入 GitHub 仓库地址（例如：https://github.com/owner/repo）",
     "detail_dialog_title": "预设详情",
+    "detail_dialog_description": "查看此预设的详细信息并配置。",
+    "detail": {
+      "author": "作者",
+      "homepage": "主页",
+      "repository": "仓库",
+      "license": "许可",
+      "keywords": "关键词",
+      "version": "版本"
+    },
     "required_information": "必填信息",
     "delete_dialog_title": "删除预设",
     "delete_dialog_description": "确定要删除预设 \"{{name}}\" 吗？此操作无法撤销。",
@@ -445,8 +482,10 @@
     "please_fill_field": "请填写 {{field}}",
     "load_market_failed": "加载市场预设失败",
     "preset_installed_config_required": "预设已安装，请完成配置",
+    "installed_open_manually": "预设已安装。可在列表中打开它进行配置。",
     "please_provide_file": "请提供预设目录",
     "please_provide_url": "请提供有效的 GitHub 仓库地址",
+    "count": "{{count}} / {{total}}",
     "form": {
       "field_required": "{{field}} 是必填项",
       "must_be_number": "{{field}} 必须是数字",
