@@ -276,7 +276,16 @@
       "description": "首先连接一个模型提供商。网关会将请求路由到它。",
       "cta": "添加提供商"
     },
-    "unnamed": "未命名"
+    "unnamed": "未命名",
+    "account_pool": "账户池",
+    "account_pool_hint": "同一 provider 的多个 API key 在某个失败时按顺序尝试。",
+    "add_account": "新增账户",
+    "account_label_placeholder": "标签（可选，如 \"personal\")",
+    "account_remove_aria": "删除账户",
+    "rotation": "轮转策略",
+    "rotation_error": "错误时（默认）",
+    "rotation_quota": "配额耗尽时",
+    "rotation_hint": "错误：401/429/5xx 时切换到下一个账户。配额：配额耗尽时也切换。"
   },
   "router": {
     "title": "路由器",

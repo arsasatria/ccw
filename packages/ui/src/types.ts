@@ -3,12 +3,19 @@ export interface ProviderTransformer {
   [key: string]: any; // Allow for model-specific transformers
 }
 
+export interface ProviderAccount {
+  apiKey: string;
+  label?: string;
+}
+
 export interface Provider {
   name: string;
   api_base_url: string;
   api_key: string;
   models: string[];
   transformer?: ProviderTransformer;
+  accounts?: ProviderAccount[]; // new — multi-key pool
+  rotation?: "error" | "quota"; // new — default "error"
 }
 
 export interface RouterConfig {

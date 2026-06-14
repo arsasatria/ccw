@@ -64,6 +64,61 @@ export function maskKey(key: string | undefined | null, visible = 4): string {
   return `${"•".repeat(Math.max(0, key.length - visible))}${key.slice(-visible)}`;
 }
 
+/**
+ * Normalize a provider's account pool + legacy single-key field before save.
+ *
+ * Rules (mirrored by the server-side `normalizeProvider`):
+ *   - Trim each account's apiKey; drop entries whose apiKey is empty.
+ *   - If after trimming the pool has exactly 1 entry AND that entry's apiKey
+ *     matches the legacy `api_key` field, collapse back to the legacy
+ *     single-key shape (no `accounts`, no `rotation`). Keeps saved configs
+ *     small for the common case.
+ *   - If the pool has 2+ entries, keep it AND clear the legacy `api_key`
+ *     so the config doesn't carry a stale first key.
+ *   - If the pool is empty (e.g. user removed all accounts), clear both
+ *     `accounts` and `rotation`. The legacy `api_key` is left as-is — the
+ *     caller is expected to validate that at least one key exists.
+ */
+export function normalizeAccounts(input: {
+  api_key: string;
+  accounts?: { apiKey: string; label?: string }[];
+  rotation?: "error" | "quota";
+}): {
+  api_key: string;
+  accounts?: { apiKey: string; label?: string }[];
+  rotation?: "error" | "quota";
+} {
+  const legacy = (input.api_key ?? "").trim();
+  const rawAccounts = input.accounts ?? [];
+  const cleaned = rawAccounts
+    .map((a) => ({
+      apiKey: (a.apiKey ?? "").trim(),
+      ...(a.label ? { label: a.label } : {}),
+    }))
+    .filter((a) => a.apiKey.length > 0);
+
+  if (cleaned.length === 0) {
+    return { api_key: input.api_key };
+  }
+
+  if (
+    cleaned.length === 1 &&
+    (!legacy || cleaned[0].apiKey === legacy)
+  ) {
+    // Single account that mirrors the legacy key — collapse.
+    return {
+      api_key: cleaned[0].apiKey,
+    };
+  }
+
+  // 2+ accounts: drop the legacy key (it's no longer the source of truth).
+  return {
+    api_key: "",
+    accounts: cleaned,
+    rotation: input.rotation ?? "error",
+  };
+}
+
 export function hostnameFromUrl(url: string | undefined | null): string {
   if (!url) return "—";
   try {

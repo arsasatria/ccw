@@ -277,7 +277,16 @@
       "description": "Start by connecting a model provider. The gateway will route requests to it.",
       "cta": "Add provider"
     },
-    "unnamed": "untitled"
+    "unnamed": "untitled",
+    "account_pool": "Account pool",
+    "account_pool_hint": "Multiple API keys for the same provider are tried in order when one fails.",
+    "add_account": "Add account",
+    "account_label_placeholder": "Label (optional, e.g. \"personal\")",
+    "account_remove_aria": "Remove account",
+    "rotation": "Rotation strategy",
+    "rotation_error": "On error (default)",
+    "rotation_quota": "On quota",
+    "rotation_hint": "Error: advance to the next account on 401/429/5xx. Quota: also advance when a quota tracker reports exhaustion."
   },
   "router": {
     "title": "Router",
