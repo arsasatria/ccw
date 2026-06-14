@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useTranslation } from "react-i18next";
 import { TopBar } from "./TopBar";
 import { ToastHost } from "./ToastHost";
 import { useConfig } from "@/components/ConfigProvider";
@@ -14,6 +15,7 @@ interface AppShellProps {
 
 export function AppShell({ children, title, subtitle, actions, toolbar }: AppShellProps) {
   const { config, error } = useConfig();
+  const { t } = useTranslation();
 
   if (error && !config) {
     return (
@@ -39,9 +41,15 @@ export function AppShell({ children, title, subtitle, actions, toolbar }: AppShe
   return (
     <ToastHost>
       <div className="min-h-screen bg-paper text-ink">
+        <a
+          href="#main"
+          className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-sm focus:bg-surface focus:px-3 focus:py-1.5 focus:text-[12px] focus:text-ink focus:shadow-modal"
+        >
+          {t("common.skip_to_content")}
+        </a>
         <TopBar />
         {toolbar}
-        <main id="main" className="mx-auto max-w-[1100px] px-8 py-12">
+        <main id="main" className="mx-auto max-w-[1100px] px-5 py-8 md:px-8 md:py-12">
           {(title || actions) && (
             <div className="mb-6 flex items-end justify-between gap-4">
               <div className="space-y-1">
