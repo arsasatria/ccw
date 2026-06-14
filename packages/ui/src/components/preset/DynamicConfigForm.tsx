@@ -317,6 +317,8 @@ export function DynamicConfigForm({
                 value={values[field.id] || ''}
                 onChange={(e) => updateValue(field.id, e.target.value)}
                 disabled={isSubmitting}
+                aria-invalid={!!error}
+                aria-describedby={error ? `field-${field.id}-error` : undefined}
               />
             )}
 
@@ -331,6 +333,8 @@ export function DynamicConfigForm({
                 min={field.min}
                 max={field.max}
                 disabled={isSubmitting}
+                aria-invalid={!!error}
+                aria-describedby={error ? `field-${field.id}-error` : undefined}
               />
             )}
 
@@ -341,7 +345,11 @@ export function DynamicConfigForm({
                 onValueChange={(value: string) => updateValue(field.id, value)}
                 disabled={isSubmitting}
               >
-                <SelectTrigger id={`field-${field.id}`}>
+                <SelectTrigger
+                  id={`field-${field.id}`}
+                  aria-invalid={!!error}
+                  aria-describedby={error ? `field-${field.id}-error` : undefined}
+                >
                   <SelectValue placeholder={field.placeholder || t('presets.form.select', { label })} />
                 </SelectTrigger>
                 <SelectContent>
@@ -403,6 +411,8 @@ export function DynamicConfigForm({
                   checked={values[field.id] || false}
                   onCheckedChange={(checked: boolean | 'indeterminate') => updateValue(field.id, checked)}
                   disabled={isSubmitting}
+                  aria-invalid={!!error}
+                  aria-describedby={error ? `field-${field.id}-error` : undefined}
                 />
                 <Label htmlFor={`field-${field.id}`} className="text-sm font-normal cursor-pointer">
                   {field.prompt || label}
@@ -419,11 +429,19 @@ export function DynamicConfigForm({
                 onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => updateValue(field.id, e.target.value)}
                 rows={field.rows || 5}
                 disabled={isSubmitting}
+                aria-invalid={!!error}
+                aria-describedby={error ? `field-${field.id}-error` : undefined}
               />
             )}
 
             {error && (
-              <p className="text-sm text-red-500">{error}</p>
+              <p
+                id={`field-${field.id}-error`}
+                role="alert"
+                className="text-sm text-red-500"
+              >
+                {error}
+              </p>
             )}
           </div>
         );

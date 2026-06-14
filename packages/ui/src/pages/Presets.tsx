@@ -233,8 +233,14 @@ export default function PresetsPage() {
         installName || undefined
       )) as { presetName?: string } | undefined;
 
+      const actualName = installResult?.presetName || installName || installUrl;
+      setInstallOpen(false);
+      setInstallUrl("");
+      setInstallName("");
+      show(t("presets.preset_installed"), "success");
+      await loadPresets();
+
       try {
-        const actualName = installResult?.presetName || installName || installUrl;
         const detail = (await api.getPreset(actualName)) as PresetDetail;
 
         if (detail.schema && detail.schema.length > 0) {
@@ -255,25 +261,12 @@ export default function PresetsPage() {
             installed: true,
           });
 
-          setInstallOpen(false);
-          setInstallUrl("");
-          setInstallName("");
           setDetailOpen(true);
           show(t("presets.preset_installed_config_required"), "warning");
-        } else {
-          setInstallOpen(false);
-          setInstallUrl("");
-          setInstallName("");
-          show(t("presets.preset_installed"), "success");
-          await loadPresets();
         }
-      } catch (err) {
-        console.error(err);
-        setInstallOpen(false);
-        setInstallUrl("");
-        setInstallName("");
-        show(t("presets.preset_installed"), "success");
-        await loadPresets();
+      } catch (detailErr) {
+        console.error(detailErr);
+        show(t("presets.installed_open_manually"), "info");
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -297,8 +290,11 @@ export default function PresetsPage() {
         preset.repo
       )) as { presetName?: string } | undefined;
 
+      const actualName = installResult?.presetName || preset.name;
+      show(t("presets.preset_installed"), "success");
+      await loadPresets();
+
       try {
-        const actualName = installResult?.presetName || preset.name;
         const detail = (await api.getPreset(actualName)) as PresetDetail;
         const merged: PresetDetail = { ...preset, ...detail, id: actualName };
 
@@ -315,14 +311,10 @@ export default function PresetsPage() {
           setSelected(merged);
           setDetailOpen(true);
           show(t("presets.preset_installed_config_required"), "warning");
-        } else {
-          show(t("presets.preset_installed"), "success");
-          await loadPresets();
         }
-      } catch (err) {
-        console.error(err);
-        show(t("presets.preset_installed"), "success");
-        await loadPresets();
+      } catch (detailErr) {
+        console.error(detailErr);
+        show(t("presets.installed_open_manually"), "info");
       }
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -476,12 +468,9 @@ export default function PresetsPage() {
 
         {/* MARKET */}
         <TabsContent value="market" className="space-y-6">
-          <MarketFeaturedHero
-            installed={presets.length > 0}
-            onInstall={() => {
-              setTab("installed");
-            }}
-          />
+          <MarketFeaturedHero onBrowse={() => {
+            document.getElementById("market-grid")?.scrollIntoView({ behavior: "smooth" });
+          }} />
 
           {marketLoading ? (
             <InstalledSkeleton />
@@ -491,7 +480,7 @@ export default function PresetsPage() {
               description={t("presets.empty.market_empty.description")}
             />
           ) : (
-            <>
+            <div id="market-grid" className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="relative w-full max-w-sm">
                   <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-subtle" />
@@ -533,7 +522,7 @@ export default function PresetsPage() {
                   })}
                 </div>
               )}
-            </>
+            </div>
           )}
         </TabsContent>
       </Tabs>
@@ -618,6 +607,9 @@ export default function PresetsPage() {
                 </Badge>
               )}
             </DialogTitle>
+            <DialogDescription>
+              {t("presets.detail_dialog_description")}
+            </DialogDescription>
           </DialogHeader>
 
           <div className="flex-1 overflow-y-auto px-1 py-1">
@@ -939,11 +931,9 @@ function MarketCard({
 }
 
 function MarketFeaturedHero({
-  installed,
-  onInstall,
+  onBrowse,
 }: {
-  installed: boolean;
-  onInstall: () => void;
+  onBrowse: () => void;
 }) {
   const { t } = useTranslation();
   return (
@@ -960,23 +950,9 @@ function MarketFeaturedHero({
             {t("presets.featured.description")}
           </p>
           <div className="mt-4">
-            <Button
-              type="button"
-              size="sm"
-              onClick={onInstall}
-              disabled={installed}
-            >
-              {installed ? (
-                <>
-                  <ShieldCheck className="h-3.5 w-3.5" />
-                  {t("presets.featured.installed")}
-                </>
-              ) : (
-                <>
-                  <Download className="h-3.5 w-3.5" />
-                  {t("presets.featured.install")}
-                </>
-              )}
+            <Button type="button" size="sm" onClick={onBrowse}>
+              <ArrowRight className="h-3.5 w-3.5" />
+              {t("presets.featured.browse")}
             </Button>
           </div>
         </div>
