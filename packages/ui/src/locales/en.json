@@ -74,6 +74,7 @@
     "placeholder": "Type a command or search…",
     "empty": "No results found",
     "toggle_theme": "Toggle theme",
+    "reload_gateway": "Reload gateway",
     "heading": {
       "navigation": "Navigation",
       "actions": "Actions",
