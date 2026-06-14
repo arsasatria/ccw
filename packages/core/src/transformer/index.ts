@@ -20,6 +20,7 @@ import { VercelTransformer } from "./vercel.transformer";
 import { OpenAIResponsesTransformer } from "./openai.responses.transformer";
 import { ForceReasoningTransformer } from "./forcereasoning.transformer"
 import { TokenSaverTransformer } from "./tokenSaver.transformer";
+import { TerseModeTransformer } from "./terseMode.transformer";
 
 export default {
   AnthropicTransformer,
@@ -44,4 +45,5 @@ export default {
   OpenAIResponsesTransformer,
   ForceReasoningTransformer,
   TokenSaverTransformer,
+  TerseModeTransformer,
 };
