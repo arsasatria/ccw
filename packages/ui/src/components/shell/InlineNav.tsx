@@ -1,4 +1,5 @@
 import { NavLink } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 const ROUTES = [
@@ -13,8 +14,9 @@ const ROUTES = [
 ];
 
 export function InlineNav() {
+  const { t } = useTranslation();
   return (
-    <nav className="flex items-center gap-[18px]" aria-label="Primary">
+    <nav className="flex items-center gap-[18px]" aria-label={t("common.primary_navigation")}>
       {ROUTES.map((r) => (
         <NavLink
           key={r.to}

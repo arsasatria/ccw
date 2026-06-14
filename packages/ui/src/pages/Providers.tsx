@@ -917,7 +917,7 @@ function TransformerRow({
       </div>
       <div className="flex gap-1.5">
         <Input
-          placeholder="param"
+          placeholder={t("providers.param_placeholder")}
           value={paramInputs[paramKey]?.name ?? ""}
           onChange={(e) =>
             setParamInputs((prev) => ({
@@ -931,7 +931,7 @@ function TransformerRow({
           className="h-7 text-xs"
         />
         <Input
-          placeholder="value"
+          placeholder={t("providers.value_placeholder")}
           value={paramInputs[paramKey]?.value ?? ""}
           onChange={(e) =>
             setParamInputs((prev) => ({

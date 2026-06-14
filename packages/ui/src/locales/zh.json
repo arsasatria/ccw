@@ -4,7 +4,12 @@
     "no": "否",
     "loading": "加载中…",
     "edit": "编辑",
-    "delete": "删除"
+    "delete": "删除",
+    "account": "账户",
+    "close": "关闭",
+    "open_command_palette": "打开命令面板",
+    "primary_navigation": "主导航",
+    "search": "搜索"
   },
   "app": {
     "title": "ccw",
@@ -223,6 +228,8 @@
     "add_parameter": "添加参数",
     "parameter_name": "参数名",
     "parameter_value": "参数值",
+    "param_placeholder": "参数",
+    "value_placeholder": "值",
     "selected_transformers": "已选转换器",
     "import_from_template": "从模板导入",
     "no_templates_found": "未找到模板",
