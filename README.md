@@ -6,7 +6,7 @@
 
 An open-source gateway, distributable presets, and a live statusline — for developers who want Claude Code without being locked to one provider.
 
-[Install](#install) · [Quick start](#quick-start) · [Presets](#presets) · [CLI](#cli) · [Web UI](#web-ui) · [Docs](https://ccw.dev/docs)
+[Install](#install) · [Quick start](#quick-start) · [Presets](#presets) · [CLI](#cli) · [Web UI](#web-ui) · [Docs](#!)
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A520-339933)](package.json)
@@ -59,13 +59,13 @@ Pick the platform:
 **macOS / Linux**
 
 ```bash
-curl -fsSL https://ccw.dev/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/arsasatria/ccw/main/install.sh | bash
 ```
 
 **Windows (PowerShell)**
 
 ```powershell
-irm https://ccw.dev/install.ps1 | iex
+irm https://raw.githubusercontent.com/arsasatria/ccw/main/install.ps1 | iex
 ```
 
 The installer verifies Node ≥ 20, enables pnpm via corepack, clones the source, builds it, and drops a `ccw` shim on your PATH. Re-running it is safe — it acts as an updater.
