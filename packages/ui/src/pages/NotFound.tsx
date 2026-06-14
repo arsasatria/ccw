@@ -11,9 +11,9 @@ export default function NotFound() {
         <p className="mt-4 max-w-sm text-[14px] italic text-ink-muted">
           {t("notFound.message")}
         </p>
-        <Link to="/dashboard" className="mt-6 inline-block">
-          <Button>{t("notFound.cta")}</Button>
-        </Link>
+        <Button asChild className="mt-6">
+          <Link to="/dashboard">{t("notFound.cta")}</Link>
+        </Button>
       </div>
     </div>
   );
