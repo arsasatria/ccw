@@ -1,4 +1,5 @@
 import * as React from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
@@ -30,10 +31,10 @@ import {
 interface CommandPaletteProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSave: () => void;
-  onSaveAndRestart: () => void;
-  onCheckForUpdates: () => void;
-  onToggleTheme: () => void;
+  onSave?: () => void;
+  onSaveAndRestart?: () => void;
+  onCheckForUpdates?: () => void;
+  onToggleTheme?: () => void;
 }
 
 export function CommandPalette({
@@ -52,8 +53,8 @@ export function CommandPalette({
     onOpenChange(false);
   };
 
-  const run = (fn: () => void) => () => {
-    fn();
+  const run = (fn?: () => void) => () => {
+    fn?.();
     onOpenChange(false);
   };
 
@@ -144,3 +145,20 @@ export function CommandPalette({
     </CommandDialog>
   );
 }
+
+CommandPalette.Trigger = function Trigger() {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex h-8 items-center gap-2 rounded-sm border border-line bg-surface px-2.5 text-[12px] text-ink-muted hover:bg-surface-2 focus-warm"
+        aria-label="Open command palette"
+      >
+        <span>Search</span>
+        <kbd className="rounded-sm border border-line bg-paper px-1 text-[10px]">⌘K</kbd>
+      </button>
+      <CommandPalette open={open} onOpenChange={setOpen} />
+    </>
+  );
+};
