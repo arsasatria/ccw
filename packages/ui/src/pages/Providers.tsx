@@ -1,34 +1,33 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate } from "react-router-dom";
 import {
   Plus,
   Search,
   Trash2,
   Eye,
   EyeOff,
-  XCircle,
   X,
-  ArrowRight,
-  Globe,
   KeyRound,
   Workflow as WorkflowIcon,
   Server,
   Filter,
+  Pencil,
 } from "lucide-react";
 
 import { useConfig } from "@/components/ConfigProvider";
-import { AppShell } from "@/components/shell/AppShell";
 import { useToast } from "@/components/shell/ToastHost";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Avatar } from "@/components/common/Avatar";
+import { StatusPill } from "@/components/common/StatusPill";
+import { EmptyState } from "@/components/common/EmptyState";
+import { ConfirmDialog } from "@/components/common/ConfirmDialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Combobox } from "@/components/ui/combobox";
 import { ComboInput } from "@/components/ui/combo-input";
-import { EmptyState } from "@/components/common/EmptyState";
-import { ConfirmDialog } from "@/components/common/ConfirmDialog";
-import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { api } from "@/lib/api";
 import { cn, hostnameFromUrl, maskKey } from "@/lib/utils";
 import type { Provider, ProviderTransformer } from "@/types";
@@ -46,7 +45,6 @@ export default function ProvidersPage() {
   const { t } = useTranslation();
   const { config, setConfig } = useConfig();
   const { show } = useToast();
-  const navigate = useNavigate();
 
   const [search, setSearch] = useState("");
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -178,130 +176,157 @@ export default function ProvidersPage() {
     return false;
   });
 
+  const addLabel = t("providers.header.add");
+
   return (
-    <AppShell
-      title={t("providers.title")}
-      subtitle={t("providers.subtitle", { count: providers.length })}
-      actions={
-        <>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-fg-subtle" />
-            <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder={t("providers.search")}
-              className="h-8 w-56 pl-8"
-            />
-          </div>
+    <div className="space-y-6">
+      <PageHeader
+        title={t("providers.title")}
+        subtitle={t("providers.subtitle", { count: providers.length })}
+        action={
           <Button size="sm" onClick={handleAdd}>
             <Plus className="h-3.5 w-3.5" />
-            {t("providers.add")}
+            {addLabel}
           </Button>
-        </>
-      }
-    >
+        }
+      />
+
       {filtered.length === 0 ? (
-        <EmptyState
-          title={
-            providers.length === 0
-              ? t("providers.empty_title")
-              : t("providers.no_results_title")
-          }
-          description={
-            providers.length === 0
-              ? t("providers.empty_description")
-              : t("providers.no_results_description")
-          }
-          action={
-            providers.length === 0 ? (
+        providers.length === 0 ? (
+          <EmptyState
+            glass
+            title={t("providers.empty.title")}
+            description={t("providers.empty.description")}
+            action={
               <Button size="sm" onClick={handleAdd}>
                 <Plus className="h-3.5 w-3.5" />
-                {t("providers.add")}
+                {addLabel}
               </Button>
-            ) : null
-          }
-        />
+            }
+          />
+        ) : (
+          <EmptyState
+            title={t("providers.no_results_title")}
+            description={t("providers.no_results_description")}
+          />
+        )
       ) : (
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((p, i) => {
-            const realIdx = providers.indexOf(p);
-            const transformerCount = p.transformer?.use?.length ?? 0;
-            return (
-              <button
-                key={realIdx}
-                onClick={() => handleEdit(realIdx)}
-                className="cc-card group flex flex-col gap-3 p-4 text-left transition-all hover:border-border-strong hover:translate-y-[-1px]"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <ProviderAvatar name={p.name} />
-                    <div className="min-w-0">
-                      <div className="text-sm font-medium text-fg truncate">
+        <>
+          <div className="flex items-center gap-3">
+            <div className="relative w-full max-w-sm">
+              <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-ink-subtle" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder={t("providers.search.placeholder")}
+                className="pl-8"
+              />
+            </div>
+            <span className="text-[12px] text-ink-muted">
+              {t("providers.count", {
+                count: filtered.length,
+                total: providers.length,
+              })}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {filtered.map((p) => {
+              const realIdx = providers.indexOf(p);
+              const modelCount = p.models?.length ?? 0;
+              const transformerCount = p.transformer?.use?.length ?? 0;
+              const hasKey = !!(p.api_key && p.api_key.trim().length > 0);
+              return (
+                <div
+                  key={realIdx}
+                  className="group rounded-md border border-line bg-surface p-5 transition-colors hover:border-line-strong"
+                >
+                  <div className="flex items-start gap-3">
+                    <Avatar name={p.name} size={32} />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-serif text-[16px] leading-tight tracking-[-0.01em] text-ink truncate">
                         {p.name || (
-                          <span className="text-fg-subtle italic">untitled</span>
+                          <span className="italic text-ink-subtle">
+                            {t("providers.unnamed")}
+                          </span>
                         )}
-                      </div>
-                      <div className="flex items-center gap-1 text-[11px] text-fg-subtle">
-                        <Globe className="h-2.5 w-2.5" />
-                        <span className="cc-text-mono truncate">
-                          {hostnameFromUrl(p.api_base_url)}
-                        </span>
-                      </div>
+                      </h3>
+                      <p className="mt-1 truncate font-mono text-[11px] italic text-ink-muted">
+                        {hostnameFromUrl(p.api_base_url)}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-0.5 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleEdit(realIdx)}
+                        aria-label={t("providers.actions.edit")}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon-sm"
+                        onClick={() => handleDelete(realIdx)}
+                        aria-label={t("providers.actions.delete")}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 text-danger" />
+                      </Button>
                     </div>
                   </div>
-                  <ArrowRight className="h-3.5 w-3.5 text-fg-subtle transition-transform group-hover:translate-x-0.5" />
-                </div>
 
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <Badge variant="outline" className="font-mono">
-                    {p.models?.length ?? 0} models
-                  </Badge>
-                  {transformerCount > 0 && (
-                    <Badge variant="default" className="font-mono">
-                      {transformerCount} transformers
-                    </Badge>
-                  )}
-                </div>
-
-                {p.models && p.models.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {p.models.slice(0, 3).map((m) => (
-                      <span
-                        key={m}
-                        className="cc-text-mono rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] text-fg-muted ring-1 ring-inset ring-border"
-                      >
-                        {m}
-                      </span>
-                    ))}
-                    {p.models.length > 3 && (
-                      <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] text-fg-subtle ring-1 ring-inset ring-border">
-                        +{p.models.length - 3}
-                      </span>
+                  <div className="mt-4 flex flex-wrap items-center gap-1.5">
+                    <StatusPill
+                      status={hasKey ? "active" : "inactive"}
+                      label={t(
+                        hasKey
+                          ? "providers.status.active"
+                          : "providers.status.inactive"
+                      )}
+                    />
+                    {modelCount > 0 && (
+                      <Badge variant="outline" className="font-mono">
+                        {t("providers.models_count", { count: modelCount })}
+                      </Badge>
+                    )}
+                    {transformerCount > 0 && (
+                      <Badge variant="default" className="font-mono">
+                        {t("providers.transformer_count", {
+                          count: transformerCount,
+                        })}
+                      </Badge>
                     )}
                   </div>
-                )}
 
-                <Separator />
+                  {p.models && p.models.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1">
+                      {p.models.slice(0, 3).map((m) => (
+                        <span
+                          key={m}
+                          className="rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[10.5px] text-ink-muted ring-1 ring-inset ring-line"
+                        >
+                          {m}
+                        </span>
+                      ))}
+                      {p.models.length > 3 && (
+                        <span className="rounded bg-surface-2 px-1.5 py-0.5 text-[10.5px] text-ink-subtle ring-1 ring-inset ring-line">
+                          +{p.models.length - 3}
+                        </span>
+                      )}
+                    </div>
+                  )}
 
-                <div className="flex items-center justify-between text-[11px] text-fg-muted">
-                  <span className="cc-text-mono">{maskKey(p.api_key)}</span>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDelete(realIdx);
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5 text-danger" />
-                    </Button>
-                  </div>
+                  {hasKey && (
+                    <div className="mt-3 flex items-center gap-1.5 border-t border-line pt-3 font-mono text-[11px] text-ink-muted">
+                      <KeyRound className="h-3 w-3 text-ink-subtle" />
+                      <span className="truncate">{maskKey(p.api_key)}</span>
+                    </div>
+                  )}
                 </div>
-              </button>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        </>
       )}
 
       <ProviderEditDialog
@@ -333,15 +358,6 @@ export default function ProvidersPage() {
         destructive
         onConfirm={confirmDelete}
       />
-    </AppShell>
-  );
-}
-
-function ProviderAvatar({ name }: { name: string }) {
-  const letter = (name?.[0] ?? "?").toUpperCase();
-  return (
-    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-gradient-to-br from-brand-soft to-surface-2 text-sm font-semibold text-brand ring-1 ring-inset ring-border">
-      {letter}
     </div>
   );
 }
@@ -478,297 +494,305 @@ function ProviderEditDialog({
   };
 
   return (
-    <DialogShim open={open} onOpenChange={onOpenChange}>
-      <div className="flex h-[80vh] flex-col gap-0">
-        <div className="border-b border-border p-5">
-          <div className="flex items-center gap-2">
-            <ProviderAvatar name={data.name || "?"} />
-            <div>
-              <div className="text-base font-semibold text-fg">
-                {isNew ? t("providers.add") : t("providers.edit")}
-              </div>
-              <div className="text-xs text-fg-muted">
-                {data.name || "New provider"}
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl p-0 overflow-hidden">
+        <div className="flex h-[80vh] flex-col gap-0">
+          <div className="border-b border-line p-5">
+            <div className="flex items-center gap-2">
+              <Avatar name={data.name || "?"} size={32} />
+              <div>
+                <div className="text-base font-semibold text-ink">
+                  {isNew ? t("providers.add") : t("providers.edit")}
+                </div>
+                <div className="text-xs text-ink-muted">
+                  {data.name || t("providers.unnamed")}
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex-1 space-y-5 overflow-y-auto p-5">
-          {templates.length > 0 && (
-            <div className="space-y-2">
-              <Label className="flex items-center gap-1.5">
-                <Filter className="h-3 w-3" />
-                {t("providers.import_from_template")}
-              </Label>
-              <Combobox
-                options={templates.map((p) => ({
-                  label: p.name,
-                  value: JSON.stringify(p),
-                }))}
-                value=""
-                onChange={handleTemplateImport}
-                placeholder={t("providers.select_template")}
-                emptyPlaceholder={t("providers.no_templates_found")}
-              />
+          <div className="flex-1 space-y-5 overflow-y-auto p-5">
+            {templates.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Filter className="h-3 w-3" />
+                  {t("providers.import_from_template")}
+                </Label>
+                <Combobox
+                  options={templates.map((p) => ({
+                    label: p.name,
+                    value: JSON.stringify(p),
+                  }))}
+                  value=""
+                  onChange={handleTemplateImport}
+                  placeholder={t("providers.select_template")}
+                  emptyPlaceholder={t("providers.no_templates_found")}
+                />
+              </div>
+            )}
+
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="name">{t("providers.name")}</Label>
+                <Input
+                  id="name"
+                  value={data.name}
+                  onChange={(e) => set({ name: e.target.value })}
+                  className={cn(
+                    nameError && "border-danger focus-visible:ring-danger/40"
+                  )}
+                />
+                {nameError && <p className="text-xs text-danger">{nameError}</p>}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="api_base_url">{t("providers.api_base_url")}</Label>
+                <Input
+                  id="api_base_url"
+                  value={data.api_base_url}
+                  onChange={(e) => set({ api_base_url: e.target.value })}
+                  className="font-mono"
+                  placeholder="https://api.example.com/v1"
+                />
+              </div>
             </div>
-          )}
 
-          <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="name">{t("providers.name")}</Label>
-              <Input
-                id="name"
-                value={data.name}
-                onChange={(e) => set({ name: e.target.value })}
-                className={cn(nameError && "border-danger focus-visible:ring-danger/40")}
+              <Label htmlFor="api_key" className="flex items-center gap-1.5">
+                <KeyRound className="h-3 w-3" />
+                {t("providers.api_key")}
+              </Label>
+              <div className="relative">
+                <Input
+                  id="api_key"
+                  type={showKey ? "text" : "password"}
+                  value={data.api_key}
+                  onChange={(e) => set({ api_key: e.target.value })}
+                  className={cn(
+                    "pr-10 font-mono",
+                    keyError && "border-danger focus-visible:ring-danger/40"
+                  )}
+                  placeholder="$ENV_VAR"
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  className="absolute right-1 top-1/2 -translate-y-1/2"
+                  onClick={() => setShowKey(!showKey)}
+                >
+                  {showKey ? (
+                    <EyeOff className="h-3.5 w-3.5" />
+                  ) : (
+                    <Eye className="h-3.5 w-3.5" />
+                  )}
+                </Button>
+              </div>
+              {keyError && <p className="text-xs text-danger">{keyError}</p>}
+            </div>
+
+            <div className="space-y-2">
+              <Label>{t("providers.models")}</Label>
+              <ComboInput
+                options={(data.models ?? []).map((m) => ({ label: m, value: m }))}
+                value=""
+                onChange={() => undefined}
+                onEnter={handleAddModel}
+                inputPlaceholder={t("providers.models_placeholder")}
               />
-              {nameError && (
-                <p className="text-xs text-danger">{nameError}</p>
+              {data.models && data.models.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {data.models.map((m, i) => (
+                    <span
+                      key={m}
+                      className="inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 py-0.5 font-mono text-[11px] text-ink ring-1 ring-inset ring-line"
+                    >
+                      {m}
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveModel(i)}
+                        className="text-ink-subtle transition-colors hover:text-danger"
+                      >
+                        <X className="h-2.5 w-2.5" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
               )}
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="api_base_url">{t("providers.api_base_url")}</Label>
-              <Input
-                id="api_base_url"
-                value={data.api_base_url}
-                onChange={(e) => set({ api_base_url: e.target.value })}
-                className="cc-text-mono"
-                placeholder="https://api.example.com/v1"
-              />
-            </div>
-          </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="api_key" className="flex items-center gap-1.5">
-              <KeyRound className="h-3 w-3" />
-              {t("providers.api_key")}
-            </Label>
-            <div className="relative">
-              <Input
-                id="api_key"
-                type={showKey ? "text" : "password"}
-                value={data.api_key}
-                onChange={(e) => set({ api_key: e.target.value })}
-                className={cn(
-                  "cc-text-mono pr-10",
-                  keyError && "border-danger focus-visible:ring-danger/40"
-                )}
-                placeholder="$ENV_VAR"
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon-sm"
-                className="absolute right-1 top-1/2 -translate-y-1/2"
-                onClick={() => setShowKey(!showKey)}
-              >
-                {showKey ? (
-                  <EyeOff className="h-3.5 w-3.5" />
-                ) : (
-                  <Eye className="h-3.5 w-3.5" />
-                )}
-              </Button>
-            </div>
-            {keyError && <p className="text-xs text-danger">{keyError}</p>}
-          </div>
-
-          <div className="space-y-2">
-            <Label>{t("providers.models")}</Label>
-            <ComboInput
-              options={(data.models ?? []).map((m) => ({ label: m, value: m }))}
-              value=""
-              onChange={() => undefined}
-              onEnter={handleAddModel}
-              inputPlaceholder={t("providers.models_placeholder")}
-            />
-            {data.models && data.models.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 pt-1">
-                {data.models.map((m, i) => (
-                  <span
-                    key={m}
-                    className="cc-text-mono inline-flex items-center gap-1 rounded bg-surface-2 px-1.5 py-0.5 text-[11px] text-fg ring-1 ring-inset ring-border"
-                  >
-                    {m}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveModel(i)}
-                      className="text-fg-subtle transition-colors hover:text-danger"
-                    >
-                      <X className="h-2.5 w-2.5" />
-                    </button>
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Transformers */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5">
-              <WorkflowIcon className="h-3 w-3" />
-              {t("providers.provider_transformer")}
-            </Label>
-            <Combobox
-              options={availableTransformers.map((t) => ({
-                label: t.name,
-                value: t.name,
-              }))}
-              value=""
-              onChange={handleAddTransformer}
-              placeholder={t("providers.select_transformer")}
-              emptyPlaceholder={t("providers.no_transformers")}
-            />
-            {data.transformer?.use && data.transformer.use.length > 0 && (
-              <div className="mt-2 space-y-1.5">
-                {data.transformer.use.map((tr, ti) => (
-                  <TransformerRow
-                    key={ti}
-                    label={typeof tr === "string" ? tr : Array.isArray(tr) ? String(tr[0]) : String(tr)}
-                    onRemove={() => removeTransformerAt(ti)}
-                    onAddParam={(name, value) => {
-                      const list: any[] = [...((data.transformer?.use as any[]) ?? [])];
-                      const t = list[ti];
-                      let next: any;
-                      if (Array.isArray(t)) {
-                        const arr = [...t];
-                        if (arr.length > 1 && typeof arr[1] === "object" && arr[1] !== null) {
-                          arr[1] = { ...(arr[1] as Record<string, unknown>), [name]: value };
-                        } else {
-                          arr.splice(1, arr.length - 1, { [name]: value });
-                        }
-                        next = arr;
-                      } else {
-                        next = [t, { [name]: value }];
-                      }
-                      list[ti] = next;
-                      onChange({ ...data, transformer: { ...data.transformer!, use: list } });
-                    }}
-                    paramKey={`provider-transformer-${ti}`}
-                    paramInputs={providerParamInputs}
-                    setParamInputs={setProviderParamInputs}
-                    existingParams={
-                      Array.isArray(data.transformer?.use?.[ti]) &&
-                      typeof (data.transformer!.use[ti] as unknown[])[1] === "object"
-                        ? ((data.transformer!.use[ti] as unknown[])[1] as Record<string, unknown>)
-                        : {}
-                    }
-                    onRemoveParam={(name) => {
-                      const list: any[] = [...((data.transformer?.use as any[]) ?? [])];
-                      const t = list[ti];
-                      if (Array.isArray(t) && typeof t[1] === "object") {
-                        const params = { ...(t[1] as Record<string, unknown>) };
-                        delete params[name];
-                        const arr = [...t];
-                        if (Object.keys(params).length === 0) {
-                          arr.splice(1, 1);
-                        } else {
-                          arr[1] = params;
-                        }
-                        list[ti] = arr;
-                        onChange({ ...data, transformer: { ...data.transformer!, use: list } });
-                      }
-                    }}
-                  />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Model transformers */}
-          {data.models && data.models.length > 0 && (
+            {/* Transformers */}
             <div className="space-y-2">
               <Label className="flex items-center gap-1.5">
-                <Server className="h-3 w-3" />
-                {t("providers.model_transformers")}
+                <WorkflowIcon className="h-3 w-3" />
+                {t("providers.provider_transformer")}
               </Label>
-              <div className="space-y-3">
-                {data.models.map((model) => {
-                  const mt = data.transformer?.[model];
-                  const use: any[] = (typeof mt === "object" && (mt as any)?.use) || [];
-                  return (
-                    <div
-                      key={model}
-                      className="rounded-md border border-border p-3 space-y-2"
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="cc-text-mono text-xs font-medium text-fg">
-                          {model}
+              <Combobox
+                options={availableTransformers.map((tr) => ({
+                  label: tr.name,
+                  value: tr.name,
+                }))}
+                value=""
+                onChange={handleAddTransformer}
+                placeholder={t("providers.select_transformer")}
+                emptyPlaceholder={t("providers.no_transformers")}
+              />
+              {data.transformer?.use && data.transformer.use.length > 0 && (
+                <div className="mt-2 space-y-1.5">
+                  {data.transformer.use.map((tr, ti) => (
+                    <TransformerRow
+                      key={ti}
+                      label={
+                        typeof tr === "string"
+                          ? tr
+                          : Array.isArray(tr)
+                            ? String(tr[0])
+                            : String(tr)
+                      }
+                      onRemove={() => removeTransformerAt(ti)}
+                      onAddParam={(name, value) => {
+                        const list: ProviderTransformer["use"] = [
+                          ...(data.transformer?.use ?? []),
+                        ];
+                        const item = list[ti];
+                        let next: ProviderTransformer["use"][number];
+                        if (Array.isArray(item)) {
+                          const arr = [...item];
+                          if (
+                            arr.length > 1 &&
+                            typeof arr[1] === "object" &&
+                            arr[1] !== null
+                          ) {
+                            arr[1] = {
+                              ...(arr[1] as Record<string, unknown>),
+                              [name]: value,
+                            };
+                          } else {
+                            arr.splice(1, arr.length - 1, { [name]: value });
+                          }
+                          next = arr as ProviderTransformer["use"][number];
+                        } else {
+                          next = [item, { [name]: value }];
+                        }
+                        list[ti] = next;
+                        onChange({
+                          ...data,
+                          transformer: { ...data.transformer!, use: list },
+                        });
+                      }}
+                      paramKey={`provider-transformer-${ti}`}
+                      paramInputs={providerParamInputs}
+                      setParamInputs={setProviderParamInputs}
+                      existingParams={
+                        Array.isArray(data.transformer?.use?.[ti]) &&
+                        typeof (data.transformer!.use[ti] as unknown[])[1] ===
+                          "object"
+                          ? ((data.transformer!.use[ti] as unknown[])[1] as Record<
+                              string,
+                              unknown
+                            >)
+                          : {}
+                      }
+                      onRemoveParam={(name) => {
+                        const list: ProviderTransformer["use"] = [
+                          ...(data.transformer?.use ?? []),
+                        ];
+                        const item = list[ti];
+                        if (Array.isArray(item) && typeof item[1] === "object") {
+                          const params = { ...(item[1] as Record<string, unknown>) };
+                          delete params[name];
+                          const arr = [...item];
+                          if (Object.keys(params).length === 0) {
+                            arr.splice(1, 1);
+                          } else {
+                            arr[1] = params;
+                          }
+                          list[ti] = arr as ProviderTransformer["use"][number];
+                          onChange({
+                            ...data,
+                            transformer: { ...data.transformer!, use: list },
+                          });
+                        }
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Model transformers */}
+            {data.models && data.models.length > 0 && (
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1.5">
+                  <Server className="h-3 w-3" />
+                  {t("providers.model_transformers")}
+                </Label>
+                <div className="space-y-3">
+                  {data.models.map((model) => {
+                    const mt = data.transformer?.[model];
+                    const use: unknown[] =
+                      (typeof mt === "object" && (mt as { use?: unknown[] })?.use) ||
+                      [];
+                    return (
+                      <div
+                        key={model}
+                        className="rounded-md border border-line p-3 space-y-2"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="font-mono text-xs font-medium text-ink">
+                            {model}
+                          </div>
+                          <Badge variant="default">
+                            {t("providers.transformer_count", { count: use.length })}
+                          </Badge>
                         </div>
-                        <Badge variant="default">
-                          {use.length} transformers
-                        </Badge>
-                      </div>
-                      <Combobox
-                        options={availableTransformers.map((t) => ({
-                          label: t.name,
-                          value: t.name,
-                        }))}
-                        value=""
-                        onChange={(v) => handleAddModelTransformer(model, v)}
-                        placeholder={t("providers.select_transformer")}
-                        emptyPlaceholder={t("providers.no_transformers")}
-                      />
-                      {use.length > 0 && (
-                        <div className="space-y-1.5 pt-1">
-                          {use.map((tr, ti) => (
-                            <TransformerRow
-                              key={ti}
-                              label={
-                                typeof tr === "string"
-                                  ? tr
-                                  : Array.isArray(tr)
-                                    ? String(tr[0])
-                                    : String(tr)
-                              }
-                              onRemove={() => removeModelTransformerAt(model, ti)}
-                              onAddParam={(name, value) => {
-                                const list = [...((data.transformer?.[model]?.use as unknown[]) ?? [])];
-                                const t = list[ti];
-                                let next: unknown;
-                                if (Array.isArray(t)) {
-                                  const arr = [...t];
-                                  if (arr.length > 1 && typeof arr[1] === "object" && arr[1] !== null) {
-                                    arr[1] = { ...(arr[1] as Record<string, unknown>), [name]: value };
-                                  } else {
-                                    arr.splice(1, arr.length - 1, { [name]: value });
-                                  }
-                                  next = arr;
-                                } else {
-                                  next = [t as string, { [name]: value }];
+                        <Combobox
+                          options={availableTransformers.map((tr) => ({
+                            label: tr.name,
+                            value: tr.name,
+                          }))}
+                          value=""
+                          onChange={(v) => handleAddModelTransformer(model, v)}
+                          placeholder={t("providers.select_transformer")}
+                          emptyPlaceholder={t("providers.no_transformers")}
+                        />
+                        {use.length > 0 && (
+                          <div className="space-y-1.5 pt-1">
+                            {use.map((tr, ti) => (
+                              <TransformerRow
+                                key={ti}
+                                label={
+                                  typeof tr === "string"
+                                    ? tr
+                                    : Array.isArray(tr)
+                                      ? String(tr[0])
+                                      : String(tr)
                                 }
-                                list[ti] = next as never;
-                                const transformer: ProviderTransformer = {
-                                  ...(data.transformer ?? { use: [] }),
-                                  [model]: {
-                                    ...(data.transformer?.[model] ?? { use: [] }),
-                                    use: list,
-                                  },
-                                };
-                                onChange({ ...data, transformer });
-                              }}
-                              paramKey={`model-${model}-transformer-${ti}`}
-                              paramInputs={modelParamInputs}
-                              setParamInputs={setModelParamInputs}
-                              existingParams={
-                                Array.isArray(data.transformer?.[model]?.use?.[ti]) &&
-                                typeof (data.transformer![model]!.use![ti] as unknown[])[1] === "object"
-                                  ? ((data.transformer![model]!.use![ti] as unknown[])[1] as Record<string, unknown>)
-                                  : {}
-                              }
-                              onRemoveParam={(name) => {
-                                const list = [...((data.transformer?.[model]?.use as unknown[]) ?? [])];
-                                const t = list[ti];
-                                if (Array.isArray(t) && typeof t[1] === "object") {
-                                  const params = { ...(t[1] as Record<string, unknown>) };
-                                  delete params[name];
-                                  const arr = [...t];
-                                  if (Object.keys(params).length === 0) {
-                                    arr.splice(1, 1);
+                                onRemove={() => removeModelTransformerAt(model, ti)}
+                                onAddParam={(name, value) => {
+                                  const list: ProviderTransformer["use"] = [
+                                    ...(data.transformer?.[model]?.use ?? []),
+                                  ];
+                                  const item = list[ti];
+                                  let next: ProviderTransformer["use"][number];
+                                  if (Array.isArray(item)) {
+                                    const arr = [...item];
+                                    if (
+                                      arr.length > 1 &&
+                                      typeof arr[1] === "object" &&
+                                      arr[1] !== null
+                                    ) {
+                                      arr[1] = {
+                                        ...(arr[1] as Record<string, unknown>),
+                                        [name]: value,
+                                      };
+                                    } else {
+                                      arr.splice(1, arr.length - 1, { [name]: value });
+                                    }
+                                    next = arr as ProviderTransformer["use"][number];
                                   } else {
-                                    arr[1] = params;
+                                    next = [item, { [name]: value }];
                                   }
-                                  list[ti] = arr as never;
+                                  list[ti] = next;
                                   const transformer: ProviderTransformer = {
                                     ...(data.transformer ?? { use: [] }),
                                     [model]: {
@@ -777,49 +801,66 @@ function ProviderEditDialog({
                                     },
                                   };
                                   onChange({ ...data, transformer });
+                                }}
+                                paramKey={`model-${model}-transformer-${ti}`}
+                                paramInputs={modelParamInputs}
+                                setParamInputs={setModelParamInputs}
+                                existingParams={
+                                  Array.isArray(
+                                    data.transformer?.[model]?.use?.[ti]
+                                  ) &&
+                                  typeof (data.transformer![model]!.use![ti] as unknown[])[1] ===
+                                    "object"
+                                    ? ((data.transformer![model]!.use![ti] as unknown[])[1] as Record<
+                                        string,
+                                        unknown
+                                      >)
+                                    : {}
                                 }
-                              }}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+                                onRemoveParam={(name) => {
+                                  const list: ProviderTransformer["use"] = [
+                                    ...(data.transformer?.[model]?.use ?? []),
+                                  ];
+                                  const item = list[ti];
+                                  if (Array.isArray(item) && typeof item[1] === "object") {
+                                    const params = { ...(item[1] as Record<string, unknown>) };
+                                    delete params[name];
+                                    const arr = [...item];
+                                    if (Object.keys(params).length === 0) {
+                                      arr.splice(1, 1);
+                                    } else {
+                                      arr[1] = params;
+                                    }
+                                    list[ti] = arr as ProviderTransformer["use"][number];
+                                    const transformer: ProviderTransformer = {
+                                      ...(data.transformer ?? { use: [] }),
+                                      [model]: {
+                                        ...(data.transformer?.[model] ?? { use: [] }),
+                                        use: list,
+                                      },
+                                    };
+                                    onChange({ ...data, transformer });
+                                  }
+                                }}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-border bg-surface-2 px-5 py-3">
-          <Button variant="outline" onClick={onCancel}>
-            {t("app.cancel")}
-          </Button>
-          <Button onClick={onSave}>{t("app.save")}</Button>
+          <div className="flex items-center justify-end gap-2 border-t border-line bg-surface-2 px-5 py-3">
+            <Button variant="outline" onClick={onCancel}>
+              {t("app.cancel")}
+            </Button>
+            <Button onClick={onSave}>{t("app.save")}</Button>
+          </div>
         </div>
-      </div>
-    </DialogShim>
-  );
-}
-
-// Local Dialog wrapper using the new dialog component
-import {
-  Dialog,
-  DialogContent,
-} from "@/components/ui/dialog";
-function DialogShim({
-  open,
-  onOpenChange,
-  children,
-}: {
-  open: boolean;
-  onOpenChange: (o: boolean) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl p-0 overflow-hidden">
-        {children}
       </DialogContent>
     </Dialog>
   );
@@ -847,9 +888,9 @@ function TransformerRow({
   existingParams: Record<string, unknown>;
 }) {
   return (
-    <div className="rounded border border-border bg-surface-2 p-2 space-y-2">
+    <div className="rounded border border-line bg-surface-2 p-2 space-y-2">
       <div className="flex items-center gap-2">
-        <span className="cc-text-mono flex-1 text-xs text-fg">{label}</span>
+        <span className="flex-1 font-mono text-xs text-ink">{label}</span>
         <Button variant="ghost" size="icon-sm" onClick={onRemove}>
           <Trash2 className="h-3 w-3 text-danger" />
         </Button>
@@ -907,13 +948,13 @@ function TransformerRow({
               key={k}
               className="flex items-center justify-between rounded bg-surface px-2 py-1 text-xs"
             >
-              <span className="cc-text-mono">
-                <span className="text-fg-muted">{k}:</span>{" "}
-                <span className="text-fg">{String(v)}</span>
+              <span className="font-mono">
+                <span className="text-ink-muted">{k}:</span>{" "}
+                <span className="text-ink">{String(v)}</span>
               </span>
               <button
                 onClick={() => onRemoveParam(k)}
-                className="text-fg-subtle hover:text-danger"
+                className="text-ink-subtle hover:text-danger"
               >
                 <X className="h-2.5 w-2.5" />
               </button>
