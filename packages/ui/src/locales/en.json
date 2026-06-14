@@ -177,7 +177,12 @@
     "claude_path": "Claude Path",
     "advanced": "Advanced",
     "custom_router_path": "Custom Router Script Path",
-    "custom_router_path_placeholder": "Enter absolute path to custom router script file"
+    "custom_router_path_placeholder": "Enter absolute path to custom router script file",
+    "token_efficiency": "Token efficiency",
+    "token_saver": "Token saver",
+    "token_saver_hint": "Compress large tool outputs (git diffs, log dumps, file lists) before they reach the model.",
+    "terse_mode": "Terse mode",
+    "terse_mode_hint": "Append a terse-output instruction to the system prompt. Reduces preamble, summaries, and pleasantries."
   },
   "transformers": {
     "title": "Custom Transformers",

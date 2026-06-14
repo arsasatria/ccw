@@ -123,8 +123,30 @@ export class TransformerService {
 
   private async registerDefaultTransformersInternal(): Promise<void> {
     try {
+      // Global token-saving toggles. Defaults:
+      //   tokenSaver -> enabled (compresses noisy tool outputs)
+      //   terseMode  -> disabled (opt-in only; user explicitly enables)
+      const tokenSaverEnabled = this.configService.get("tokenSaver") !== false;
+      const terseModeEnabled = this.configService.get("terseMode") === true;
+
       Object.values(Transformers).forEach(
         (TransformerStatic: any) => {
+          // Skip the TokenSaverTransformer when the user has disabled it.
+          if (
+            TransformerStatic === (Transformers as any).TokenSaverTransformer &&
+            !tokenSaverEnabled
+          ) {
+            return;
+          }
+          // Skip the TerseModeTransformer unless the user has explicitly
+          // enabled it. The transformer is a no-op when disabled, so there
+          // is no value in registering a dormant instance.
+          if (
+            TransformerStatic === (Transformers as any).TerseModeTransformer &&
+            !terseModeEnabled
+          ) {
+            return;
+          }
           if (
             "TransformerName" in TransformerStatic &&
             typeof TransformerStatic.TransformerName === "string"

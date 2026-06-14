@@ -176,7 +176,12 @@
     "claude_path": "Claude 路径",
     "advanced": "高级",
     "custom_router_path": "自定义路由脚本路径",
-    "custom_router_path_placeholder": "输入自定义路由脚本文件的绝对路径"
+    "custom_router_path_placeholder": "输入自定义路由脚本文件的绝对路径",
+    "token_efficiency": "Token 效率",
+    "token_saver": "Token 节省",
+    "token_saver_hint": "在到达模型前压缩大体积工具输出（git diff、日志转储、文件列表）。",
+    "terse_mode": "简洁模式",
+    "terse_mode_hint": "向系统提示追加简洁输出指令。减少开场白、总结和客套话。"
   },
   "transformers": {
     "title": "自定义转换器",

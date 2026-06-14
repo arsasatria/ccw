@@ -65,6 +65,11 @@ export interface Config {
   API_TIMEOUT_MS: string;
   PROXY_URL: string;
   CUSTOM_ROUTER_PATH?: string;
+  // Global token-efficiency toggles. Optional; default-on/off semantics
+  // are applied in the consumer (see Settings.tsx and the transformer
+  // service).
+  tokenSaver?: boolean;
+  terseMode?: boolean;
 }
 
 export type AccessLevel = 'restricted' | 'full';
