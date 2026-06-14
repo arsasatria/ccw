@@ -230,16 +230,33 @@
     "api_key_required": "API Key is required",
     "name_required": "Name is required",
     "name_duplicate": "A provider with this name already exists",
-    "search": "Search providers…",
+    "search": {
+      "placeholder": "Search providers…"
+    },
+    "count": "{{count}} of {{total}}",
+    "models_count": "{{count}} models",
+    "transformer_count": "{{count}} transformers",
+    "status": {
+      "active": "active",
+      "inactive": "offline"
+    },
+    "actions": {
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "header": {
+      "add": "Add provider"
+    },
     "no_results_title": "No providers match",
     "no_results_description": "Try a different search term, or add a new provider.",
     "empty_title": "No providers yet",
     "empty_description": "Add your first provider to start routing requests.",
-    "no_models": "No models added yet",
     "empty": {
       "title": "Add your first provider",
-      "description": "Start by connecting a model provider. The gateway will route requests to it."
-    }
+      "description": "Start by connecting a model provider. The gateway will route requests to it.",
+      "cta": "Add provider"
+    },
+    "unnamed": "untitled"
   },
   "router": {
     "title": "Router",
