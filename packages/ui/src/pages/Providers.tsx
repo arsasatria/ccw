@@ -140,7 +140,8 @@ export default function ProvidersPage() {
     } else if (editingIdx !== null) {
       list[editingIdx] = editingData;
     }
-    setConfig({ ...config!, Providers: list });
+    if (!config) return;
+    setConfig({ ...config, Providers: list });
     setEditingIdx(null);
     setEditingData(null);
     setIsNew(false);
@@ -161,8 +162,9 @@ export default function ProvidersPage() {
 
   const confirmDelete = () => {
     if (deletingIdx === null) return;
+    if (!config) return;
     const list = providers.filter((_, i) => i !== deletingIdx);
-    setConfig({ ...config!, Providers: list });
+    setConfig({ ...config, Providers: list });
     setDeletingIdx(null);
     show(t("providers.delete") + " ✓", "success");
   };
@@ -170,9 +172,9 @@ export default function ProvidersPage() {
   const filtered = providers.filter((p) => {
     if (!search) return true;
     const term = search.toLowerCase();
-    if (p.name?.toLowerCase().includes(term)) return true;
-    if (p.api_base_url?.toLowerCase().includes(term)) return true;
-    if (p.models?.some((m) => m.toLowerCase().includes(term))) return true;
+    if (p.name.toLowerCase().includes(term)) return true;
+    if (p.api_base_url.toLowerCase().includes(term)) return true;
+    if (p.models.some((m) => m.toLowerCase().includes(term))) return true;
     return false;
   });
 
@@ -182,7 +184,7 @@ export default function ProvidersPage() {
     <div className="space-y-6">
       <PageHeader
         title={t("providers.title")}
-        subtitle={t("providers.subtitle", { count: providers.length })}
+        subtitle={t("providers.subtitle")}
         action={
           <Button size="sm" onClick={handleAdd}>
             <Plus className="h-3.5 w-3.5" />
@@ -219,6 +221,7 @@ export default function ProvidersPage() {
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder={t("providers.search.placeholder")}
+                aria-label={t("providers.search.placeholder")}
                 className="pl-8"
               />
             </div>
@@ -541,8 +544,14 @@ function ProviderEditDialog({
                   className={cn(
                     nameError && "border-danger focus-visible:ring-danger/40"
                   )}
+                  aria-describedby={nameError ? "name-error" : undefined}
+                  aria-invalid={!!nameError}
                 />
-                {nameError && <p className="text-xs text-danger">{nameError}</p>}
+                {nameError && (
+                  <p id="name-error" role="alert" className="text-xs text-danger">
+                    {nameError}
+                  </p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="api_base_url">{t("providers.api_base_url")}</Label>
@@ -572,6 +581,8 @@ function ProviderEditDialog({
                     keyError && "border-danger focus-visible:ring-danger/40"
                   )}
                   placeholder="$ENV_VAR"
+                  aria-describedby={keyError ? "key-error" : undefined}
+                  aria-invalid={!!keyError}
                 />
                 <Button
                   type="button"
@@ -579,6 +590,9 @@ function ProviderEditDialog({
                   size="icon-sm"
                   className="absolute right-1 top-1/2 -translate-y-1/2"
                   onClick={() => setShowKey(!showKey)}
+                  aria-label={
+                    showKey ? t("providers.api_key_hide") : t("providers.api_key_show")
+                  }
                 >
                   {showKey ? (
                     <EyeOff className="h-3.5 w-3.5" />
@@ -587,7 +601,11 @@ function ProviderEditDialog({
                   )}
                 </Button>
               </div>
-              {keyError && <p className="text-xs text-danger">{keyError}</p>}
+              {keyError && (
+                <p id="key-error" role="alert" className="text-xs text-danger">
+                  {keyError}
+                </p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -595,7 +613,7 @@ function ProviderEditDialog({
               <ComboInput
                 options={(data.models ?? []).map((m) => ({ label: m, value: m }))}
                 value=""
-                onChange={() => undefined}
+                onChange={() => undefined /* required by ComboInput; model is added via onEnter, not via controlled value */}
                 onEnter={handleAddModel}
                 inputPlaceholder={t("providers.models_placeholder")}
               />
@@ -610,6 +628,7 @@ function ProviderEditDialog({
                       <button
                         type="button"
                         onClick={() => handleRemoveModel(i)}
+                        aria-label={t("providers.actions.delete")}
                         className="text-ink-subtle transition-colors hover:text-danger"
                       >
                         <X className="h-2.5 w-2.5" />
@@ -887,6 +906,7 @@ function TransformerRow({
   >;
   existingParams: Record<string, unknown>;
 }) {
+  const { t } = useTranslation();
   return (
     <div className="rounded border border-line bg-surface-2 p-2 space-y-2">
       <div className="flex items-center gap-2">
@@ -953,7 +973,9 @@ function TransformerRow({
                 <span className="text-ink">{String(v)}</span>
               </span>
               <button
+                type="button"
                 onClick={() => onRemoveParam(k)}
+                aria-label={t("providers.actions.delete")}
                 className="text-ink-subtle hover:text-danger"
               >
                 <X className="h-2.5 w-2.5" />
