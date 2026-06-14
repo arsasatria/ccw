@@ -9,9 +9,9 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import { useConfig } from "@/components/ConfigProvider";
-import { AppShell } from "@/components/shell/AppShell";
+import { PageHeader } from "@/components/common/PageHeader";
+import { StatusPill } from "@/components/common/StatusPill";
 import { Combobox } from "@/components/ui/combobox";
-import { Switch } from "@/components/ui/switch";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
@@ -97,20 +97,26 @@ export default function RouterPage() {
 
   if (!routerConfig) {
     return (
-      <AppShell title={t("router.title")} subtitle={t("router.subtitle")}>
-        <div className="cc-card p-6 text-sm text-fg-muted">
+      <div className="space-y-8">
+        <PageHeader
+          title={t("router.title")}
+          subtitle={t("router.subtitle")}
+        />
+        <div className="rounded-md border border-line bg-surface p-6 text-sm text-ink-muted">
           {t("common.loading")}
         </div>
-      </AppShell>
+      </div>
     );
   }
 
   return (
-    <AppShell
-      title={t("router.title")}
-      subtitle={t("router.subtitle")}
-    >
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+    <div className="space-y-8">
+      <PageHeader
+        title={t("router.title")}
+        subtitle={t("router.subtitle")}
+      />
+
+      <div className="grid gap-4 md:grid-cols-2">
         {ROUTE_KINDS.map((route) => {
           const value = routerConfig[route.key] ?? "";
           const parsed = providerModelFromRouter(value);
@@ -118,55 +124,66 @@ export default function RouterPage() {
           return (
             <div
               key={route.key}
-              className="cc-card flex flex-col gap-3 p-4 transition-colors hover:border-border-strong"
+              className={cn(
+                "rounded-md border border-line bg-surface p-6",
+                "transition-colors hover:border-line-strong"
+              )}
             >
-              <div className="flex items-start gap-3">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-brand-soft text-brand">
+              <div className="flex items-start gap-4">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-surface-2 text-accent-1">
                   <Icon className="h-4 w-4" />
                 </div>
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-fg">
+                    <h3 className="font-serif text-[16px] italic text-ink">
                       {t(`router.${route.key}`)}
-                    </span>
+                    </h3>
                     {parsed ? (
-                      <Badge variant="accent" className="font-mono text-[10px]">
+                      <Badge
+                        variant="outline"
+                        className="font-mono text-[10px]"
+                      >
                         {parsed.provider}
                       </Badge>
                     ) : (
-                      <Badge variant="outline">{t("router.unassigned")}</Badge>
+                      <StatusPill
+                        status="inactive"
+                        label={t("router.unassigned")}
+                      />
                     )}
                   </div>
-                  <p className="mt-0.5 text-xs text-fg-muted">
+                  <p className="mt-0.5 text-xs text-ink-muted">
                     {route.description}
                   </p>
                 </div>
               </div>
-              <Combobox
-                options={modelOptions}
-                value={value}
-                onChange={(v) => update(route.key, v)}
-                placeholder={t("router.selectModel")}
-                searchPlaceholder={t("router.searchModel")}
-                emptyPlaceholder={t("router.noModelFound")}
-              />
+              <div className="mt-4">
+                <Combobox
+                  options={modelOptions}
+                  value={value}
+                  onChange={(v) => update(route.key, v)}
+                  placeholder={t("router.selectModel")}
+                  searchPlaceholder={t("router.searchModel")}
+                  emptyPlaceholder={t("router.noModelFound")}
+                />
+              </div>
             </div>
           );
         })}
       </div>
 
-      <div className="cc-card mt-6 p-5">
+      <div className="rounded-md border border-line bg-surface p-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-sm font-semibold text-fg">
+            <h3 className="font-serif text-[16px] italic text-ink">
               {t("router.threshold.title")}
             </h3>
-            <p className="mt-0.5 text-xs text-fg-muted">
+            <p className="mt-0.5 text-xs text-ink-muted">
               {t("router.threshold.description")}
             </p>
           </div>
           <div className="flex items-center gap-2">
-            <Label htmlFor="threshold" className="text-xs text-fg-muted">
+            <Label htmlFor="threshold" className="text-xs text-ink-muted">
               {t("router.longContextThreshold")}
             </Label>
             <Input
@@ -179,6 +196,6 @@ export default function RouterPage() {
           </div>
         </div>
       </div>
-    </AppShell>
+    </div>
   );
 }
