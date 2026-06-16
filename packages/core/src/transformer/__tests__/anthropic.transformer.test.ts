@@ -288,18 +288,19 @@ test("backfills empty parameters for tools without input_schema (issue #1371 Bug
   });
 });
 
-test("sets assistant content to null when text+tool_use+thinking are all empty (sanitize context histories)", async () => {
-  // Reproduces: a previous turn where the model emitted only a thinking block
-  // (no text, no tool_use) and the empty {"type":"text","text":""} part is
-  // sent back as part of the assistant history. After filtering empties, the
-  // assistant message has no text, no tool_calls, no thinking — must be
-  // serialized with content: null so strict OpenAI-spec providers don't
-  // reject an empty-string content field.
+test("drops an assistant message whose only block is a thinking block (sanitize context histories)", async () => {
+  // Strict OpenAI-spec providers (TokenRouter/MiniMax-M3, Together, OpenRouter,
+  // NVIDIA NIM) reject an assistant message with `content: null` and no
+  // `tool_calls` — it serializes as `{role: "assistant", content: null}`,
+  // which the OpenAI chat completions schema does not allow. Claude Code's
+  // history can include turns where the model emitted only a thinking
+  // block; the transformed message would otherwise be invalid.
   const transformer = new AnthropicTransformer();
   // @ts-expect-error access private for test
   const out = await transformer.transformRequestOut({
     model: "test",
     messages: [
+      { role: "user", content: "what's the weather?" },
       {
         role: "assistant",
         content: [
@@ -310,10 +311,44 @@ test("sets assistant content to null when text+tool_use+thinking are all empty (
     ],
   });
 
-  // content should be null (not "") because textParts was empty
-  assert.equal(out.messages[0].content, null);
-  // thinking should be preserved
-  assert.deepEqual(out.messages[0].thinking, { content: "hmm", signature: "sig" });
+  // The empty assistant message must be dropped entirely; only the user
+  // message should remain.
+  assert.equal(out.messages.length, 1, "empty assistant message must be dropped");
+  assert.equal(out.messages[0].role, "user");
+});
+
+test("drops an assistant message whose tool_use is the only block and is filtered as orphan", async () => {
+  // Edge case: assistant turn contained only a tool_use, but the
+  // tool_result is missing (user interrupted, or history was trimmed).
+  // The orphan filter drops the tool_use, leaving content: null with no
+  // tool_calls — same invalid shape as the thinking-only case above.
+  const transformer = new AnthropicTransformer();
+  // @ts-expect-error access private for test
+  const out = await transformer.transformRequestOut({
+    model: "test",
+    messages: [
+      { role: "user", content: "search for x" },
+      {
+        role: "assistant",
+        content: [
+          { type: "tool_use", id: "t1", name: "search", input: { q: "x" } },
+        ],
+      },
+      // No tool_result for t1 — orphan.
+      { role: "user", content: "never mind" },
+    ],
+  });
+
+  // The assistant turn must be dropped (it has nothing to say), and no
+  // tool_call entry should appear anywhere in the transformed history.
+  assert.equal(out.messages.length, 2, "empty assistant message must be dropped");
+  assert.equal(out.messages[0].role, "user");
+  assert.equal(out.messages[0].content, "search for x");
+  assert.equal(out.messages[1].role, "user");
+  assert.equal(out.messages[1].content, "never mind");
+
+  const anyToolCalls = out.messages.some((m: any) => m.tool_calls?.length);
+  assert.equal(anyToolCalls, false, "no tool_calls should be emitted for the dropped assistant turn");
 });
 
 test("joins non-empty assistant text parts and preserves tool_calls and thinking", async () => {

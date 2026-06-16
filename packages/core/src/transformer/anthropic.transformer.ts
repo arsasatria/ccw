@@ -216,6 +216,17 @@ export class AnthropicTransformer implements Transformer {
               };
             }
 
+            // OpenAI-spec providers reject `{role: "assistant", content: null}`
+            // when no `tool_calls` are present (code 2013 / 400). Drop the
+            // message entirely in that case rather than emit an invalid
+            // shape — consistent with the orphan tool_use / tool_result
+            // filtering above.
+            if (
+              assistantMessage.content === null &&
+              !assistantMessage.tool_calls
+            ) {
+              return;
+            }
             messages.push(assistantMessage);
           }
           return;
