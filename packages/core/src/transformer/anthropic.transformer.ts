@@ -214,6 +214,10 @@ export class AnthropicTransformer implements Transformer {
                 content: thinkingPart.thinking,
                 signature: thinkingPart.signature,
               };
+              // Mirror to OpenAI-style `reasoning_content` so OpenAI-spec
+              // reasoning providers (Kimi, DeepSeek V4, etc.) can replay
+              // it on subsequent assistant tool-call messages. See #1400.
+              assistantMessage.reasoning_content = thinkingPart.thinking;
             }
 
             // OpenAI-spec providers reject `{role: "assistant", content: null}`

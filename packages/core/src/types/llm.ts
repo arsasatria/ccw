@@ -64,6 +64,10 @@ export interface UnifiedMessage {
     content: string;
     signature?: string;
   };
+  // OpenAI-style reasoning content for OpenAI-compatible providers (Kimi,
+  // DeepSeek V4, etc.) that require it on assistant tool-call messages in
+  // thinking/reasoning mode. Mirrors `thinking.content`.
+  reasoning_content?: string;
 }
 
 // 统一的工具定义接口

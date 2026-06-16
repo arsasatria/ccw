@@ -351,6 +351,68 @@ test("drops an assistant message whose tool_use is the only block and is filtere
   assert.equal(anyToolCalls, false, "no tool_calls should be emitted for the dropped assistant turn");
 });
 
+test("populates reasoning_content from thinking block for OpenAI-compatible reasoning providers (issue #1400)", async () => {
+  // Kimi, DeepSeek V4 (and other OpenAI-compatible reasoning providers)
+  // require `reasoning_content` on the assistant message that contains a
+  // tool call, otherwise they 400 with
+  //   "thinking is enabled but reasoning_content is missing in
+  //    assistant tool call message at index N"
+  // CCR captures Anthropic thinking as `message.thinking`; the
+  // reasoning_content field must be set on the unified message so it
+  // serializes through the OpenAI passthrough.
+  const transformer = new AnthropicTransformer();
+  // @ts-expect-error access private for test
+  const out = await transformer.transformRequestOut({
+    model: "test",
+    messages: [
+      { role: "user", content: "what's 2+2?" },
+      {
+        role: "assistant",
+        content: [
+          { type: "thinking", thinking: "The user asked 2+2. Answer: 4.", signature: "sig-a" },
+          { type: "text", text: "4" },
+        ],
+      },
+      {
+        role: "user",
+        content: [{ type: "tool_result", tool_use_id: "t1", content: "ok" }],
+      },
+    ],
+  });
+
+  const assistant = out.messages.find((m: any) => m.role === "assistant");
+  assert.ok(assistant, "expected an assistant message");
+  assert.equal(
+    (assistant as any).reasoning_content,
+    "The user asked 2+2. Answer: 4.",
+    "reasoning_content must mirror thinking.content for OpenAI-spec reasoning providers",
+  );
+  // The original Anthropic thinking block is still preserved.
+  assert.deepEqual(assistant!.thinking, { content: "The user asked 2+2. Answer: 4.", signature: "sig-a" });
+});
+
+test("omits reasoning_content when assistant has no thinking block", async () => {
+  // No thinking = no reasoning_content. Otherwise non-reasoning
+  // providers get a confusing empty field.
+  const transformer = new AnthropicTransformer();
+  // @ts-expect-error access private for test
+  const out = await transformer.transformRequestOut({
+    model: "test",
+    messages: [
+      { role: "user", content: "hi" },
+      { role: "assistant", content: "hello" },
+    ],
+  });
+
+  const assistant = out.messages.find((m: any) => m.role === "assistant");
+  assert.ok(assistant, "expected an assistant message");
+  assert.equal(
+    (assistant as any).reasoning_content,
+    undefined,
+    "reasoning_content must be omitted when there is no thinking block",
+  );
+});
+
 test("joins non-empty assistant text parts and preserves tool_calls and thinking", async () => {
   const transformer = new AnthropicTransformer();
   // @ts-expect-error access private for test
