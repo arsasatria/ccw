@@ -130,6 +130,21 @@ node "%~dp0packages\cli\dist\cli.js" %*
   Set-Content -Path $shimPath -Value $shim -Encoding ASCII
 }
 
+function Test-Shim {
+  $shimPath = Join-Path $Dest $ShimName
+  try {
+    $output = & $shimPath --version 2>&1
+    if ($LASTEXITCODE -eq 0) {
+      Write-Host "  [ok] shim works: ccw --version -> $output"
+      return $true
+    }
+    Write-Host "  [fail] shim exited with code $LASTEXITCODE. Check that Node 20+ is on PATH and $Dest\packages\cli\dist\cli.js exists." -ForegroundColor Red
+  } catch {
+    Write-Host "  [fail] shim not executable: $_" -ForegroundColor Red
+  }
+  return $false
+}
+
 # Drop a second copy of the shim in a directory that is ALREADY on PATH for
 # the current user. This makes `ccw` callable from any new terminal
 # immediately, with no PATH refresh and no waiting for env propagation.
@@ -182,6 +197,7 @@ Install-Source
 Build-Source
 Install-Shim
 Install-GlobalShim
+Test-Shim
 Add-To-Path
 Write-Host ''
 Write-Host 'ccw installed.' -ForegroundColor Green
