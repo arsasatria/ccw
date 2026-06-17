@@ -70,7 +70,10 @@ function Test-Pnpm {
 
 function Test-Git {
   if (Get-Command git -ErrorAction SilentlyContinue) {
-    Write-Host "  [ok] git $(& git --version)"
+    # `git --version` prints "git version X.Y.Z" — strip the leading
+    # "git " to avoid "git git version X.Y.Z" in the success line.
+    $gitVersion = (& git --version) -replace '^git\s+', ''
+    Write-Host "  [ok] git $gitVersion"
     return
   }
   Write-Host '  [fail] git not found. Install Git for Windows from https://git-scm.com/download/win' -ForegroundColor Red
@@ -196,13 +199,28 @@ function Build-Source {
     }
 
     Write-Host '  [..] pnpm build'
+    # Capture stdout and stderr separately so a build failure shows
+    # the actual compiler/typescript error rather than a bare
+    # 'pnpm build failed'. We tee to the host terminal so the user
+    # sees progress in real time and to a string we can print on
+    # failure.
+    $buildOutput = ''
     try {
-      & pnpm build
+      $buildOutput = & pnpm build 2>&1 | Tee-Object -Variable outStream | Out-String
+      # Tee-Object's -Variable form assigns to $outStream as a side
+      # effect; the pipeline above captures both into $buildOutput.
+      # Remove the duplicate $outStream variable since we use $buildOutput.
+      Remove-Variable outStream -ErrorAction SilentlyContinue
     } catch {
       Write-Host "  [fail] pnpm build threw: $($_.Exception.Message)" -ForegroundColor Red
+      if ($buildOutput) { Write-Host $buildOutput -ForegroundColor DarkGray }
       throw 'pnpm build failed'
     }
-    if ($LASTEXITCODE -ne 0) { throw 'pnpm build failed' }
+    if ($LASTEXITCODE -ne 0) {
+      Write-Host "  [fail] pnpm build exited with code $LASTEXITCODE. Last output above." -ForegroundColor Red
+      if ($buildOutput) { Write-Host $buildOutput -ForegroundColor DarkGray }
+      throw 'pnpm build failed'
+    }
     Write-Host '  [ok] pnpm build'
   } finally {
     Pop-Location
