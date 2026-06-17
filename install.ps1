@@ -4,12 +4,15 @@
 #   irm https://raw.githubusercontent.com/arsasatria/ccw/main/install.ps1 | iex
 #
 # What it does:
-#   1. Verifies Node.js >= 20
-#   2. Ensures pnpm (via corepack)
-#   3. Clones (or updates) the source repo
-#   4. Runs pnpm install + pnpm build
-#   5. Drops a ccw.cmd shim that invokes the built binary
-#   6. Adds the install dir to the user PATH if it isn't already
+#   1. Verifies Node.js >= 20, pnpm (via corepack), and git
+#   2. Clones (or updates) the source repo
+#   3. Runs pnpm install + pnpm build
+#   4. Drops a ccw.cmd shim that invokes the built binary
+#   5. Tries to drop a global shim in a PATH-on dir (%APPDATA%\npm, WindowsApps)
+#   6. Verifies the shim works by running ccw --version
+#   7. Adds the install dir to the user PATH if it isn't already
+#   8. Auto-spawns the ccw gateway service and verifies the port is listening
+#   9. Opens a new terminal with ccw ui (which opens the browser)
 #
 # Re-running is safe and acts as an updater.
 
@@ -207,7 +210,9 @@ function Start-ServiceAsync {
     try {
       $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
       if ($cfg.PORT) { $port = [int]$cfg.PORT }
-    } catch { /* fall back to default */ }
+    } catch {
+      # config unreadable or PORT non-numeric; fall back to default port
+    }
   }
 
   $maxWait = 15
@@ -225,7 +230,9 @@ function Start-ServiceAsync {
         return $true
       }
       $client.Close()
-    } catch { /* port not yet listening, keep polling */ }
+    } catch {
+      # port not yet listening, keep polling
+    }
   }
   Write-Host "  [fail] Service did not start within ${maxWait}s. Check ~/.ccw/logs/ for details." -ForegroundColor Red
   return $false
