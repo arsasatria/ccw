@@ -231,6 +231,17 @@ function Start-ServiceAsync {
   return $false
 }
 
+function Open-NewTerminal {
+  Write-Host '  [..] Opening new terminal with ccw ui...'
+  try {
+    Start-Process -FilePath 'cmd' -ArgumentList '/k', 'ccw ui'
+    Write-Host '  [ok] New terminal opened (ccw ui will open the UI in your browser)'
+  } catch {
+    Write-Host "  [fail] Could not open new terminal: $_" -ForegroundColor Red
+    Write-Host '  Open a new terminal manually and run: ccw ui' -ForegroundColor Yellow
+  }
+}
+
 Write-Banner
 Write-Host 'Checking prerequisites:'
 Test-Node
@@ -245,15 +256,13 @@ Install-GlobalShim
 Test-Shim
 Add-To-Path
 Start-ServiceAsync
+Open-NewTerminal
 Write-Host ''
 Write-Host 'ccw installed.' -ForegroundColor Green
 Write-Host "  Source: $Dest"
 Write-Host "  Binary: $Dest\packages\cli\dist\cli.js"
 Write-Host "  Local shim:   $Dest\$ShimName"
 Write-Host ''
-Write-Host 'Open a NEW terminal and run:' -ForegroundColor Cyan
-Write-Host '  ccw --version'
-Write-Host '  ccw code'
+Write-Host 'A new terminal has been opened with ccw ui.' -ForegroundColor Cyan
+Write-Host 'If it did not open, run ccw ui in a new terminal.' -ForegroundColor DarkGray
 Write-Host ''
-Write-Host 'Or, in the CURRENT terminal, refresh PATH with:' -ForegroundColor DarkGray
-Write-Host "  `$env:Path = [Environment]::GetEnvironmentVariable('Path','User') + ';' + [Environment]::GetEnvironmentVariable('Path','Machine')" -ForegroundColor DarkGray
