@@ -186,6 +186,51 @@ function Add-To-Path {
   Write-Host "  [ok] Added $Dest to user PATH (open a NEW terminal for it to take effect)"
 }
 
+function Start-ServiceAsync {
+  $cliPath = Join-Path $Dest 'packages\cli\dist\cli.js'
+  if (-not (Test-Path $cliPath)) {
+    Write-Host "  [skip] $cliPath not found, cannot start service" -ForegroundColor Yellow
+    return $false
+  }
+
+  Write-Host '  [..] Starting ccw service...'
+  try {
+    Start-Process -FilePath 'node' -ArgumentList "`"$cliPath`" start" -WindowStyle Hidden
+  } catch {
+    Write-Host "  [fail] Start-Process failed: $_" -ForegroundColor Red
+    return $false
+  }
+
+  $port = 3456
+  $configPath = Join-Path $env:USERPROFILE '.ccw\config.json'
+  if (Test-Path $configPath) {
+    try {
+      $cfg = Get-Content $configPath -Raw | ConvertFrom-Json
+      if ($cfg.PORT) { $port = [int]$cfg.PORT }
+    } catch { /* fall back to default */ }
+  }
+
+  $maxWait = 15
+  $elapsed = 0
+  while ($elapsed -lt $maxWait) {
+    Start-Sleep -Seconds 1
+    $elapsed++
+    try {
+      $client = New-Object System.Net.Sockets.TcpClient
+      $iar = $client.BeginConnect('127.0.0.1', $port, $null, $null)
+      if ($iar.AsyncWaitHandle.WaitOne(500, $false)) {
+        $client.EndConnect($iar)
+        $client.Close()
+        Write-Host "  [ok] Service running on port $port"
+        return $true
+      }
+      $client.Close()
+    } catch { /* port not yet listening, keep polling */ }
+  }
+  Write-Host "  [fail] Service did not start within ${maxWait}s. Check ~/.ccw/logs/ for details." -ForegroundColor Red
+  return $false
+}
+
 Write-Banner
 Write-Host 'Checking prerequisites:'
 Test-Node
@@ -199,6 +244,7 @@ Install-Shim
 Install-GlobalShim
 Test-Shim
 Add-To-Path
+Start-ServiceAsync
 Write-Host ''
 Write-Host 'ccw installed.' -ForegroundColor Green
 Write-Host "  Source: $Dest"
