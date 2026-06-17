@@ -143,22 +143,19 @@ node "$Dest\packages\cli\dist\cli.js" %*
   $npmDir = Join-Path $env:APPDATA 'npm'
   if (Test-Path $npmDir) { $candidates += @{ Dir = $npmDir; Reason = 'npm global' } }
   $winApps = Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps'
-  if (Test-Path $winApps) { $candidates += @{ Dir = $winApps; Reason = 'WindowsApps' } }
+  $candidates += @{ Dir = $winApps; Reason = 'WindowsApps' }
 
   foreach ($c in $candidates) {
-    $probe = Join-Path $c.Dir 'ccw-shim-probe.tmp'
+    $target = Join-Path $c.Dir $ShimName
     try {
-      '' | Set-Content -Path $probe -ErrorAction Stop
-      Remove-Item $probe -Force -ErrorAction SilentlyContinue
-      $target = Join-Path $c.Dir $ShimName
-      Set-Content -Path $target -Value $globalShim -Encoding ASCII
+      Set-Content -Path $target -Value $globalShim -Encoding ASCII -ErrorAction Stop
       Write-Host "  [ok] Global shim at $target ($($c.Reason), already on PATH)"
       return
     } catch {
-      # not writable, try next
+      Write-Host "  [skip] $target not writable: $($_.Exception.Message)" -ForegroundColor DarkGray
     }
   }
-  Write-Host "  [skip] No writable PATH dir found; rely on Add-To-Path below."
+  Write-Host "  [skip] No writable PATH dir found; rely on Add-To-Path below (open new terminal)."
 }
 
 function Add-To-Path {
