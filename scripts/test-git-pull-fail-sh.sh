@@ -15,11 +15,12 @@ FUNC_FILE="$(mktemp -t install-sh-funcs.XXXXXX.sh)"
 trap 'rm -f "$FUNC_FILE"' EXIT
 awk '/^banner$/{exit} {print}' "$INSTALL_SH" > "$FUNC_FILE"
 
-LAST="$(grep -v '^[[:space:]]*$' "$FUNC_FILE" | tail -n 1 | tr -d '[:space:]')"
-if [[ "$LAST" != "}" ]]; then
-  echo "INTERNAL: FUNC_FILE last non-blank line is not '}', got: '$LAST' (functions may not have loaded)" >&2
-  exit 1
-fi
+for fn in install_source build_source check_node acquire_lock get_installed_version; do
+  if ! grep -q "^${fn}() {" "$FUNC_FILE"; then
+    echo "INTERNAL: FUNC_FILE missing function $fn (functions may not have loaded)" >&2
+    exit 1
+  fi
+done
 
 TEST_DEST="$(mktemp -d -t ccw-pull-fail-test.XXXXXX)"
 BIN_DIR="$(mktemp -d -t ccw-pull-fail-bin.XXXXXX)"

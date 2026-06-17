@@ -3,27 +3,49 @@
 # One-line install:
 #   irm https://raw.githubusercontent.com/arsasatria/ccw/main/install.ps1 | iex
 #
-# What it does:
-#   1. Verifies Node.js >= 20, pnpm (via corepack), and git
-#   2. Clones (or updates) the source repo
-#   3. Runs pnpm install + pnpm build
-#   4. Drops a ccw.cmd shim that invokes the built binary
-#   5. Tries to drop a global shim in a PATH-on dir (%APPDATA%\npm, WindowsApps)
-#   6. Verifies the shim works by running ccw --version
-#   7. Adds the install dir to the user PATH if it isn't already
-#   8. Auto-spawns the ccw gateway service and verifies the port is listening
-#   9. Opens a new terminal with ccw ui (which opens the browser)
+# Re-running is safe and acts as an updater:
+#   - If an install already exists at the same commit, the installer
+#     skips the build (idempotent no-op).
+#   - If a newer commit is on origin, it pulls + rebuilds.
+#   - If -Reinstall is passed, the existing tree is backed up and
+#     replaced with a fresh clone.
+#   - If git pull fails for any reason, the existing tree is backed up
+#     and replaced with a fresh clone (no data loss).
+#   - A PID-based lock file prevents two installs from running at once.
 #
-# Re-running is safe and acts as an updater.
+# What it does:
+#   1. Verifies Node.js >= 20, git, pnpm (via corepack)
+#   2. Detects existing install (version + commit) and compares to remote
+#   3. Clones / updates / reinstalls the source repo as needed
+#   4. Runs pnpm install (with fallback if lockfile drifted) + pnpm rebuild
+#   5. Runs pnpm build
+#   6. Drops a ccw.cmd shim that invokes the built binary
+#   7. Tries to drop a global shim in a PATH-on dir (%APPDATA%\npm, WindowsApps)
+#   8. Verifies the shim works by running ccw --version
+#   9. Adds the install dir to the user PATH if it isn't already
+#  10. Auto-spawns the ccw gateway service and verifies the port is listening
+#  11. Opens a new terminal with ccw ui (which opens the browser)
+#
+# Flags:
+#   -Reinstall   Force a clean reinstall (back up + re-clone + rebuild).
+#   -Help        Show usage.
+#
+# Examples:
+#   irm https://raw.githubusercontent.com/arsasatria/ccw/main/install.ps1 | iex
+#   iex (irm https://raw.githubusercontent.com/arsasatria/ccw/main/install.ps1) ; .\ccw\install.ps1 -Reinstall
 
 $ErrorActionPreference = 'Stop'
 
-$RepoOwner = 'arsasatria'
-$RepoName  = 'ccw'
-$Branch    = 'main'
-$RepoUrl   = "https://github.com/$RepoOwner/$RepoName"
-$Dest      = Join-Path $env:LOCALAPPDATA 'Programs\ccw'
-$ShimName  = 'ccw.cmd'
+$RepoOwner  = 'arsasatria'
+$RepoName   = 'ccw'
+$Branch     = 'main'
+$RepoUrl    = "https://github.com/$RepoOwner/$RepoName"
+$Dest       = Join-Path $env:LOCALAPPDATA 'Programs\ccw'
+$ShimName   = 'ccw.cmd'
+$LockFile   = Join-Path $env:TEMP 'ccw-install.lock'
+$AcquiredLock = $false
+$ForceReinstall = $false
+$RebuildNeeded = $true
 
 function Write-Banner {
   Write-Host ''
@@ -31,6 +53,109 @@ function Write-Banner {
   Write-Host '|            ccw installer (Windows)                |' -ForegroundColor Cyan
   Write-Host '+---------------------------------------------------+' -ForegroundColor Cyan
   Write-Host ''
+}
+
+function Show-Usage {
+  @"
+Usage: powershell -File install.ps1 [-Reinstall] [-Help]
+
+Options:
+  -Reinstall   Force a clean reinstall. The existing `$Dest is backed
+                up to `$Dest.bak.<timestamp> and replaced with a fresh
+                clone. Use this if your install is in a bad state
+                (broken build, wrong files) or to discard local
+                source changes.
+  -Help        Show this help.
+
+Examples:
+  irm https://raw.githubusercontent.com/arsasatria/ccw/main/install.ps1 | iex
+  powershell -ExecutionPolicy Bypass -File install.ps1 -Reinstall
+"@
+}
+
+function Parse-Args {
+  param([Parameter(ValueFromRemainingArguments=$true)][string[]]$Args)
+  foreach ($a in $Args) {
+    switch ($a) {
+      '-Reinstall' { $script:ForceReinstall = $true }
+      '-Help'      { Show-Usage; exit 0 }
+      '--'         { continue }
+      default      { Write-Host "  [warn] Unknown argument: $a (ignored)" -ForegroundColor Yellow }
+    }
+  }
+}
+
+function Acquire-Lock {
+  if (Test-Path $LockFile) {
+    $otherPid = $null
+    try { $otherPid = Get-Content $LockFile -ErrorAction Stop } catch {}
+    if ($otherPid -and (Get-Process -Id $otherPid -ErrorAction SilentlyContinue)) {
+      Write-Host "  [fail] Another ccw install is in progress (pid $otherPid). If this is wrong, delete $LockFile and re-run." -ForegroundColor Red
+      exit 1
+    }
+    Write-Host "  [..]   Removing stale lock from pid $otherPid" -ForegroundColor DarkGray
+    Remove-Item $LockFile -ErrorAction SilentlyContinue
+  }
+  Set-Content -Path $LockFile -Value $PID
+  $script:AcquiredLock = $true
+}
+
+function Release-Lock {
+  if ($script:AcquiredLock) {
+    Remove-Item $LockFile -ErrorAction SilentlyContinue
+    $script:AcquiredLock = $false
+  }
+}
+
+function Get-InstalledVersion {
+  $pkg = Join-Path $Dest 'packages\cli\package.json'
+  if (-not (Test-Path $pkg)) { return '' }
+  $m = Select-String -Path $pkg -Pattern '"version"\s*:\s*"([^"]+)"' -ErrorAction SilentlyContinue
+  if ($m) { return $m.Matches[0].Groups[1].Value }
+  return ''
+}
+
+function Get-LocalCommit {
+  if (-not (Test-Path (Join-Path $Dest '.git'))) { return '' }
+  # We must run `git rev-parse` from $Dest, not the current working
+  # directory. If the installer is being run from a directory that
+  # happens to be a git repo (e.g. the project the user just cloned
+  # install.ps1 from), reading HEAD from CWD would return the wrong
+  # commit and the up-to-date check would think $Dest is at HEAD
+  # when it isn't.
+  Push-Location $Dest
+  try {
+    $oldEAP = $ErrorActionPreference
+    $ErrorActionPreference = 'SilentlyContinue'
+    try {
+      $head = & git rev-parse --short HEAD 2>$null
+      return $head
+    } finally {
+      $ErrorActionPreference = $oldEAP
+    }
+  } finally {
+    Pop-Location
+  }
+}
+
+function Get-RemoteCommit {
+  try {
+    $out = (& git ls-remote --heads origin $Branch) 2>$null
+    if ($out) {
+      # PowerShell returns native-command output as a string array,
+      # but collapses to a single string when the command writes
+      # exactly one line. Use -split to normalize either form to
+      # the first line, then take its first 7 chars. The previous
+      # `$out[0].Substring(0, 7)` silently threw on the single-line
+      # form (Char.Substring doesn't exist), which made this
+      # function always return '' and broke version detection.
+      $first = ($out -split "`n")[0]
+      if ($first -and $first.Length -ge 7) {
+        return $first.Substring(0, 7)
+      }
+    }
+  } catch {}
+  return ''
 }
 
 function Test-Node {
@@ -95,7 +220,48 @@ function Backup-Dest {
 }
 
 function Install-Source {
-  if (Test-Path (Join-Path $Dest '.git')) {
+  # Detect what is already on disk before we do anything. The user
+  # re-running the installer should see exactly what changed (or
+  # nothing, if already up to date).
+  $installedVersion = Get-InstalledVersion
+  $localCommit     = Get-LocalCommit
+  $remoteCommit    = Get-RemoteCommit
+
+  Write-Host ''
+  Write-Host "  [..]   Source:           $Dest"
+  if ($installedVersion) {
+    Write-Host "  [..]   Installed version: v$installedVersion"
+  } else {
+    Write-Host "  [..]   Installed version: (none - fresh install)"
+  }
+  if ($localCommit)  { Write-Host "  [..]   Local commit:      $localCommit" }
+  if ($remoteCommit) { Write-Host "  [..]   Remote commit:     $remoteCommit (origin/$Branch)" }
+  else               { Write-Host "  [..]   Remote commit:     (no network or repo moved)" -ForegroundColor DarkGray }
+
+  # -Reinstall: always back up and re-clone, even when up to date.
+  # Useful to discard local source changes or recover from a broken
+  # build while keeping $Dest's path.
+  if ($ForceReinstall -and (Test-Path $Dest)) {
+    if ($installedVersion) {
+      Write-Host "  [..] -Reinstall: backing up v$installedVersion and re-cloning"
+    } else {
+      Write-Host "  [..] -Reinstall: backing up existing $Dest and re-cloning"
+    }
+    Backup-Dest
+    $script:RebuildNeeded = $true
+  } elseif (Test-Path (Join-Path $Dest '.git')) {
+    # Already a git checkout. Try the cheapest path first: fast-forward.
+    if ($localCommit -and $remoteCommit -and $localCommit -eq $remoteCommit) {
+      # Up to date. No rebuild needed; just re-verify the shim and
+      # service. This makes re-running the installer cheap and safe.
+      if ($installedVersion) {
+        Write-Host "  [ok] Already up to date (v$installedVersion, commit $localCommit)"
+      } else {
+        Write-Host "  [ok] Already up to date (commit $localCommit)"
+      }
+      $script:RebuildNeeded = $false
+      return
+    }
     Write-Host "  [..] Updating existing install at $Dest"
     # --ff-only avoids the "divergent branches" warning that plain
     # `git pull` emits when local and remote have any commit difference.
@@ -104,20 +270,34 @@ function Install-Source {
       # Capture output so we can show it on failure (e.g. no network, no
       # origin remote, divergent history, or local changes blocking the
       # fast-forward). All of these end up at the same backup+re-clone
-      # path below — we never want a stale local copy to block updates.
-      # The inner try/catch is required because native-command failures
-      # throw under $ErrorActionPreference=Stop; we want to treat any
-      # failure as "fall through to backup+re-clone" rather than abort.
+      # path below - we never want a stale local copy to block updates.
+      # Silencing the error action prevents harmless stderr lines
+      # ("Already up to date", "From <url>", etc.) from becoming
+      # terminating error records under $ErrorActionPreference=Stop.
       $pullExit = 1
       $pullOutput = $null
+      $oldEAP = $ErrorActionPreference
+      $ErrorActionPreference = 'SilentlyContinue'
       try {
-        $pullOutput = & git pull --ff-only --depth 1 origin main 2>&1
+        $pullOutput = & git pull --ff-only --depth 1 origin $Branch 2>&1
         $pullExit = $LASTEXITCODE
-      } catch {
-        $pullOutput = @($_.Exception.Message)
+      } finally {
+        $ErrorActionPreference = $oldEAP
       }
       if ($pullExit -eq 0) {
-        Write-Host '  [ok] Updated to latest'
+        $afterCommit = Get-LocalCommit
+        if ($afterCommit -eq $localCommit) {
+          # No-op pull (e.g. remote was unreachable but pull exited 0).
+          if ($installedVersion) {
+            Write-Host "  [ok] Already up to date (v$installedVersion, commit $afterCommit)"
+          } else {
+            Write-Host "  [ok] Already up to date (commit $afterCommit)"
+          }
+          $script:RebuildNeeded = $false
+        } else {
+          Write-Host "  [ok] Updated: $localCommit -> $afterCommit"
+          $script:RebuildNeeded = $true
+        }
         return
       }
       Write-Host "  [warn] git pull failed (exit $pullExit); will back up and re-clone" -ForegroundColor Yellow
@@ -129,31 +309,53 @@ function Install-Source {
     # and re-clone cleanly.
     Write-Host '  [..] Backing up current install and re-cloning from origin...'
     Backup-Dest
+    $script:RebuildNeeded = $true
   } elseif (Test-Path $Dest) {
     # $Dest exists but is not a git repo (e.g. leftover from a partial install
     # or a renamed/moved directory). Back it up so the user can recover, then
     # clone a fresh source tree.
     Write-Host "  [..] $Dest exists but is not a git repo; backing it up and re-cloning..."
     Backup-Dest
+    $script:RebuildNeeded = $true
+  } else {
+    $script:RebuildNeeded = $true
   }
   Write-Host "  [..] Cloning $RepoUrl -> $Dest"
   New-Item -ItemType Directory -Force -Path (Split-Path $Dest) | Out-Null
-  # git clone can also throw under $ErrorActionPreference=Stop if the network
-  # is down or the URL is wrong. Catch and exit with a clear error.
+  # git clone can also throw under $ErrorActionPreference=Stop. The
+  # `Cloning into ...` line that git writes to stderr is harmless
+  # info, but it still becomes a terminating error record and
+  # aborts the install. Temporarily silence the error action so
+  # we can check $LASTEXITCODE ourselves and only fail on a real
+  # non-zero exit.
+  $oldEAP = $ErrorActionPreference
+  $ErrorActionPreference = 'SilentlyContinue'
   try {
-    & git clone --depth 1 -b $Branch $RepoUrl $Dest
-  } catch {
-    Write-Host "  [fail] git clone failed: $($_.Exception.Message)" -ForegroundColor Red
-    Write-Host '         Check the repo URL and your network.' -ForegroundColor Yellow
+    & git clone --depth 1 -b $Branch $RepoUrl $Dest 2>&1 | Out-Null
+    $cloneExit = $LASTEXITCODE
+  } finally {
+    $ErrorActionPreference = $oldEAP
+  }
+  if ($cloneExit -ne 0) {
+    Write-Host "  [fail] git clone failed (exit $cloneExit). Check the repo URL and your network." -ForegroundColor Red
     exit 1
   }
-  if ($LASTEXITCODE -ne 0) {
-    Write-Host '  [fail] git clone failed. Check the repo URL and your network.' -ForegroundColor Red
-    exit 1
+  $newVersion = Get-InstalledVersion
+  if ($newVersion) {
+    Write-Host "  [..]   Installed version: v$newVersion (just cloned)"
   }
 }
 
 function Build-Source {
+  # Install-Source sets $RebuildNeeded=$false when the source is
+  # already up to date. In that case we skip pnpm install + pnpm
+  # build entirely - the existing build artifacts and node_modules
+  # are still valid, and re-running them is wasted work that the
+  # user would have to wait through.
+  if (-not $RebuildNeeded) {
+    Write-Host "  [..]   Skipping pnpm install + build (no source change)"
+    return
+  }
   Push-Location $Dest
   try {
     Write-Host '  [..] pnpm install --frozen-lockfile (this can take a minute on first run)'
@@ -352,6 +554,21 @@ function Open-NewTerminal {
   }
 }
 
+# Acquire the lock BEFORE prereq checks. If two installers race
+# (e.g. a user opens two PowerShell windows and runs the install in
+# both), the second one fails fast with a clear message rather than
+# corrupting $Dest. The trap releases the lock on any exit, including
+# Ctrl+C and prereq failures.
+Parse-Args @args
+$null = Register-EngineEvent -SourceIdentifier PowerShell.Exiting -Action { Release-Lock } -ErrorAction SilentlyContinue
+try {
+  # Best-effort: Release-Lock on Ctrl+C. PowerShell's trap/exit hooks
+  # for SIGINT are limited; the engine event above is the most
+  # reliable way to clean up across termination paths.
+  $null = [Console]::TreatControlCAsInput = $false
+} catch {}
+Acquire-Lock
+
 Write-Banner
 Write-Host 'Checking prerequisites:'
 Test-Node
@@ -368,7 +585,16 @@ Add-To-Path
 Start-ServiceAsync
 Open-NewTerminal
 Write-Host ''
-Write-Host 'ccw installed.' -ForegroundColor Green
+$finalVersion = Get-InstalledVersion
+$finalCommit  = Get-LocalCommit
+if ($finalVersion -and $finalCommit) {
+  Write-Host "ccw v$finalVersion (commit $finalCommit) ready at $Dest" -ForegroundColor Green
+  if (-not $RebuildNeeded) {
+    Write-Host "  (no source change since last install; build was skipped)" -ForegroundColor DarkGray
+  }
+} else {
+  Write-Host 'ccw installed.' -ForegroundColor Green
+}
 Write-Host "  Source: $Dest"
 Write-Host "  Binary: $Dest\packages\cli\dist\cli.js"
 Write-Host "  Local shim:   $Dest\$ShimName"
@@ -376,3 +602,6 @@ Write-Host ''
 Write-Host 'A new terminal has been opened with ccw ui.' -ForegroundColor Cyan
 Write-Host 'If it did not open, run ccw ui in a new terminal.' -ForegroundColor DarkGray
 Write-Host ''
+
+# Release the lock now (in case the engine event didn't fire).
+Release-Lock

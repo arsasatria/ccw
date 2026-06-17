@@ -5,10 +5,20 @@
 # One-line install:
 #   curl -fsSL https://raw.githubusercontent.com/arsasatria/ccw/main/install.sh | bash
 #
+# Re-running is safe and acts as an updater:
+#   - If an install already exists at the same commit, the installer
+#     skips the build (idempotent no-op).
+#   - If a newer commit is on origin, it pulls + rebuilds.
+#   - If --reinstall is passed, the existing tree is backed up and
+#     replaced with a fresh clone.
+#   - If git pull fails for any reason, the existing tree is backed up
+#     and replaced with a fresh clone (no data loss).
+#   - A PID-based lock file prevents two installs from running at once.
+#
 # What it does:
-#   1. Verifies Node.js >= 20
-#   2. Ensures pnpm (via corepack)
-#   3. Clones (or updates) the source repo
+#   1. Verifies Node.js >= 20, git, pnpm (via corepack)
+#   2. Detects existing install (version + commit) and compares to remote
+#   3. Clones / updates / reinstalls the source repo as needed
 #   4. Runs pnpm install (with fallback if lockfile drifted) + pnpm rebuild
 #   5. Runs pnpm build
 #   6. Drops a `ccw` shim in $BIN_DIR that invokes the built binary
@@ -17,11 +27,6 @@
 #   9. Adds $BIN_DIR to PATH if it isn't already
 #  10. Auto-spawns the ccw gateway service and verifies the port is listening
 #  11. Tries to open the UI in the user's browser
-#
-# Re-running is safe and acts as an updater. Any pre-existing $DEST is
-# moved to $DEST.bak.<timestamp> rather than destroyed, so a re-run after
-# a failed install, partial clone, or a divergent local checkout never
-# destroys the user's data.
 
 set -euo pipefail
 
@@ -38,6 +43,41 @@ DEST="${CCW_HOME:-$HOME/.local/share/ccw}"
 BIN_DIR="${CCW_BIN_DIR:-$HOME/.local/bin}"
 CMD_NAME="ccw"
 DEFAULT_PORT=3456
+# Lock file: prevents two installers (or `ccw update` + installer)
+# from racing on the same $DEST. The file holds the PID of the
+# running install; a stale lock (process gone) is removed on next run.
+LOCK_FILE="${TMPDIR:-/tmp}/ccw-install.lock"
+ACQUIRED_LOCK=0
+FORCE_REINSTALL=0
+REBUILD_NEEDED=1
+
+# Output helpers; defined early because usage() needs them.
+say()  { printf '%s\n' "$*"; }
+ok()   { say "  [ok]   $*"; }
+step() { say "  [..]   $*"; }
+fail() { say "  [fail] $*" >&2; exit 1; }
+
+usage() {
+  cat <<EOF
+Usage: bash install.sh [options]
+
+Options:
+  --reinstall, -r   Force a clean reinstall. The existing \$DEST is
+                    backed up to \$DEST.bak.<timestamp> and replaced
+                    with a fresh clone. Use this if your install is
+                    in a bad state (broken build, wrong files) or to
+                    discard local source changes.
+  --help, -h        Show this help.
+
+Environment:
+  CCW_HOME          Override install location (default: \$HOME/.local/share/ccw)
+  CCW_BIN_DIR       Override shim directory (default: \$HOME/.local/bin)
+
+Examples:
+  curl -fsSL https://raw.githubusercontent.com/arsasatria/ccw/main/install.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/arsasatria/ccw/main/install.sh | bash -s -- --reinstall
+EOF
+}
 
 say()  { printf '%s\n' "$*"; }
 ok()   { say "  [ok]   $*"; }
@@ -50,6 +90,71 @@ banner() {
   say "|         ccw installer (macOS / Linux)             |"
   say "+---------------------------------------------------+"
   say ""
+}
+
+# Parse argv. We only accept the flags documented in usage(); anything
+# else is treated as "no argument" so a stray word doesn't accidentally
+# change behavior. Args after `--` are common in `curl ... | bash -s --`
+# invocations.
+parse_args() {
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --reinstall|-r) FORCE_REINSTALL=1 ;;
+      --help|-h)      usage; exit 0 ;;
+      --)             shift; break ;;
+      *)              say "  [warn] Unknown argument: $1 (ignored)" >&2 ;;
+    esac
+    shift
+  done
+}
+
+# Acquire a PID-based lock so two installers don't race on $DEST. A
+# stale lock (process gone) is removed so a real failure doesn't
+# permanently block the next install.
+acquire_lock() {
+  if [ -f "$LOCK_FILE" ]; then
+    local other_pid
+    other_pid=$(cat "$LOCK_FILE" 2>/dev/null || true)
+    if [ -n "$other_pid" ] && kill -0 "$other_pid" 2>/dev/null; then
+      fail "Another ccw install is in progress (pid $other_pid). If this is wrong, delete $LOCK_FILE and re-run."
+    fi
+    say "  [..]   Removing stale lock from pid $other_pid" >&2
+    rm -f "$LOCK_FILE"
+  fi
+  echo "$$" > "$LOCK_FILE"
+  ACQUIRED_LOCK=1
+}
+
+release_lock() {
+  if [ "$ACQUIRED_LOCK" -eq 1 ]; then
+    rm -f "$LOCK_FILE"
+    ACQUIRED_LOCK=0
+  fi
+}
+
+# Read the installed CLI version from $DEST/packages/cli/package.json.
+# Returns "2.1.0" or empty if the file doesn't exist (fresh install
+# or unknown source layout).
+get_installed_version() {
+  local pkg="$DEST/packages/cli/package.json"
+  [ -f "$pkg" ] || return 0
+  grep -oE '"version"[[:space:]]*:[[:space:]]*"[^"]+"' "$pkg" 2>/dev/null \
+    | head -n 1 \
+    | sed -E 's/.*"([^"]+)".*/\1/'
+}
+
+# Local short commit (7 chars). Empty if $DEST is not a git checkout.
+get_local_commit() {
+  [ -d "$DEST/.git" ] || return 0
+  ( cd "$DEST" && git rev-parse --short HEAD 2>/dev/null ) || true
+}
+
+# Remote short commit on origin/$BRANCH. Empty if `git ls-remote`
+# fails (no network, or repo moved).
+get_remote_commit() {
+  git ls-remote --heads origin "$BRANCH" 2>/dev/null \
+    | awk '{print substr($1, 1, 7)}' \
+    | head -n 1
 }
 
 check_node() {
@@ -109,13 +214,75 @@ backup_dest() {
 }
 
 install_source() {
-  if [ -d "$DEST/.git" ]; then
+  # Detect what is already on disk before we do anything. The user
+  # re-running the installer should see exactly what changed (or
+  # nothing, if already up to date).
+  local installed_version
+  installed_version=$(get_installed_version)
+  local local_commit
+  local_commit=$(get_local_commit)
+  local remote_commit
+  remote_commit=$(get_remote_commit)
+
+  say ""
+  say "  [..]   Source:  $DEST"
+  if [ -n "$installed_version" ]; then
+    say "  [..]   Installed version: v$installed_version"
+  else
+    say "  [..]   Installed version: (none — fresh install)"
+  fi
+  if [ -n "$local_commit" ]; then
+    say "  [..]   Local commit:      $local_commit"
+  fi
+  if [ -n "$remote_commit" ]; then
+    say "  [..]   Remote commit:     $remote_commit (origin/$BRANCH)"
+  else
+    say "  [..]   Remote commit:     (no network or repo moved)"
+  fi
+
+  # --reinstall: always back up and re-clone, even when up to date.
+  # Useful to discard local source changes or recover from a broken
+  # build while keeping $DEST's path.
+  if [ "$FORCE_REINSTALL" -eq 1 ] && [ -e "$DEST" ]; then
+    if [ -n "$installed_version" ]; then
+      step "--reinstall: backing up v$installed_version and re-cloning"
+    else
+      step "--reinstall: backing up existing $DEST and re-cloning"
+    fi
+    backup_dest
+    REBUILD_NEEDED=1
+  elif [ -d "$DEST/.git" ]; then
+    # Already a git checkout. Try the cheapest path first: fast-forward.
+    if [ -n "$local_commit" ] && [ -n "$remote_commit" ] && [ "$local_commit" = "$remote_commit" ]; then
+      # Up to date. No rebuild needed; just re-verify the shim and
+      # service. This makes re-running the installer cheap and safe.
+      if [ -n "$installed_version" ]; then
+        ok "Already up to date (v$installed_version, commit $local_commit)"
+      else
+        ok "Already up to date (commit $local_commit)"
+      fi
+      REBUILD_NEEDED=0
+      return 0
+    fi
     step "Updating existing install at $DEST"
     # --ff-only avoids the "divergent branches" warning that plain `git pull`
     # emits when local and remote have any commit difference.
     if ( cd "$DEST" && git pull --ff-only --depth 1 origin "$BRANCH" ) >/dev/null 2>&1; then
-      ok "Updated to latest"
-      return
+      local after_commit
+      after_commit=$(get_local_commit)
+      if [ "$local_commit" = "$after_commit" ]; then
+        # No-op pull (e.g. remote was unreachable but pull exited 0).
+        if [ -n "$installed_version" ]; then
+          ok "Already up to date (v$installed_version, commit $after_commit)"
+        else
+          ok "Already up to date (commit $after_commit)"
+        fi
+        REBUILD_NEEDED=0
+      else
+        ok "Updated: $local_commit -> $after_commit"
+        REBUILD_NEEDED=1
+      fi
+      return 0
     fi
     # Pull failed for any reason (no origin, divergent history, no network).
     # Back up the user's existing tree so they can recover from it, then
@@ -129,21 +296,41 @@ install_source() {
       say "  [warn] git pull failed; will back up and re-clone" >&2
     fi
     backup_dest
+    REBUILD_NEEDED=1
   elif [ -e "$DEST" ]; then
     # $DEST exists but is not a git repo (e.g. leftover from a partial
     # install, a renamed/moved directory, or a user-managed file at this
     # path). Back it up and clone fresh.
     step "$DEST exists but is not a git repo; backing it up and re-cloning"
     backup_dest
+    REBUILD_NEEDED=1
+  else
+    # No $DEST at all. Fresh install.
+    REBUILD_NEEDED=1
   fi
   step "Cloning $REPO_URL -> $DEST"
   mkdir -p "$(dirname "$DEST")"
   if ! git clone --depth 1 -b "$BRANCH" "$REPO_URL" "$DEST" 2>&1 | sed 's/^/         /' >&2; then
     fail "git clone failed. Check the repo URL and your network."
   fi
+  # After a fresh clone, show the version we just installed.
+  local new_version
+  new_version=$(get_installed_version)
+  if [ -n "$new_version" ]; then
+    say "  [..]   Installed version: v$new_version (just cloned)"
+  fi
 }
 
 build_source() {
+  # install_source sets REBUILD_NEEDED=0 when the source is already
+  # up to date. In that case we skip pnpm install + pnpm build
+  # entirely — the existing build artifacts and node_modules are
+  # still valid, and re-running them is wasted work that the user
+  # would have to wait through.
+  if [ "${REBUILD_NEEDED:-1}" -eq 0 ]; then
+    say "  [..]   Skipping pnpm install + build (no source change)"
+    return 0
+  fi
   step "pnpm install --frozen-lockfile (this can take a minute on first run)"
   local install_ok=0
   if ( cd "$DEST" && pnpm install --frozen-lockfile ) >/dev/null 2>&1; then
@@ -424,6 +611,15 @@ check_path() {
   fi
 }
 
+# Acquire the lock BEFORE prereq checks. If two installers race
+# (e.g. a user opens two terminals and runs the install in both),
+# the second one fails fast with a clear message rather than
+# corrupting $DEST. The trap releases the lock on any exit, including
+# Ctrl+C and prereq failures.
+parse_args "$@"
+trap release_lock EXIT INT TERM
+acquire_lock
+
 banner
 say "Checking prerequisites:"
 check_node
@@ -440,3 +636,15 @@ add_to_path
 start_service_async || true
 open_ui || true
 check_path
+
+# Print a final summary line so the user can see at a glance what
+# the install did (update vs fresh install vs no-op).
+final_version=$(get_installed_version)
+final_commit=$(get_local_commit)
+if [ -n "$final_version" ] && [ -n "$final_commit" ]; then
+  say ""
+  say "ccw v$final_version (commit $final_commit) ready at $DEST" >&2
+  if [ "${REBUILD_NEEDED:-1}" -eq 0 ]; then
+    say "  (no source change since last install; build was skipped)" >&2
+  fi
+fi

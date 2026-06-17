@@ -17,14 +17,16 @@ FUNC_FILE="$(mktemp -t install-sh-funcs.XXXXXX.sh)"
 trap 'rm -f "$FUNC_FILE"' EXIT
 awk '/^banner$/{exit} {print}' "$INSTALL_SH" > "$FUNC_FILE"
 
-# Sanity check: FUNC_FILE should contain the last function's closing
-# brace. awk produces a trailing blank line, so we use grep to find
-# the last non-blank line.
-LAST="$(grep -v '^[[:space:]]*$' "$FUNC_FILE" | tail -n 1 | tr -d '[:space:]')"
-if [[ "$LAST" != "}" ]]; then
-  echo "INTERNAL: FUNC_FILE last non-blank line is not '}', got: '$LAST' (functions may not have loaded)" >&2
-  exit 1
-fi
+# Sanity check: a few key functions must be present in FUNC_FILE.
+# We can't check the last line because the installer may add
+# statements (parse_args, lock acquisition) between the function
+# definitions and the main flow's `banner` marker.
+for fn in install_source build_source check_node acquire_lock get_installed_version; do
+  if ! grep -q "^${fn}() {" "$FUNC_FILE"; then
+    echo "INTERNAL: FUNC_FILE missing function $fn (functions may not have loaded)" >&2
+    exit 1
+  fi
+done
 
 # Test target: simulate a $DEST with stray files (no .git)
 TEST_DEST="$(mktemp -d -t ccw-backup-dest-test.XXXXXX)"
