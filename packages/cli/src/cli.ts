@@ -41,8 +41,10 @@ const KNOWN_COMMANDS = [
   "update",
   "-v",
   "version",
+  "--version",
   "-h",
   "help",
+  "--help",
 ];
 
 const HELP_TEXT = `
@@ -61,8 +63,8 @@ Commands:
   activate      Output environment variables for shell integration
   ui            Open the web UI in browser
   update        Pull latest source from GitHub, rebuild, and restart service
-  -v, version   Show version information
-  -h, help      Show help information
+  -v, version, --version   Show version information
+  -h, help, --help         Show help information
 
 Presets:
   Any preset directory in ~/.ccw/presets/
@@ -518,6 +520,7 @@ async function main() {
       break;
     case "-v":
     case "version":
+    case "--version":
       console.log(`ccw version: ${version}`);
       break;
     case "restart":
@@ -528,6 +531,7 @@ async function main() {
       break;
     case "-h":
     case "help":
+    case "--help":
       console.log(HELP_TEXT);
       break;
     default:
