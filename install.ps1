@@ -65,6 +65,15 @@ function Test-Pnpm {
   Write-Host "  [ok] pnpm $(& pnpm --version) (via corepack)"
 }
 
+function Test-Git {
+  if (Get-Command git -ErrorAction SilentlyContinue) {
+    Write-Host "  [ok] git $(& git --version)"
+    return
+  }
+  Write-Host '  [fail] git not found. Install Git for Windows from https://git-scm.com/download/win' -ForegroundColor Red
+  exit 1
+}
+
 function Install-Source {
   if (Test-Path (Join-Path $Dest '.git')) {
     Write-Host "  [..] Updating existing install at $Dest"
@@ -169,6 +178,7 @@ Write-Banner
 Write-Host 'Checking prerequisites:'
 Test-Node
 Test-Pnpm
+Test-Git
 Write-Host ''
 Write-Host 'Installing:'
 Install-Source
