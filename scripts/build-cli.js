@@ -75,6 +75,22 @@ try {
     console.warn('⚠ Warning: index.html not found in UI dist, skipping...');
   }
 
+  // Step 6.5: Copy the full UI dist (index.html + fonts/ + assets/) into the
+  // server's dist directory. The server's fastifyStatic is rooted at
+  // packages/server/dist/, so the UI must live there for /ui/ to serve
+  // index.html. Skipped silently if the UI dist is missing (e.g. someone
+  // ran a partial build that only rebuilt the server) — the server will
+  // simply 404 on /ui/ in that case, which is the right behavior.
+  console.log('Copying UI assets into server dist for fastifyStatic...');
+  const uiDistDir = path.join(uiDir, 'dist');
+  const serverDistDir = path.join(serverDir, 'dist');
+  if (fs.existsSync(uiDistDir)) {
+    fs.cpSync(uiDistDir, serverDistDir, { recursive: true });
+    console.log('✓ UI assets copied to server dist successfully!');
+  } else {
+    console.warn('⚠ Warning: UI dist not found, skipping copy to server dist...');
+  }
+
   // Step 7: Copy CLI dist to project root
   console.log('\nCopying CLI dist to project root...');
   const rootDistDir = path.join(rootDir, 'dist');

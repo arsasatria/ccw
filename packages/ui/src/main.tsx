@@ -28,6 +28,16 @@ function applyTheme(theme: Theme) {
 }
 applyTheme(getInitialTheme());
 
+// Global 401 handler. api.ts dispatches `unauthorized` from a microtask when
+// any API call returns 401 (and clears the stored API key). We listen here
+// at module init — before React renders — so the initial config fetch in
+// ConfigProvider can trigger a navigation to /login even though the React
+// tree isn't mounted yet when the event fires. The replace flag avoids
+// piling the protected page into the history stack.
+window.addEventListener("unauthorized", () => {
+  router.navigate("/login", { replace: true });
+});
+
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ConfigProvider>

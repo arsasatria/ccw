@@ -72,6 +72,13 @@ The installer verifies Node ≥ 20, enables pnpm via corepack, clones the source
 
 Pre-built binaries and Docker images: see the [release page](https://github.com/arsasatria/ccw/releases).
 
+> **Upgrading from v1.x?** v1.x installs at `~/.local/share/ccw` cannot be
+> updated in place — v1.x does not declare the workspace `package.json` that
+> v2.x needs, so the installer's "already up to date" check will short-circuit
+> before v2.x scripts run. To upgrade: back up `~/.ccw/` (config + presets),
+> delete `~/.local/share/ccw`, then re-run the install command above. Your
+> config and presets are picked up unchanged.
+
 ## Quick start
 
 ```bash

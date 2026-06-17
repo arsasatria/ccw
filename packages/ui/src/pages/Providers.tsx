@@ -75,11 +75,24 @@ export default function ProvidersPage() {
   >({});
 
   useEffect(() => {
+    // Templates live on a public R2 bucket. If the network is down or the
+    // bucket is unreachable, the "Add from template" shortcut is empty —
+    // surface a warning so the user knows the empty list isn't a bug.
     fetch("https://pub-0dc3e1677e894f07bbea11b17a29e032.r2.dev/providers.json")
-      .then((r) => (r.ok ? r.json() : []))
+      .then((r) => {
+        if (!r.ok) {
+          throw new Error(`Templates fetch returned ${r.status}`);
+        }
+        return r.json();
+      })
       .then((d) => setTemplates(d || []))
-      .catch(() => undefined);
-  }, []);
+      .catch((err) => {
+        show(
+          `${t("providers.templates_unavailable")}: ${(err as Error).message}`,
+          "error",
+        );
+      });
+  }, [show, t]);
 
   useEffect(() => {
     (async () => {
@@ -545,7 +558,13 @@ function ProviderEditDialog({
         err instanceof FetchProviderModelsError
           ? err.message
           : (err as Error)?.message ?? "Unknown error";
-      show(`${t("providers.fetch_models_failed")}: ${message}`, "error");
+      // Append a hint that manual entry still works — many providers
+      // (Anthropic, Google) don't expose /v1/models, so a failed fetch
+      // is normal and the user shouldn't think the provider is broken.
+      show(
+        `${t("providers.fetch_models_failed")}: ${message}. ${t("providers.fetch_models_hint")}`,
+        "error",
+      );
     } finally {
       setIsFetchingModels(false);
     }

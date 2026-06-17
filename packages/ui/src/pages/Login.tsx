@@ -48,7 +48,10 @@ export default function Login() {
         err && typeof err === "object" && "message" in err && typeof err.message === "string"
           ? err.message
           : "";
-      if (msg.includes("401")) {
+      // The api client throws `Error("Unauthorized")` for 401s. Surface
+      // that to the user as an invalid-key error rather than bouncing
+      // them to /dashboard, which would re-trigger the 401.
+      if (msg.includes("401") || msg === "Unauthorized") {
         setError(t("login.invalidApiKey"));
       } else {
         // Tolerate other errors and proceed (matches current behavior)

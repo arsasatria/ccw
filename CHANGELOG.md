@@ -3,6 +3,16 @@
 All notable changes to **ccw** are documented in this file. ccw is a fork of
 [musistudio/claude-code-router](https://github.com/musistudio/claude-code-router).
 
+> **Upgrading from v1.x?** v2.x is a major rewrite — the project moved from
+> a single CLI wrapper to a `packages/{core,server,ui,cli,shared}` workspace
+> with a web UI. A v1.x install at `~/.local/share/ccw` will not pick up v2.x
+> features via the installer's update path because v1.x does not have a
+> `package.json` declaring the new scripts. To upgrade: back up `~/.ccw/`
+> (your config + presets), delete `~/.local/share/ccw`, then re-run
+> `install.ps1` (Windows) or `install.sh` (macOS / Linux). The config format
+> itself is backwards compatible — v1.x configs load in v2.x without
+> changes.
+
 ## [2.2.0] - 2026-06-14
 
 ### Added

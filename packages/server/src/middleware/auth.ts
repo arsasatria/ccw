@@ -1,5 +1,27 @@
 import { FastifyRequest, FastifyReply } from "fastify";
 
+// Build the set of allowed origins for the no-API-key CORS check. Localhost
+// and 127.0.0.1 are always allowed (matches the user opening the UI on the
+// same machine). Additional origins can be added via the ALLOWED_ORIGINS
+// env var (comma-separated, e.g. "http://10.0.0.5:3456,http://192.168.1.10:3456")
+// so users on a LAN can reach the UI without setting an API key.
+function buildAllowedOrigins(config: any): string[] {
+  const port = config.PORT || 3456;
+  const defaults = [
+    `http://127.0.0.1:${port}`,
+    `http://localhost:${port}`,
+  ];
+  const extra = process.env.ALLOWED_ORIGINS;
+  if (!extra) return defaults;
+  return [
+    ...defaults,
+    ...extra
+      .split(",")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0),
+  ];
+}
+
 export const apiKeyAuth =
   (config: any) =>
   async (req: FastifyRequest, reply: FastifyReply, done: () => void) => {
@@ -18,17 +40,18 @@ export const apiKeyAuth =
 
     const apiKey = config.APIKEY;
     if (!apiKey) {
-      // If no API key is set, enable CORS for local
-      const allowedOrigins = [
-        `http://127.0.0.1:${config.PORT || 3456}`,
-        `http://localhost:${config.PORT || 3456}`,
-      ];
-      if (req.headers.origin && !allowedOrigins.includes(req.headers.origin)) {
-        reply.status(403).send("CORS not allowed for this origin");
+      // If no API key is set, gate the API by origin. See
+      // buildAllowedOrigins above for how the allowlist is built.
+      const allowedOrigins = buildAllowedOrigins(config);
+      const requestOrigin = req.headers.origin;
+      if (requestOrigin && !allowedOrigins.includes(requestOrigin)) {
+        reply.status(403).send(
+          `CORS not allowed for this origin. Set ALLOWED_ORIGINS env var to a comma-separated list of allowed origins, or set APIKEY in config.json.`,
+        );
         return;
-      } else {
-        reply.header('Access-Control-Allow-Origin', `http://127.0.0.1:${config.PORT || 3456}`);
-        reply.header('Access-Control-Allow-Origin', `http://localhost:${config.PORT || 3456}`);
+      }
+      if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+        reply.header('Access-Control-Allow-Origin', requestOrigin);
       }
       return done();
     }

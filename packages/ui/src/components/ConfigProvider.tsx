@@ -139,35 +139,38 @@ export function ConfigProvider({ children }: ConfigProviderProps) {
         setConfig(validConfig);
       } catch (err) {
         console.error('Failed to fetch config:', err);
-        // If we get a 401, the API client will redirect to login
-        // Otherwise, set an empty config or error
-        if ((err as Error).message !== 'Unauthorized') {
-          // Set default empty config when fetch fails
-          setConfig({
-            LOG: false,
-            LOG_LEVEL: 'debug',
-            CLAUDE_PATH: '',
-            HOST: '127.0.0.1',
-            PORT: 3456,
-            APIKEY: '',
-            API_TIMEOUT_MS: '600000',
-            PROXY_URL: '',
-            transformers: [],
-            Providers: [],
-            StatusLine: undefined,
-            Router: {
-              default: [],
-              background: [],
-              think: [],
-              longContext: [],
-              longContextThreshold: 60000,
-              webSearch: [],
-              image: []
-            },
-            CUSTOM_ROUTER_PATH: '',
-            tokenSaver: true,
-            terseMode: false
-          });
+        // On 401 the api client dispatches `unauthorized` from a microtask
+        // and the main.tsx top-level listener navigates to /login. We still
+        // need to load *something* into state here so the app can render
+        // while that navigation is in flight — otherwise AppShell would
+        // sit on its skeleton loader until the route swap completes.
+        const isAuthError = (err as Error).message === 'Unauthorized';
+        setConfig({
+          LOG: false,
+          LOG_LEVEL: 'debug',
+          CLAUDE_PATH: '',
+          HOST: '127.0.0.1',
+          PORT: 3456,
+          APIKEY: '',
+          API_TIMEOUT_MS: '600000',
+          PROXY_URL: '',
+          transformers: [],
+          Providers: [],
+          StatusLine: undefined,
+          Router: {
+            default: [],
+            background: [],
+            think: [],
+            longContext: [],
+            longContextThreshold: 60000,
+            webSearch: [],
+            image: []
+          },
+          CUSTOM_ROUTER_PATH: '',
+          tokenSaver: true,
+          terseMode: false
+        });
+        if (!isAuthError) {
           setError(err as Error);
         }
       }

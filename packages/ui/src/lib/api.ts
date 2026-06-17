@@ -1,4 +1,4 @@
-import type { Config, Provider, Transformer } from '@/types';
+import type { Config, Transformer } from '@/types';
 
 // 日志聚合响应类型
 interface GroupedLogsResponse {
@@ -86,16 +86,18 @@ class ApiClient {
     try {
       const response = await fetch(url, config);
 
-      // Handle 401 Unauthorized responses
+      // Handle 401 Unauthorized responses. Throw a recognizable error so
+      // the caller's catch block can run normally; the AppShell listens
+      // for the `unauthorized` event below and navigates to /login. The
+      // event is fired from a microtask after the throw so subscribers
+      // that re-render on `unauthorized` don't see the API call resolve
+      // before the navigation kicks in.
       if (response.status === 401) {
-        // Remove API key when it's invalid
         localStorage.removeItem('apiKey');
-        // Redirect to login page if not already there
-        // For memory router, we need to use the router instance
-        // We'll dispatch a custom event that the app can listen to
-        window.dispatchEvent(new CustomEvent('unauthorized'));
-        // Return a promise that never resolves to prevent further execution
-        return new Promise(() => {}) as Promise<T>;
+        queueMicrotask(() => {
+          window.dispatchEvent(new CustomEvent('unauthorized'));
+        });
+        throw new Error('Unauthorized');
       }
 
       if (!response.ok) {
@@ -165,26 +167,6 @@ class ApiClient {
   // Update entire configuration
   async updateConfig(config: Config): Promise<Config> {
     return this.post<Config>('/config', config);
-  }
-
-  // Get providers
-  async getProviders(): Promise<Provider[]> {
-    return this.get<Provider[]>('/api/providers');
-  }
-
-  // Add a new provider
-  async addProvider(provider: Provider): Promise<Provider> {
-    return this.post<Provider>('/api/providers', provider);
-  }
-
-  // Update a provider
-  async updateProvider(index: number, provider: Provider): Promise<Provider> {
-    return this.post<Provider>(`/api/providers/${index}`, provider);
-  }
-
-  // Delete a provider
-  async deleteProvider(index: number): Promise<void> {
-    return this.delete<void>(`/api/providers/${index}`);
   }
 
   // Get transformers
@@ -293,8 +275,10 @@ class ApiClient {
 
     if (response.status === 401) {
       localStorage.removeItem('apiKey');
-      window.dispatchEvent(new CustomEvent('unauthorized'));
-      return new Promise(() => {}) as any;
+      queueMicrotask(() => {
+        window.dispatchEvent(new CustomEvent('unauthorized'));
+      });
+      throw new Error('Unauthorized');
     }
 
     if (!response.ok) {

@@ -1,4 +1,6 @@
 import * as React from "react";
+import { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { TopBar } from "./TopBar";
 import { ToastHost } from "./ToastHost";
@@ -16,6 +18,23 @@ interface AppShellProps {
 export function AppShell({ children, title, subtitle, actions, toolbar }: AppShellProps) {
   const { config, error } = useConfig();
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  // When any API call hits a 401, api.ts dispatches an `unauthorized` event
+  // (and removes the stored API key). Bounce to /login so the user can
+  // re-enter a valid key. Without this listener the page just hangs in a
+  // loading state because the original 401 handler returns a never-resolving
+  // promise. The replace flag avoids filling the history with the protected
+  // page the user is being kicked off of.
+  useEffect(() => {
+    const onUnauthorized = () => {
+      navigate("/login", { replace: true });
+    };
+    window.addEventListener("unauthorized", onUnauthorized);
+    return () => {
+      window.removeEventListener("unauthorized", onUnauthorized);
+    };
+  }, [navigate]);
 
   if (error && !config) {
     return (
