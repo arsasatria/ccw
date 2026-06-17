@@ -77,6 +77,20 @@ function Test-Git {
   exit 1
 }
 
+function Backup-Dest {
+  $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+  $backup = "$Dest.bak.$timestamp"
+  Write-Host "  [..] Moving existing $Dest to $backup..."
+  try {
+    Move-Item -Path $Dest -Destination $backup -ErrorAction Stop
+  } catch {
+    Write-Host "  [fail] Could not move $Dest to ${backup}: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host '         Stop any running ccw service (ccw stop) and remove the directory manually, then re-run.' -ForegroundColor Yellow
+    exit 1
+  }
+  Write-Host "  [ok] Backed up to $backup (safe to delete after you confirm the new install works)"
+}
+
 function Install-Source {
   if (Test-Path (Join-Path $Dest '.git')) {
     Write-Host "  [..] Updating existing install at $Dest"
@@ -84,25 +98,52 @@ function Install-Source {
     # `git pull` emits when local and remote have any commit difference.
     Push-Location $Dest
     try {
-      & git pull --ff-only --depth 1 origin main 2>&1 | Out-Null
-      if ($LASTEXITCODE -eq 0) {
+      # Capture output so we can show it on failure (e.g. no network, no
+      # origin remote, divergent history, or local changes blocking the
+      # fast-forward). All of these end up at the same backup+re-clone
+      # path below — we never want a stale local copy to block updates.
+      # The inner try/catch is required because native-command failures
+      # throw under $ErrorActionPreference=Stop; we want to treat any
+      # failure as "fall through to backup+re-clone" rather than abort.
+      $pullExit = 1
+      $pullOutput = $null
+      try {
+        $pullOutput = & git pull --ff-only --depth 1 origin main 2>&1
+        $pullExit = $LASTEXITCODE
+      } catch {
+        $pullOutput = @($_.Exception.Message)
+      }
+      if ($pullExit -eq 0) {
         Write-Host '  [ok] Updated to latest'
         return
       }
+      Write-Host "  [warn] git pull failed (exit $pullExit); will back up and re-clone" -ForegroundColor Yellow
+      if ($pullOutput) { Write-Host ($pullOutput -join "`n") -ForegroundColor DarkGray }
     } finally {
       Pop-Location
     }
-    # Fast-forward failed: local history diverged (e.g. an old install with
-    # commits that no longer exist on origin). Re-clone cleanly.
-    Write-Host '  [..] Local state diverged from origin; re-cloning cleanly...'
-    Remove-Item -Recurse -Force $Dest
+    # Any git pull failure (diverged, no network, no origin, etc.) - back up
+    # and re-clone cleanly.
+    Write-Host '  [..] Backing up current install and re-cloning from origin...'
+    Backup-Dest
   } elseif (Test-Path $Dest) {
-    Write-Host "  [fail] $Dest exists but is not a git repo. Remove it and re-run." -ForegroundColor Red
-    exit 1
+    # $Dest exists but is not a git repo (e.g. leftover from a partial install
+    # or a renamed/moved directory). Back it up so the user can recover, then
+    # clone a fresh source tree.
+    Write-Host "  [..] $Dest exists but is not a git repo; backing it up and re-cloning..."
+    Backup-Dest
   }
   Write-Host "  [..] Cloning $RepoUrl -> $Dest"
   New-Item -ItemType Directory -Force -Path (Split-Path $Dest) | Out-Null
-  & git clone --depth 1 -b $Branch $RepoUrl $Dest
+  # git clone can also throw under $ErrorActionPreference=Stop if the network
+  # is down or the URL is wrong. Catch and exit with a clear error.
+  try {
+    & git clone --depth 1 -b $Branch $RepoUrl $Dest
+  } catch {
+    Write-Host "  [fail] git clone failed: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host '         Check the repo URL and your network.' -ForegroundColor Yellow
+    exit 1
+  }
   if ($LASTEXITCODE -ne 0) {
     Write-Host '  [fail] git clone failed. Check the repo URL and your network.' -ForegroundColor Red
     exit 1
@@ -113,12 +154,56 @@ function Build-Source {
   Push-Location $Dest
   try {
     Write-Host '  [..] pnpm install --frozen-lockfile (this can take a minute on first run)'
-    & pnpm install --frozen-lockfile
-    if ($LASTEXITCODE -ne 0) { throw 'pnpm install failed' }
+    # Wrap each pnpm call so a failure doesn't abort the installer before
+    # we can show the error and (for the install case) retry without frozen.
+    $installExit = 1
+    try {
+      & pnpm install --frozen-lockfile
+      $installExit = $LASTEXITCODE
+    } catch {
+      Write-Host "  [warn] pnpm install --frozen-lockfile threw: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
+    if ($installExit -eq 0) {
+      Write-Host '  [ok] pnpm install (frozen)'
+    } else {
+      # The frozen lockfile is out of sync with package.json (common after a
+      # new release that updated dependencies but kept the lockfile pinned).
+      # Retry without --frozen-lockfile so pnpm can regenerate the lockfile.
+      Write-Host '  [warn] pnpm install --frozen-lockfile failed (lockfile may be out of sync with package.json)' -ForegroundColor Yellow
+      Write-Host '  [..] Retrying without --frozen-lockfile to update the lockfile...'
+      try {
+        & pnpm install
+        $installExit = $LASTEXITCODE
+      } catch {
+        Write-Host "  [fail] pnpm install threw: $($_.Exception.Message)" -ForegroundColor Red
+        throw 'pnpm install failed (both frozen and non-frozen). Check your network and pnpm version.'
+      }
+      if ($installExit -ne 0) {
+        throw 'pnpm install failed (both frozen and non-frozen). Check your network and pnpm version.'
+      }
+      Write-Host '  [ok] pnpm install (lockfile updated)'
+    }
+
+    # pnpm 8+ ignores postinstall scripts by default for security. esbuild,
+    # core-js, and other native-binary packages need their postinstall to run,
+    # otherwise the build will fail later with "Cannot find module" errors.
+    # `pnpm rebuild` re-runs the skipped scripts for already-installed deps.
+    Write-Host '  [..] pnpm rebuild (run postinstall scripts pnpm skipped for safety, e.g. esbuild)'
+    try {
+      & pnpm rebuild 2>&1 | Out-Null
+    } catch {
+      Write-Host "  [warn] pnpm rebuild threw: $($_.Exception.Message)" -ForegroundColor Yellow
+    }
 
     Write-Host '  [..] pnpm build'
-    & pnpm build
+    try {
+      & pnpm build
+    } catch {
+      Write-Host "  [fail] pnpm build threw: $($_.Exception.Message)" -ForegroundColor Red
+      throw 'pnpm build failed'
+    }
     if ($LASTEXITCODE -ne 0) { throw 'pnpm build failed' }
+    Write-Host '  [ok] pnpm build'
   } finally {
     Pop-Location
   }
