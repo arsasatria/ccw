@@ -13,6 +13,35 @@ All notable changes to **ccw** are documented in this file. ccw is a fork of
 > itself is backwards compatible — v1.x configs load in v2.x without
 > changes.
 
+## [2.3.0] - 2026-06-19
+
+### Added
+
+- **Animated in-place installer progress.** Both `install.sh` (macOS / Linux) and `install.ps1` (Windows) now render a single-line animated spinner (`⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏`) with the current step label, updated in place via carriage return. When a step finishes, the line is replaced with a `✓ <label> — <elapsed>s` summary. No more scrolling, no more guessing what step is currently running. In non-interactive (piped) runs the spinner is skipped and a plain `[..] <label>` line is emitted so logs stay readable.
+- **Structured error diagnostic on failure.** When any install step fails, the installer now prints a Diagnostic Card containing: the failing step, a likely cause matched against a catalog of known failure patterns, concrete remediation steps, and the path to the full per-run log. Catalog covers: esbuild native binary missing, lockfile drift, permission denied (incl. antivirus), disk full, network / DNS failure, TypeScript errors, peer-dep conflicts, and `pnpm` / `git` / `node` not on PATH.
+- **Bahasa Indonesia (`id`) locale for the web UI.** The web UI is now available in English and Bahasa Indonesia. The Chinese (`zh`) locale has been removed.
+- **Per-run install log.** Every step's combined stdout + stderr is written to `~/.ccw/logs/install-<timestamp>-<pid>.log`. The Diagnostic Card prints the path so a post-mortem is always one click away.
+- **Pre-check on install parent directory.** Both installers now verify the parent of `$CCW_HOME` (or the default `~/.local/share/ccw` / `%LOCALAPPDATA%\Programs\ccw`) is writable *before* attempting the clone. On Windows we write + delete a sentinel file (the only reliable write-probe given inherited ACLs); on POSIX we test the parent. A clear remediation message points users at the `CCW_HOME` env var when the path is read-only.
+
+### Fixed
+
+- **`pnpm build` no longer false-fails on Windows.** The Windows installer used to run `pnpm build 2>&1 | Tee-Object ...` under `$ErrorActionPreference='Stop'`. esbuild and vite write progress text to stderr; PowerShell turned every stderr line into a `NativeCommandError` record, the first one triggered a terminating error, and the build was reported as failed even though it had actually succeeded. The installer now redirects at the shell layer (`cmd /c <cmd> > out 2> err`) and decides success purely from `$LASTEXITCODE`. The real exit code and the full output are now reported via the Diagnostic Card.
+- **`pnpm build` no longer runs twice on Linux.** Previously the first run's output was silently discarded and a second run was triggered only on failure. Build now runs exactly once; its combined output is captured to the install log.
+- **Single definition of `say` / `ok` / `step` / `fail`.** The Linux installer previously defined these helpers twice (a copy-paste leftover). The second definition silently shadowed the first; the installer now has a single source of truth.
+- **Robust `Get-RemoteCommit`.** The previous implementation's `$out[0].Substring(0,7)` silently failed when `git ls-remote` returned a single-line (collapsed) result, always yielding an empty commit. The function now normalizes to an array, takes the first line, and guards the length.
+- **PS 5.1 + .NET Framework 4.x compatibility.** Switched the wrapped-process construction from `new Process(ProcessStartInfo)` (not available on .NET Fx 4.x) to `new Process() { StartInfo = $psi }` (the documented cross-version pattern). Format strings containing `{0}` are now single-quoted to avoid the 5.1 parser trap on `{}` in double-quoted strings. The script is saved with a UTF-8 BOM so PowerShell 5.1 reads the em-dash characters correctly.
+- **Service UI terminal is gated on a successful service start.** Previously a new terminal with `ccw ui` was opened even when the service had failed to come up.
+- **`$env:LOCALAPPDATA` null-safety.** On a stripped-down PowerShell session the env var can be unset, in which case `Join-Path $env:LOCALAPPDATA 'Programs\ccw'` silently produces a relative path. The installer now falls back to `$env:USERPROFILE\AppData\Local`, or throws with a clear message if both are missing.
+
+### Changed
+
+- **Branding: lowercase `ccw` → `CCW` (Claude Code Wrapper) in user-facing surfaces.** The installer banner, CLI version output, CLI help text, web UI title bar, logo wordmark, top bar, and README now use the proper-noun form `CCW` (with the full name "Claude Code Wrapper" as a subtitle). Lowercase `ccw` is preserved where it is an identifier: the `ccw` binary, `ccw` command, `~/.ccw/` config dir, the `@ccw/*` npm scope, the `ccw-theme` localStorage key, and `ccw update` subcommand. These are load-bearing and renaming them would break existing user setups.
+
+### Notes
+
+- No breaking changes. The public CLI surface, the server API, and the config schema are unchanged. All v2.2.0 and v2.1.0 configs continue to load.
+- No new external runtime dependencies.
+
 ## [2.2.0] - 2026-06-14
 
 ### Added

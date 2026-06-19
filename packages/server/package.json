@@ -1,6 +1,6 @@
 {
   "name": "@ccw/server",
-  "version": "2.1.0",
+  "version": "2.3.0",
   "description": "Server for Claude Code Wrapper",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

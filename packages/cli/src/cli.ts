@@ -48,6 +48,9 @@ const KNOWN_COMMANDS = [
 ];
 
 const HELP_TEXT = `
+CCW — Claude Code Wrapper
+https://github.com/arsasatria/ccw
+
 Usage: ccw [command] [preset-name]
 
 Commands:
@@ -521,7 +524,7 @@ async function main() {
     case "-v":
     case "version":
     case "--version":
-      console.log(`ccw version: ${version}`);
+      console.log(`CCW v${version} (Claude Code Wrapper)`);
       break;
     case "restart":
       await restartService();

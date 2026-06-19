@@ -35,7 +35,7 @@ export function Logo({ className, showWordmark = true, size = 28 }: LogoProps) {
       </svg>
       {showWordmark && (
         <span className="font-serif text-[14px] text-fg">
-          ccw
+          CCW
         </span>
       )}
     </div>

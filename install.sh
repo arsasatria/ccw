@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# ccw installer for macOS / Linux
+# CCW installer (Claude Code Wrapper) for macOS / Linux
 #
 # One-line install:
 #   curl -fsSL https://raw.githubusercontent.com/arsasatria/ccw/main/install.sh | bash
@@ -50,12 +50,202 @@ LOCK_FILE="${TMPDIR:-/tmp}/ccw-install.lock"
 ACQUIRED_LOCK=0
 FORCE_REINSTALL=0
 REBUILD_NEEDED=1
+# Per-run install log. Every wrapped command's combined output is written
+# here so a failure can be diagnosed without re-running anything.
+LOG_FILE="$HOME/.ccw/logs/install-$(date +%Y%m%d-%H%M%S)-$$.log"
+# Working directory hint for ui_run (cleared after use).
+UI_CWD=""
 
-# Output helpers; defined early because usage() needs them.
+# --- terminal capability detection -------------------------------------
+# Only animate the spinner and emit ANSI colors when stderr is a real
+# terminal. When output is redirected to a file or pipe (e.g. the
+# regression tests capture `2>&1`), we print plain progress lines and
+# skip animation so logs stay readable and grep-stable.
+if [ -t 2 ]; then
+  C_RESET='\033[0m'
+  C_GREEN='\033[32m'
+  C_RED='\033[31m'
+  C_CYAN='\033[36m'
+  C_DIM='\033[2m'
+  C_BOLD='\033[1m'
+else
+  C_RESET=''
+  C_GREEN=''
+  C_RED=''
+  C_CYAN=''
+  C_DIM=''
+  C_BOLD=''
+fi
+
+# --- output helpers (single definition) --------------------------------
+# NOTE: previously these four helpers were defined twice (once before
+# usage() at the top, once again right after usage()). The second set
+# silently shadowed the first with identical bodies — harmless but
+# confusing. There is now exactly one definition.
 say()  { printf '%s\n' "$*"; }
-ok()   { say "  [ok]   $*"; }
-step() { say "  [..]   $*"; }
-fail() { say "  [fail] $*" >&2; exit 1; }
+ok()   { printf '  %b✓%b %s\n' "$C_GREEN" "$C_RESET" "$*"; }
+step() { printf '  %b..%b %s\n' "$C_DIM" "$C_RESET" "$*"; }
+warn() { printf '  %b!%b %s\n' "$C_CYAN" "$C_RESET" "$*" >&2; }
+fail() { printf '  %b✗ %s%b\n' "$C_RED" "$*" "$C_RESET" >&2; exit 1; }
+
+# --- animated step runner ----------------------------------------------
+# ui_run <label> <command> [args...]
+#
+# Runs a (potentially long) command with its combined stdout+stderr
+# captured to $LOG_FILE. In a real terminal it shows an animated
+# spinner + label on a single line, updated in place; when the command
+# finishes the line is replaced with either:
+#     ✓ <label> — <elapsed>
+# or, on failure, the caller is expected to call print_diagnostic.
+#
+# When stderr is not a terminal (piped to a file, e.g. tests), no
+# animation happens — a plain `[..] <label>` line is printed first so
+# logs/tests stay readable and the label string is still greppable.
+#
+# Honors $UI_CWD: if set, the command runs inside that directory
+# (inside a subshell, so the caller's CWD is untouched).
+ui_run() {
+  local label="$1"; shift
+  local start elapsed tstr pid rc
+  start=$(date +%s)
+  rc=0
+  # Ensure the log directory exists before redirecting into it.
+  mkdir -p "$(dirname "$LOG_FILE")" 2>/dev/null || true
+
+  if [ -t 2 ]; then
+    # Animated path: background the command, spin until it exits.
+    if [ -n "$UI_CWD" ]; then
+      ( cd "$UI_CWD" && "$@" ) >"$LOG_FILE" 2>&1 &
+    else
+      ( "$@" ) >"$LOG_FILE" 2>&1 &
+    fi
+    pid=$!
+    local frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏'
+    local i=0
+    while kill -0 "$pid" 2>/dev/null; do
+      printf '\r  %b%s%b %s' "$C_CYAN" "${frames:$((i % 10)):1}" "$C_RESET" "$label" >&2
+      i=$((i + 1))
+      sleep 0.1
+    done
+    wait "$pid" || rc=$?
+    printf '\r\033[K' >&2  # clear the spinner line
+  else
+    # Non-interactive path: one plain line, command silent to the log.
+    printf '  [..] %s\n' "$label"
+    if [ -n "$UI_CWD" ]; then
+      ( cd "$UI_CWD" && "$@" ) >"$LOG_FILE" 2>&1 || rc=$?
+    else
+      "$@" >"$LOG_FILE" 2>&1 || rc=$?
+    fi
+  fi
+
+  elapsed=$(( $(date +%s) - start ))
+  if [ "$elapsed" -le 0 ]; then tstr="<1s"; else tstr="${elapsed}s"; fi
+  if [ "$rc" -eq 0 ]; then
+    printf '  %b✓%b %s — %s\n' "$C_GREEN" "$C_RESET" "$label" "$tstr"
+  else
+    printf '  %b✗%b %s\n' "$C_RED" "$C_RESET" "$label" >&2
+  fi
+  return "$rc"
+}
+
+# --- error diagnostics -------------------------------------------------
+# print_diagnostic <step-label> <exit-code> <log-file>
+#
+# Inspects the tail of the captured log, matches it against a catalog of
+# known failure patterns, and prints a human-readable diagnostic block:
+# what happened, the likely cause, and concrete steps to fix it.
+print_diagnostic() {
+  local label="$1" rc="$2" log="$3"
+  local snippet=""
+  [ -f "$log" ] && snippet=$(tail -60 "$log" 2>/dev/null || true)
+
+  local cause="" fix=""
+  if printf '%s' "$snippet" | grep -qiE "cannot find module[^@]*@?esbuild|installed esbuild for another platform|esbuild's binary|You installed esbuild"; then
+    cause="esbuild's native platform binary is missing. pnpm 8+ skips dependency postinstall scripts by default, so the @esbuild/<os>-<arch> binary was never downloaded and the first esbuild call fails."
+    fix="cd \"$DEST\" && pnpm rebuild
+  (this re-runs the skipped postinstall scripts)
+Then re-run this installer. If it still fails, install the platform
+package directly, e.g.:
+  npm i -g @esbuild/linux-x64   # or darwin-arm64 / win32-x64"
+  elif printf '%s' "$snippet" | grep -qiE "ERR_PNPM_OUTDATED_LOCKFILE|lockfile.*(out of sync|not up to date)|imported from a (newer|different)"; then
+    cause="The pnpm lockfile is out of sync with package.json (common right after a release that bumped dependencies)."
+    fix="The installer already retries without --frozen-lockfile. If that also
+failed, regenerate the lockfile manually:
+  cd \"$DEST\" && rm -f pnpm-lock.yaml && pnpm install
+Then re-run this installer."
+  elif printf '%s' "$snippet" | grep -qiE "EACCES|permission denied|EPERM|operation not permitted"; then
+    cause="A file or directory could not be written (permission denied)."
+    fix="Check write permissions on \"$DEST\" and \"$HOME/.ccw\".
+On macOS/Linux you may need to claim ownership:
+  sudo chown -R \"\$USER\" \"$DEST\""
+  elif printf '%s' "$snippet" | grep -qiE "ENOSPC|no space left on|disk full"; then
+    cause="The disk is full."
+    fix="Free up space on the volume holding \"$DEST\" and re-run."
+  elif printf '%s' "$snippet" | grep -qiE "ENOTFOUND|ECONNREFUSED|ETIMEDOUT|EAI_AGAIN|Could not resolve host|getaddrinfo|Network is unreachable"; then
+    cause="A network request failed (DNS lookup failed, host unreachable, or connection timed out) while fetching packages."
+    fix="Check your internet connection, proxy, or VPN settings, then re-run.
+If behind a corporate proxy, set:
+  export HTTPS_PROXY=http://your-proxy:port"
+  elif printf '%s' "$snippet" | grep -qiE "error TS[0-9]+"; then
+    cause="A TypeScript type error occurred during the build (tsc). This is usually a code defect in the repo at this commit, not an environment issue."
+    fix="See the 'error TSxxxx' lines in the full log below. If this is the
+latest commit, please report it. To inspect locally:
+  cd \"$DEST\" && pnpm build"
+  elif printf '%s' "$snippet" | grep -qiE "ERR_PNPM_PEER_DEP_ISSUES|peer dep"; then
+    cause="A peer dependency conflict was detected during install."
+    fix="Try a clean dependency install:
+  cd \"$DEST\" && rm -rf node_modules && pnpm install"
+  elif printf '%s' "$snippet" | grep -qiE "'(pnpm|node|git)' is not recognized|command not found|executable file not found|No such file or directory|ENOENT.*spawn"; then
+    # Covers Windows: \"'pnpm' is not recognized as an internal or external command\"
+    # and POSIX: \"pnpm: command not found\", \"env: 'pnpm': No such file or directory\".
+    if printf '%s' "$snippet" | grep -qiE "pnpm"; then
+      cause="The pnpm executable could not be found on PATH. Either pnpm is not installed, or your installer run is using a PATH that doesn't include the directory pnpm is installed in."
+      fix="Install pnpm globally: npm install -g pnpm@9
+Then re-run this installer. If pnpm IS installed but the error
+persists, open a NEW terminal so the updated PATH is loaded, or run:
+  $ "$CCW_BIN_DIR/ccw env"  # shows the path the installer is using"
+    elif printf '%s' "$snippet" | grep -qiE "git"; then
+      cause="The git executable could not be found on PATH."
+      fix="Install Git for Windows from https://git-scm.com/download/win,
+or on macOS: xcode-select --install,
+or on Linux: apt install git / dnf install git / apk add git"
+    else
+      cause="A required executable (node, pnpm, or git) could not be found on PATH."
+      fix="Install Node.js >= 20 from https://nodejs.org, then:
+  npm install -g pnpm@9
+Then re-run this installer."
+    fi
+  else
+    cause="The command exited non-zero and no specific known pattern matched."
+    fix="Open the full log below and search for the first 'error' / 'Error'
+line. If unsure, re-run with a clean slate:
+  bash install.sh --reinstall"
+  fi
+
+  cat >&2 <<EOF
+
+$(printf '  %b✗ %s — exit %s%b' "$C_RED" "$label" "$rc" "$C_RESET")
+
+  ── Diagnostic ────────────────────────────────────────────
+  Step:          $label
+  Likely cause:  $cause
+
+  How to fix:
+$(printf '%s\n' "$fix" | sed 's/^/    /')
+
+  Full log:
+    $log
+  ──────────────────────────────────────────────────────────
+EOF
+}
+
+# diagnose_and_fail <step-label> <exit-code>
+# Convenience: diagnose from $LOG_FILE then abort.
+diagnose_and_fail() {
+  print_diagnostic "$1" "$2" "$LOG_FILE"
+  fail "Installation failed at step: $1"
+}
 
 usage() {
   cat <<EOF
@@ -79,16 +269,10 @@ Examples:
 EOF
 }
 
-say()  { printf '%s\n' "$*"; }
-ok()   { say "  [ok]   $*"; }
-step() { say "  [..]   $*"; }
-fail() { say "  [fail] $*" >&2; exit 1; }
-
 banner() {
   say ""
-  say "+---------------------------------------------------+"
-  say "|         ccw installer (macOS / Linux)             |"
-  say "+---------------------------------------------------+"
+  printf '  %bCCW%b · Claude Code Wrapper\n' "$C_BOLD" "$C_RESET"
+  printf '  %binstaller · github.com/%s/%s%b\n' "$C_DIM" "$REPO_OWNER" "$REPO_NAME" "$C_RESET"
   say ""
 }
 
@@ -102,7 +286,7 @@ parse_args() {
       --reinstall|-r) FORCE_REINSTALL=1 ;;
       --help|-h)      usage; exit 0 ;;
       --)             shift; break ;;
-      *)              say "  [warn] Unknown argument: $1 (ignored)" >&2 ;;
+      *)              warn "Unknown argument: $1 (ignored)" ;;
     esac
     shift
   done
@@ -116,9 +300,9 @@ acquire_lock() {
     local other_pid
     other_pid=$(cat "$LOCK_FILE" 2>/dev/null || true)
     if [ -n "$other_pid" ] && kill -0 "$other_pid" 2>/dev/null; then
-      fail "Another ccw install is in progress (pid $other_pid). If this is wrong, delete $LOCK_FILE and re-run."
+      fail "Another CCW install is in progress (pid $other_pid). If this is wrong, delete $LOCK_FILE and re-run."
     fi
-    say "  [..]   Removing stale lock from pid $other_pid" >&2
+    warn "Removing stale lock from pid $other_pid"
     rm -f "$LOCK_FILE"
   fi
   echo "$$" > "$LOCK_FILE"
@@ -159,14 +343,14 @@ get_remote_commit() {
 
 check_node() {
   if ! command -v node >/dev/null 2>&1; then
-    fail "node not found. Install Node.js >= 20 from https://nodejs.org"
+    fail "Node.js not found. Install Node.js >= 20 from https://nodejs.org"
   fi
-  local v
+  local v major
   v=$(node -v)
-  local major="${v#v}"
+  major="${v#v}"
   major="${major%%.*}"
   if ! [[ "$major" =~ ^[0-9]+$ ]] || [ "$major" -lt 20 ]; then
-    fail "Node.js >= 20 required (found $v)"
+    fail "Node.js >= 20 required (found $v). Upgrade at https://nodejs.org"
   fi
   ok "node $v"
 }
@@ -202,13 +386,13 @@ ensure_pnpm() {
 # broken. The backup is left in place after install — the user can
 # delete it once they confirm the new install works.
 backup_dest() {
-  local ts
+  local ts backup
   ts=$(date +%Y%m%d-%H%M%S)
-  local backup="${DEST}.bak.${ts}"
+  backup="${DEST}.bak.${ts}"
   step "Moving existing $DEST to $backup"
-  if ! rm -rf "$backup" 2>/dev/null; then :; fi
+  rm -rf "$backup" 2>/dev/null || true
   if ! mv "$DEST" "$backup" 2>/dev/null; then
-    fail "Could not move $DEST to ${backup}. Stop any running ccw service (ccw stop) and remove $DEST manually, then re-run."
+    fail "Could not move $DEST to ${backup}. Stop any running CCW service (ccw stop) and remove $DEST manually, then re-run."
   fi
   ok "Backed up to $backup (safe to delete after you confirm the new install works)"
 }
@@ -217,32 +401,28 @@ install_source() {
   # Detect what is already on disk before we do anything. The user
   # re-running the installer should see exactly what changed (or
   # nothing, if already up to date).
-  local installed_version
+  local installed_version local_commit remote_commit
   installed_version=$(get_installed_version)
-  local local_commit
   local_commit=$(get_local_commit)
-  local remote_commit
   remote_commit=$(get_remote_commit)
 
   say ""
-  say "  [..]   Source:  $DEST"
+  step "Source: $DEST"
   if [ -n "$installed_version" ]; then
-    say "  [..]   Installed version: v$installed_version"
+    step "Installed version: v$installed_version"
   else
-    say "  [..]   Installed version: (none — fresh install)"
+    step "Installed version: (none — fresh install)"
   fi
   if [ -n "$local_commit" ]; then
-    say "  [..]   Local commit:      $local_commit"
+    step "Local commit:      $local_commit"
   fi
   if [ -n "$remote_commit" ]; then
-    say "  [..]   Remote commit:     $remote_commit (origin/$BRANCH)"
+    step "Remote commit:     $remote_commit (origin/$BRANCH)"
   else
-    say "  [..]   Remote commit:     (no network or repo moved)"
+    step "Remote commit:     (no network or repo moved)"
   fi
 
   # --reinstall: always back up and re-clone, even when up to date.
-  # Useful to discard local source changes or recover from a broken
-  # build while keeping $DEST's path.
   if [ "$FORCE_REINSTALL" -eq 1 ] && [ -e "$DEST" ]; then
     if [ -n "$installed_version" ]; then
       step "--reinstall: backing up v$installed_version and re-cloning"
@@ -254,8 +434,6 @@ install_source() {
   elif [ -d "$DEST/.git" ]; then
     # Already a git checkout. Try the cheapest path first: fast-forward.
     if [ -n "$local_commit" ] && [ -n "$remote_commit" ] && [ "$local_commit" = "$remote_commit" ]; then
-      # Up to date. No rebuild needed; just re-verify the shim and
-      # service. This makes re-running the installer cheap and safe.
       if [ -n "$installed_version" ]; then
         ok "Already up to date (v$installed_version, commit $local_commit)"
       else
@@ -267,11 +445,10 @@ install_source() {
     step "Updating existing install at $DEST"
     # --ff-only avoids the "divergent branches" warning that plain `git pull`
     # emits when local and remote have any commit difference.
-    if ( cd "$DEST" && git pull --ff-only --depth 1 origin "$BRANCH" ) >/dev/null 2>&1; then
-      local after_commit
+    local pull_output after_commit
+    pull_output=$( ( cd "$DEST" && git pull --ff-only --depth 1 origin "$BRANCH" ) 2>&1 ) && {
       after_commit=$(get_local_commit)
       if [ "$local_commit" = "$after_commit" ]; then
-        # No-op pull (e.g. remote was unreachable but pull exited 0).
         if [ -n "$installed_version" ]; then
           ok "Already up to date (v$installed_version, commit $after_commit)"
         else
@@ -283,97 +460,97 @@ install_source() {
         REBUILD_NEEDED=1
       fi
       return 0
-    fi
+    }
     # Pull failed for any reason (no origin, divergent history, no network).
-    # Back up the user's existing tree so they can recover from it, then
-    # remove it so the fresh clone has a clean target.
-    local pull_output
-    pull_output=$( ( cd "$DEST" && git pull --ff-only --depth 1 origin "$BRANCH" ) 2>&1 || true )
-    if [ -n "$pull_output" ]; then
-      say "  [warn] git pull failed; will back up and re-clone" >&2
-      say "$pull_output" | sed 's/^/         /' >&2
-    else
-      say "  [warn] git pull failed; will back up and re-clone" >&2
-    fi
+    warn "git pull failed; will back up and re-clone"
+    [ -n "$pull_output" ] && printf '%s\n' "$pull_output" | sed 's/^/         /' >&2
     backup_dest
     REBUILD_NEEDED=1
   elif [ -e "$DEST" ]; then
-    # $DEST exists but is not a git repo (e.g. leftover from a partial
-    # install, a renamed/moved directory, or a user-managed file at this
-    # path). Back it up and clone fresh.
+    # $DEST exists but is not a git repo (leftover from a partial install,
+    # a renamed/moved directory, or a user-managed file at this path).
     step "$DEST exists but is not a git repo; backing it up and re-cloning"
     backup_dest
     REBUILD_NEEDED=1
   else
-    # No $DEST at all. Fresh install.
     REBUILD_NEEDED=1
   fi
-  step "Cloning $REPO_URL -> $DEST"
-  mkdir -p "$(dirname "$DEST")"
-  if ! git clone --depth 1 -b "$BRANCH" "$REPO_URL" "$DEST" 2>&1 | sed 's/^/         /' >&2; then
-    fail "git clone failed. Check the repo URL and your network."
+
+  # Pre-check: parent dir must be writable. mkdir -p on an unwritable
+  # parent would fail late (during clone) with a confusing ENOENT/
+  # permission error. Surface a clear diagnostic upfront instead.
+  local dest_parent
+  dest_parent=$(dirname "$DEST")
+  if [ ! -d "$dest_parent" ] && ! mkdir -p "$dest_parent" 2>/dev/null; then
+    fail "Cannot create install parent directory: $dest_parent
+  Reason: not writable by the current user.
+  Fix:    set CCW_HOME to a directory you can write to, e.g.
+          export CCW_HOME=\"\$HOME/.local/share/ccw\"
+          then re-run this installer."
   fi
-  # After a fresh clone, show the version we just installed.
+  if [ -d "$dest_parent" ] && [ ! -w "$dest_parent" ]; then
+    fail "Install parent directory is not writable: $dest_parent
+  Reason: $dest_parent exists but the current user has no write permission.
+  Fix:    pick a different install location via:
+          export CCW_HOME=\"\$HOME/.local/share/ccw\"
+          then re-run this installer."
+  fi
+
+  mkdir -p "$dest_parent"
+  # The label below intentionally contains the word "Cloning" — the
+  # regression tests grep for it, and ui_run echoes the label to stdout.
+  if ! ui_run "Cloning $REPO_URL" git clone --depth 1 -b "$BRANCH" "$REPO_URL" "$DEST"; then
+    diagnose_and_fail "git clone" "$?"
+  fi
   local new_version
   new_version=$(get_installed_version)
   if [ -n "$new_version" ]; then
-    say "  [..]   Installed version: v$new_version (just cloned)"
+    step "Installed version: v$new_version (just cloned)"
   fi
 }
 
 build_source() {
   # install_source sets REBUILD_NEEDED=0 when the source is already
   # up to date. In that case we skip pnpm install + pnpm build
-  # entirely — the existing build artifacts and node_modules are
-  # still valid, and re-running them is wasted work that the user
-  # would have to wait through.
+  # entirely — the existing build artifacts and node_modules are still
+  # valid. (This exact message is asserted by the regression tests.)
   if [ "${REBUILD_NEEDED:-1}" -eq 0 ]; then
     say "  [..]   Skipping pnpm install + build (no source change)"
     return 0
   fi
-  step "pnpm install --frozen-lockfile (this can take a minute on first run)"
-  local install_ok=0
-  if ( cd "$DEST" && pnpm install --frozen-lockfile ) >/dev/null 2>&1; then
-    install_ok=1
-    ok "pnpm install (frozen)"
-  else
-    # The frozen lockfile is out of sync with package.json (common after
-    # a new release that updated dependencies but kept the lockfile
-    # pinned). Retry without --frozen-lockfile so pnpm can regenerate
-    # the lockfile.
-    say "  [warn] pnpm install --frozen-lockfile failed (lockfile may be out of sync with package.json)" >&2
-    say "  [..] Retrying without --frozen-lockfile to update the lockfile..." >&2
-    if ( cd "$DEST" && pnpm install ) >/dev/null 2>&1; then
-      install_ok=1
-      ok "pnpm install (lockfile updated)"
+
+  UI_CWD="$DEST"
+  # pnpm install. Try --frozen-lockfile first (reproducible, matches CI);
+  # fall back to a regenerating install if the lockfile drifted. Each
+  # attempt runs exactly once via ui_run so its output is captured to
+  # $LOG_FILE for diagnostics (no more silent /dev/null swallowing).
+  if ! ui_run "Installing dependencies (frozen lockfile)" pnpm install --frozen-lockfile; then
+    warn "frozen lockfile install failed; retrying without --frozen-lockfile"
+    if ! ui_run "Installing dependencies (lockfile update)" pnpm install; then
+      UI_CWD=""
+      diagnose_and_fail "pnpm install" "$?"
     fi
-  fi
-  if [ "$install_ok" -ne 1 ]; then
-    fail "pnpm install failed (both frozen and non-frozen). Check your network and pnpm version."
   fi
 
   # pnpm 8+ ignores postinstall scripts by default for security.
-  # esbuild, core-js, and other native-binary packages need their
-  # postinstall to run, otherwise the build will fail later with
-  # "Cannot find module" errors. `pnpm rebuild` re-runs the skipped
-  # scripts for already-installed deps.
-  step "pnpm rebuild (run postinstall scripts pnpm skipped for safety, e.g. esbuild)"
-  ( cd "$DEST" && pnpm rebuild ) >/dev/null 2>&1 || true
+  # esbuild and other native-binary packages need their postinstall to
+  # run, otherwise the build fails later with "Cannot find module".
+  # `pnpm rebuild` re-runs the skipped scripts for already-installed
+  # deps. Non-fatal: some deps legitimately have nothing to rebuild.
+  ui_run "Running postinstall scripts (pnpm rebuild)" pnpm rebuild || warn "pnpm rebuild reported an issue (continuing)"
 
-  step "pnpm build"
-  if ! ( cd "$DEST" && pnpm build ) >/dev/null 2>&1; then
-    say "  [warn] pnpm build emitted output (likely warnings). Re-running with full output..." >&2
-    if ! ( cd "$DEST" && pnpm build ) 2>&1 | sed 's/^/         /' >&2; then
-      fail "pnpm build failed"
-    fi
+  if ! ui_run "Building packages (pnpm build)" pnpm build; then
+    UI_CWD=""
+    diagnose_and_fail "pnpm build" "$?"
   fi
-  ok "pnpm build"
+  UI_CWD=""
 }
 
 install_shim() {
   mkdir -p "$BIN_DIR"
   cat > "$BIN_DIR/$CMD_NAME" <<EOF
 #!/usr/bin/env bash
+# CCW (Claude Code Wrapper) shim — forwards to the built CLI bundle.
 exec node "$DEST/packages/cli/dist/cli.js" "\$@"
 EOF
   chmod +x "$BIN_DIR/$CMD_NAME"
@@ -416,19 +593,18 @@ EOF
     fi
   fi
 
-  say "  [skip] No writable PATH dir found; rely on the PATH-add step below (open a new terminal)."
+  warn "No writable PATH dir found; rely on the PATH-add step below (open a new terminal)."
 }
 
 # Verifies the shim actually works by running `ccw --version`. We use the
 # full path to the shim so this works even if $BIN_DIR is not yet on PATH
-# for the current shell. A broken shim here means a user who runs
-# `ccw --version` from a new terminal will see the same failure.
+# for the current shell.
 verify_shim() {
   local shim_path="$BIN_DIR/$CMD_NAME"
+  local cli_dist="$DEST/packages/cli/dist/cli.js"
   if [ ! -x "$shim_path" ]; then
     fail "shim not executable at $shim_path"
   fi
-  local cli_dist="$DEST/packages/cli/dist/cli.js"
   if [ ! -f "$cli_dist" ]; then
     fail "Built binary not found at $cli_dist. Run pnpm build manually in $DEST."
   fi
@@ -439,10 +615,9 @@ verify_shim() {
   ok "shim works: ccw --version -> $out"
 }
 
-# Detect the user's shell and add $BIN_DIR to the matching profile. We
-# don't rely on a single rc file because users differ — and silently
-# editing a file the user doesn't read defeats the purpose. The
-# instructions at the end of the script tell the user what to do.
+# Detect the user's shell and report which profile $BIN_DIR should be
+# added to. We don't auto-edit the rc file (a wrong edit can break the
+# user's shell); we just print a clear instruction.
 add_to_path() {
   local rc_file=""
   case "${SHELL:-}" in
@@ -451,8 +626,6 @@ add_to_path() {
     */fish) rc_file="$HOME/.config/fish/config.fish" ;;
     *)      rc_file="$HOME/.profile" ;;
   esac
-  # Match whole PATH entry, not substring (e.g. .local/bin must not
-  # match .local/bin-other).
   local p found=0
   local IFS=':'
   for p in ${PATH:-}; do
@@ -465,19 +638,13 @@ add_to_path() {
     ok "$BIN_DIR is on PATH for this shell"
     return
   fi
-  # Don't auto-edit the rc file: a wrong edit can break the user's
-  # shell. Just print a clear instruction. (The Windows installer
-  # edits the user PATH via setx, but rc files on macOS/Linux are
-  # shell-specific and have no equivalent API.)
-  say "  [..] $BIN_DIR is not on PATH for this shell"
-  say "         Add this to $rc_file (or the rc file for $SHELL):"
+  warn "$BIN_DIR is not on PATH for this shell"
+  say "         Add this to $rc_file (or the rc file for ${SHELL:-your shell}):"
   say "           export PATH=\"\$PATH:$BIN_DIR\""
   say "         Then open a new terminal."
 }
 
 # Parse the port from ~/.ccw/config.json, falling back to the default.
-# Returns the port number on stdout. Empty/non-numeric PORT is treated
-# as the default.
 detect_port() {
   local config_path="$HOME/.ccw/config.json"
   if [ ! -f "$config_path" ]; then
@@ -493,16 +660,13 @@ detect_port() {
   fi
 }
 
-# Polls the ccw port for up to 15 seconds. Returns 0 if the port is
-# listening, 1 otherwise. Used to verify the service actually started,
-# not just that the spawn command returned.
+# Polls the ccw port. Returns 0 if listening, 1 otherwise.
 is_port_listening() {
   local port="$1"
   if command -v nc >/dev/null 2>&1; then
     nc -z 127.0.0.1 "$port" >/dev/null 2>&1
     return $?
   fi
-  # Fallback: try Python (almost always available on macOS/Linux).
   if command -v python3 >/dev/null 2>&1; then
     python3 -c "
 import socket, sys
@@ -523,28 +687,29 @@ except Exception:
 start_service_async() {
   local cli_path="$DEST/packages/cli/dist/cli.js"
   if [ ! -f "$cli_path" ]; then
-    say "  [skip] $cli_path not found, cannot start service" >&2
+    warn "$cli_path not found, cannot start service"
     return 1
   fi
 
-  step "Starting ccw service..."
-  # Detach so this installer can exit. stdout/stderr go to a per-spawn
-  # log so a startup failure is debuggable.
+  step "Starting CCW service..."
   local log_dir="$HOME/.ccw/logs"
   mkdir -p "$log_dir" 2>/dev/null || true
   local log_path="$log_dir/ccw-startup-$(date +%Y%m%d-%H%M%S)-$$.log"
+  # Detach so this installer can exit. stdout/stderr go to a per-spawn
+  # log so a startup failure is debuggable. disown defensively so the
+  # background process survives the shell exit under `set -e`.
   if command -v nohup >/dev/null 2>&1; then
     nohup node "$cli_path" start >"$log_path" 2>&1 &
   else
     ( node "$cli_path" start >"$log_path" 2>&1 & )
   fi
   disown 2>/dev/null || true
-  say "         startup log: $log_path" >&2
+  say "         startup log: $log_path"
 
-  local port
+  local port max_wait elapsed
   port=$(detect_port)
-  local max_wait=15
-  local elapsed=0
+  max_wait=15
+  elapsed=0
   while [ "$elapsed" -lt "$max_wait" ]; do
     sleep 1
     elapsed=$((elapsed + 1))
@@ -553,15 +718,15 @@ start_service_async() {
       return 0
     fi
   done
-  say "  [fail] Service did not start within ${max_wait}s. Check $log_dir/ for details." >&2
+  warn "Service did not start within ${max_wait}s. Check $log_dir/ for details."
   return 1
 }
 
 open_ui() {
-  local port
+  local port ui_url
   port=$(detect_port)
-  local ui_url="http://127.0.0.1:${port}/ui/"
-  say "  [..] Opening UI at $ui_url"
+  ui_url="http://127.0.0.1:${port}/ui/"
+  step "Opening UI at $ui_url"
   case "$(uname -s)" in
     Darwin)  open "$ui_url" >/dev/null 2>&1 || true ;;
     Linux)
@@ -570,18 +735,14 @@ open_ui() {
       elif command -v sensible-browser >/dev/null 2>&1; then
         sensible-browser "$ui_url" >/dev/null 2>&1 || true
       else
-        say "         No xdg-open / sensible-browser; open $ui_url manually." >&2
+        warn "No xdg-open / sensible-browser; open $ui_url manually."
       fi
       ;;
-    *)       say "         Unknown platform; open $ui_url manually." >&2 ;;
+    *)       warn "Unknown platform; open $ui_url manually." ;;
   esac
 }
 
 check_path() {
-  # Match `$BIN_DIR` as a PATH entry, not as a substring. The previous
-  # pattern `*":$BIN_DIR:"*` would falsely match `/home/u/.local/bin-other`
-  # for `$BIN_DIR=/home/u/.local/bin`. Pure-bash whole-segment comparison
-  # (no awk/tr) so this works on minimal systems.
   local p found=0
   local IFS=':'
   for p in $PATH; do
@@ -592,22 +753,22 @@ check_path() {
   done
   if [ "$found" -eq 1 ]; then
     say ""
-    say "ccw installed. Open a NEW terminal and run:" >&2
-    say "  $CMD_NAME --version" >&2
-    say "  $CMD_NAME code" >&2
-    say "" >&2
-    say "Or, in the CURRENT terminal:" >&2
-    say "  export PATH=\"\$PATH:$BIN_DIR\"" >&2
+    say "CCW installed. Open a NEW terminal and run:"
+    say "  $CMD_NAME --version"
+    say "  $CMD_NAME code"
+    say ""
+    say "Or, in the CURRENT terminal:"
+    say "  export PATH=\"\$PATH:$BIN_DIR\""
   else
     say ""
-    say "NOTE: $BIN_DIR is not on your PATH." >&2
-    say "Add this to your shell profile (~/.zshrc, ~/.bashrc, or ~/.profile):" >&2
-    say "  export PATH=\"\$PATH:$BIN_DIR\"" >&2
-    say "Then open a new terminal and run:" >&2
-    say "  $CMD_NAME --version" >&2
-    say "" >&2
-    say "Or, in the CURRENT terminal:" >&2
-    say "  export PATH=\"\$PATH:$BIN_DIR\"" >&2
+    say "NOTE: $BIN_DIR is not on your PATH."
+    say "Add this to your shell profile (~/.zshrc, ~/.bashrc, or ~/.profile):"
+    say "  export PATH=\"\$PATH:$BIN_DIR\""
+    say "Then open a new terminal and run:"
+    say "  $CMD_NAME --version"
+    say ""
+    say "Or, in the CURRENT terminal:"
+    say "  export PATH=\"\$PATH:$BIN_DIR\""
   fi
 }
 
@@ -643,8 +804,8 @@ final_version=$(get_installed_version)
 final_commit=$(get_local_commit)
 if [ -n "$final_version" ] && [ -n "$final_commit" ]; then
   say ""
-  say "ccw v$final_version (commit $final_commit) ready at $DEST" >&2
+  printf '  %bCCW v%s%b (commit %s) ready at %s\n' "$C_GREEN" "$final_version" "$C_RESET" "$final_commit" "$DEST"
   if [ "${REBUILD_NEEDED:-1}" -eq 0 ]; then
-    say "  (no source change since last install; build was skipped)" >&2
+    say "  (no source change since last install; build was skipped)"
   fi
 fi

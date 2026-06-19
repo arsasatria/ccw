@@ -1,8 +1,8 @@
 <div align="center">
 
-# ccw
+# CCW
 
-### Run Claude Code on any model.
+### Claude Code Wrapper — Run Claude Code on any model.
 
 An open-source gateway, distributable presets, and a live statusline — for developers who want Claude Code without being locked to one provider.
 
@@ -17,23 +17,23 @@ An open-source gateway, distributable presets, and a live statusline — for dev
 
 ---
 
-## Why ccw
+## Why CCW
 
-Claude Code is the best AI coding client. ccw is the layer that makes it yours:
+Claude Code is the best AI coding client. **CCW** (Claude Code Wrapper) is the layer that makes it yours:
 
 - **One client, every model.** Run Claude Code against OpenAI, Anthropic, Gemini, Groq, OpenRouter, Azure, Ollama, Volcengine — or any HTTP endpoint you can describe. No fork, no patch, no waiting on a release.
-- **Per-task routing.** Send long-context work to a 1M-token model, thinking to a reasoning model, background chores to a cheap fast one. ccw picks the right model for each kind of work, automatically.
+- **Per-task routing.** Send long-context work to a 1M-token model, thinking to a reasoning model, background chores to a cheap fast one. CCW picks the right model for each kind of work, automatically.
 - **Presets you can share.** A preset is a folder you can commit, version, and hand to a teammate. Marketplace or local — one command to install, one command to switch.
 - **A statusline that tells the truth.** Live model, live token spend, live cost — surfaced inside Claude Code, not buried in a JSON log.
 - **A web UI for the rest.** Manage providers, route rules, transformers, and presets in a panel that looks like a control deck, not a settings dump.
 
-## What ccw is
+## What CCW is
 
-ccw is a small local server that sits between Claude Code and your LLM providers.
+CCW (Claude Code Wrapper) is a small local server that sits between Claude Code and your LLM providers.
 
 ```
 ┌──────────────────┐     Anthropic-format      ┌──────────────────┐
-│  Claude Code     │  ───────────────────────► │       ccw        │
+│  Claude Code     │  ───────────────────────► │       CCW        │
 │  (the client)    │  ◄───────────────────────  │  local gateway   │
 └──────────────────┘   SSE streaming response   └────────┬─────────┘
                                                          │
@@ -44,7 +44,7 @@ ccw is a small local server that sits between Claude Code and your LLM providers
                        OpenAI           Anthropic      Gemini         Groq        your endpoint
 ```
 
-When Claude Code wants to call a model, it talks to ccw. ccw:
+When Claude Code wants to call a model, it talks to CCW. CCW:
 
 1. Decides which provider and model should answer this request — based on the request kind (default / background / think / longContext / webSearch) and your routing rules.
 2. Translates the Anthropic-format request into whatever shape the target provider speaks (OpenAI Chat Completions, OpenAI Responses, Gemini, raw HTTP, etc.).

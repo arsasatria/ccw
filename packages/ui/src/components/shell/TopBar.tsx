@@ -11,7 +11,7 @@ export function TopBar() {
       <div className="mx-auto flex h-full max-w-[1100px] items-center gap-8 px-8">
         <div className="flex items-center gap-2">
           <Logo size={22} />
-          <span className="font-serif text-[14px] text-ink">ccw</span>
+          <span className="font-serif text-[14px] text-ink">CCW</span>
         </div>
         <InlineNav />
         <div className="ml-auto flex items-center gap-2">

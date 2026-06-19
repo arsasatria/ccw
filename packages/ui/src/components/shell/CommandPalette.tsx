@@ -104,10 +104,10 @@ export function CommandPalette({ open, onOpenChange }: CommandPaletteProps) {
               <span className="ml-auto text-xs text-ink-subtle">active</span>
             )}
           </CommandItem>
-          <CommandItem onSelect={run(() => i18n.changeLanguage("zh"))}>
+          <CommandItem onSelect={run(() => i18n.changeLanguage("id"))}>
             <Languages className="h-4 w-4" />
-            中文
-            {i18n.language.startsWith("zh") && (
+            Bahasa Indonesia
+            {i18n.language.startsWith("id") && (
               <span className="ml-auto text-xs text-ink-subtle">active</span>
             )}
           </CommandItem>
